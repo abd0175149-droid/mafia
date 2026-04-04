@@ -306,9 +306,6 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
             <button onClick={() => handleTieBreaker('NARROW')} className="w-full noir-card p-4 text-white hover:border-[#C5A059] transition-colors text-center font-mono uppercase tracking-widest">
               🎯 حصر التصويت بين المتعادلين (Narrow)
             </button>
-            <button onClick={handlePardon} className="w-full noir-card p-4 text-[#C5A059] hover:border-[#C5A059] transition-colors text-center font-mono uppercase tracking-widest">
-              ❌ إلغاء التصويت والانتقال لليل (Cancel)
-            </button>
             <button onClick={() => handleTieBreaker('ELIMINATE_ALL')} className="w-full bg-[#8A0303]/20 border border-[#8A0303] p-4 text-[#8A0303] font-bold text-center font-mono uppercase tracking-widest hover:bg-[#8A0303]/40 transition-colors">
               💀 إقصاء جميع المتعادلين (Eliminate All)
             </button>
@@ -323,11 +320,11 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
               💀 تنفيذ الإقصاء (Execute Elimination)
             </button>
             <button
-              onClick={handlePardon}
+              onClick={() => handleTieBreaker('REVOTE')}
               disabled={loading}
-              className="w-full bg-[#2E5C31]/20 border-2 border-[#2E5C31] text-[#44ff44] p-5 font-mono uppercase tracking-widest hover:bg-[#2E5C31]/40 transition-colors text-lg"
+              className="w-full bg-[#C5A059]/10 border-2 border-[#C5A059]/50 text-[#C5A059] p-5 font-mono uppercase tracking-widest hover:bg-[#C5A059]/20 transition-colors text-lg"
             >
-              ✅ العفو والانتقال لليل (Pardon & Move to Night)
+              🔁 سحب الأصوات وإعادة التصويت (Revote)
             </button>
           </div>
         )}
