@@ -19,6 +19,7 @@ import { registerDayEvents } from './sockets/day.socket.js';
 import { registerNightEvents } from './sockets/night.socket.js';
 import { registerGameEvents } from './sockets/game.socket.js';
 import { createRoom, addPlayer, updatePlayer } from './game/state.js';
+import { activeRooms } from './sockets/lobby.socket.js';
 
 async function main() {
   // ── 1. Express Setup ──────────────────────────
@@ -105,6 +106,16 @@ async function main() {
         await addPlayer(state.roomId, i + 1, names[i], `070000000${i}`, null);
         await updatePlayer(state.roomId, i + 1, { gender: genders[i], dob: '1995-01-01' });
       }
+
+      activeRooms.set(state.roomId, {
+        roomId: state.roomId,
+        roomCode: state.roomCode,
+        gameName: state.config.gameName,
+        playerCount: 10,
+        maxPlayers: state.config.maxPlayers,
+        displayPin: state.config.displayPin,
+      });
+
       console.log(`✅ Dummy Game seeded successfully!`);
       console.log(`   PIN (الشاشة الرئيسية): 2026`);
       console.log(`   Room Code (رمز الغرفة): ${state.roomCode}`);
