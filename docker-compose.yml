@@ -22,36 +22,20 @@ services:
       dockerfile: Dockerfile
     ports:
       - "4000:4000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - NODE_ENV=production
       - PORT=4000
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://host.docker.internal:6379
       - DATABASE_URL=postgresql://mafia_user:mafia_pass@postgres:5432/mafia_db
       - SESSION_SECRET=${SESSION_SECRET:-change-me-in-production}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
     depends_on:
-      redis:
-        condition: service_healthy
       postgres:
         condition: service_healthy
-    networks:
-      - mafia_net
-    restart: unless-stopped
-
-  # ── Redis (In-Memory State) ─────────────────────
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
     networks:
       - mafia_net
     restart: unless-stopped
@@ -77,7 +61,6 @@ services:
     restart: unless-stopped
 
 volumes:
-  redis_data:
   postgres_data:
 
 networks:
