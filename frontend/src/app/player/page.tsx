@@ -353,6 +353,3 @@ function PlayerFlow({ initialRoomCode = '' }: { initialRoomCode?: string }) {
     </div>
   );
 }
-
-// Export للاستخدام في صفحة /join/[roomCode]
-export { PlayerFlow };
