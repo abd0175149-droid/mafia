@@ -56,18 +56,27 @@ function DroppablePlayerCard({ player, children }: { player: any; children: Reac
     data: { physicalId: player.physicalId },
   });
 
+  const isFemale = player.gender === 'FEMALE';
+
   return (
     <div
       ref={setNodeRef}
       className={`bg-[#0c0c0c] border p-4 flex flex-col items-center gap-3 relative transition-colors ${
-        isOver ? 'border-[#C5A059] bg-[#C5A059]/10' : 'border-[#2a2a2a]'
+        isOver 
+          ? 'border-[#C5A059] bg-[#C5A059]/10' 
+          : isFemale ? 'border-[#5C2329]/50' : 'border-[#2a2a2a]'
       }`}
     >
-      <div className="w-12 h-12 rounded-none bg-[#111] border border-[#2a2a2a] flex items-center justify-center text-[#808080] font-mono text-xl z-10 relative">
+      <div className={`w-12 h-12 rounded-none bg-[#111] border flex items-center justify-center font-mono text-xl z-10 relative ${
+        isFemale ? 'border-[#5C2329] text-[#e0a6af]' : 'border-[#2a2a2a] text-[#808080]'
+      }`}>
         {player.physicalId}
       </div>
       <div className="text-center w-full z-10 relative">
-        <p className="font-bold text-sm text-white truncate">{player.name}</p>
+        <p className={`font-bold text-sm truncate ${isFemale ? 'text-[#ffccd5]' : 'text-white'}`}>{player.name}</p>
+        <p className="text-[9px] uppercase tracking-widest mt-1 opacity-50 font-mono text-[#808080]">
+          {isFemale ? 'FEMALE' : 'MALE'}
+        </p>
       </div>
       
       {/* Role Placement Area */}
@@ -197,8 +206,11 @@ export default function LeaderRoleBinding({ gameState, emit, setError }: LeaderR
   };
 
   const handleStartGame = async () => {
-    if (Object.keys(boundPlayers).length !== gameState.players.length) {
-      setError('يجب توزيع جميع الأدوار على اللاعبين قبل البدء');
+    // Cannot start if there are essential roles left unbound
+    const essentialUnbound = unboundRoles.filter(r => r.role !== Role.CITIZEN);
+    
+    if (essentialUnbound.length > 0) {
+      setError('يجب توزيع جميع الأدوار الخاصة قبل البدء (تم استثناء دور المواطن)');
       return;
     }
     
@@ -226,13 +238,15 @@ export default function LeaderRoleBinding({ gameState, emit, setError }: LeaderR
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         {/* Unbound Roles Pool */}
         <div className="noir-card p-6 mb-8 border-[#2a2a2a] min-h-[120px] bg-[#0a0a0a]">
-          <h3 className="text-xs font-mono text-[#555] uppercase tracking-widest mb-4">Unassigned Chips ({unboundRoles.length})</h3>
+          <h3 className="text-xs font-mono text-[#555] uppercase tracking-widest mb-4">
+            Unassigned Action Chips ({unboundRoles.filter(r => r.role !== Role.CITIZEN).length})
+          </h3>
           <div className="flex flex-wrap gap-3 items-center">
-            {unboundRoles.map(r => (
+            {unboundRoles.filter(r => r.role !== Role.CITIZEN).map(r => (
               <DraggableRoleChip key={r.id} id={r.id} role={r.role} />
             ))}
-            {unboundRoles.length === 0 && (
-              <p className="text-[#808080] font-mono text-xs w-full text-center">ALL CHIPS ASSIGNED</p>
+            {unboundRoles.filter(r => r.role !== Role.CITIZEN).length === 0 && (
+              <p className="text-[#808080] font-mono text-xs w-full text-center">ALL ACTION CHIPS ASSIGNED</p>
             )}
           </div>
         </div>
@@ -271,14 +285,14 @@ export default function LeaderRoleBinding({ gameState, emit, setError }: LeaderR
       <div className="text-center">
         <button
           onClick={handleStartGame}
-          disabled={unboundRoles.length > 0 || loading}
+          disabled={unboundRoles.filter(r => r.role !== Role.CITIZEN).length > 0 || loading}
           className="btn-premium px-12 py-4 disabled:opacity-50 disabled:grayscale transition-all"
         >
           <span className="text-white">{loading ? 'INITIALIZING...' : 'LOCK IDENTITIES & COMMENCE DAY'}</span>
         </button>
-        {unboundRoles.length > 0 && (
+        {unboundRoles.filter(r => r.role !== Role.CITIZEN).length > 0 && (
           <p className="text-[#8A0303] text-[10px] font-mono mt-4 uppercase tracking-[0.2em] animate-pulse">
-            WARNING: {unboundRoles.length} CHIPS UNASSIGNED
+            WARNING: {unboundRoles.filter(r => r.role !== Role.CITIZEN).length} ACTION CHIPS UNASSIGNED
           </p>
         )}
       </div>

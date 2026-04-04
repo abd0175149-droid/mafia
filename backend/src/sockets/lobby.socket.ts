@@ -369,12 +369,38 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
       const state = await getRoom(data.roomId);
       if (!state) return callback({ success: false, error: 'Room not found' });
 
-      const unbound = state.players.filter(p => !p.role);
-      if (unbound.length > 0) {
-        return callback({
-          success: false,
-          error: `اللاعبون التالون بدون أدوار: ${unbound.map(p => `#${p.physicalId}`).join(', ')}`,
-        });
+      const unboundPlayers = state.players.filter(p => !p.role);
+      if (unboundPlayers.length > 0) {
+        // Calculate remaining roles in the pool
+        const pool = [...(state.rolesPool || [])];
+        for (const p of state.players) {
+           if (p.role) {
+             const idx = pool.indexOf(p.role);
+             if (idx !== -1) pool.splice(idx, 1);
+           }
+        }
+        
+        // Are ALL remaining roles 'CITIZEN'? (Only Citizens can be auto-assigned)
+        const nonCitizenRoles = pool.filter(r => r !== Role.CITIZEN);
+        if (nonCitizenRoles.length > 0) {
+           return callback({
+               success: false,
+               error: `يجب توزيع الأدوار المميزة والمافيا كلياً. المتبقي: ${nonCitizenRoles.join(', ')}`,
+           });
+        }
+        
+        if (pool.length !== unboundPlayers.length) {
+            return callback({ success: false, error: 'عدد الأدوار المتبقية لا يطابق عدد اللاعبين غير المربوطين.' });
+        }
+        
+        // Auto-assign remaining CITIZEN roles
+        for (let i = 0; i < unboundPlayers.length; i++) {
+           await bindRole(data.roomId, unboundPlayers[i].physicalId, Role.CITIZEN);
+        }
+        
+        // Refresh state object with the updated roles from memory
+        Object.assign(state, await getRoom(data.roomId));
+        console.log(`🤖 Auto-bound ${unboundPlayers.length} citizens in room ${data.roomId}`);
       }
 
       await setPhase(data.roomId, Phase.DAY_DISCUSSION);
