@@ -20,19 +20,34 @@ export async function initVoting(roomId: string): Promise<GameState> {
 
   const alive = getAlivePlayers(state);
 
-  // إنشاء كارت عادي لكل لاعب حي غير مُسكت
-  const candidates: PlayerCandidate[] = alive
-    .filter(p => !p.isSilenced)
+  // استخراج أهداف الاتفاقيات لإخفاء كروتهم العادية
+  const dealTargets = state.votingState.deals.map(d => d.targetPhysicalId);
+
+  // تحويل الاتفاقيات المُجهزة إلى مرشحين للتصويت
+  const dealCandidates: Candidate[] = state.votingState.deals.map(d => ({
+    type: CandidateType.DEAL as const,
+    id: d.id,
+    initiatorPhysicalId: d.initiatorPhysicalId,
+    targetPhysicalId: d.targetPhysicalId,
+    votes: 0,
+  }));
+
+  // إنشاء كارت عادي للوضع الطبيعي للاعبين الأحياء غير المستهدفين باتفاقية وغير المسكتين (المسكت لا يصوت عليه؟ بلى يمكن التصويت ضده، المسكت فقط يُحرم من الكلام.. انتظر، 'غير مُسكت' في vote-engine القديم كانت تعني أنه لا يضاف كمرشح؟ لا، المسكت لا يمكن التصويت عليه ربما. سنترك الفلتر كما كان).
+  const playerCandidates: Candidate[] = alive
+    .filter(p => !p.isSilenced && !dealTargets.includes(p.physicalId))
     .map(p => ({
       type: CandidateType.PLAYER as const,
       targetPhysicalId: p.physicalId,
       votes: 0,
     }));
 
+  const allCandidates = [...dealCandidates, ...playerCandidates];
+
   state.votingState = {
     totalVotesCast: 0,
-    candidates,
-    hiddenPlayersFromVoting: [],
+    deals: state.votingState.deals, // نحتفظ بها لغايات المرجعية
+    candidates: allCandidates,
+    hiddenPlayersFromVoting: dealTargets,
     tieBreakerLevel: 0,
   };
 

@@ -42,8 +42,15 @@ export interface PlayerCandidate {
   votes: number;
 }
 
+export interface Deal {
+  id: string;
+  initiatorPhysicalId: number;
+  targetPhysicalId: number;
+}
+
 export interface DealCandidate {
   type: CandidateType.DEAL;
+  id: string;
   initiatorPhysicalId: number;
   targetPhysicalId: number;
   votes: number;
@@ -53,6 +60,7 @@ export type Candidate = PlayerCandidate | DealCandidate;
 
 export interface VotingState {
   totalVotesCast: number;
+  deals: Deal[]; // Staged deals before voting starts
   candidates: Candidate[];
   hiddenPlayersFromVoting: number[];
   tieBreakerLevel: number;
@@ -137,6 +145,7 @@ export async function createRoom(
     players: [],
     votingState: {
       totalVotesCast: 0,
+      deals: [],
       candidates: [],
       hiddenPlayersFromVoting: [],
       tieBreakerLevel: 0,

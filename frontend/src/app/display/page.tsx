@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Phase } from '@/lib/constants';
 import { getSocket } from '@/lib/socket';
 import type { Socket } from 'socket.io-client';
+import DisplayDayView from './DisplayDayView';
 
 // ══════════════════════════════════════════════════════
 // 📺 شاشة العرض - Display Page
@@ -412,6 +413,11 @@ export default function DisplayPage() {
               </div>
             </div>
           </motion.div>
+        )}
+
+        {/* ═══ النهار ═══ */}
+        {step === 'lobby' && phase.startsWith('DAY_') && (
+          <DisplayDayView key="day-view" roomId={currentRoomId} players={players} />
         )}
 
         {/* ═══ الليل ═══ */}

@@ -53,11 +53,10 @@ export function registerDayEvents(io: Server, socket: Socket) {
       const state = await createDeal(data.roomId, data.initiatorPhysicalId, data.targetPhysicalId);
 
       io.to(data.roomId).emit('day:deal-created', {
-        candidates: state.votingState.candidates,
-        hiddenPlayers: state.votingState.hiddenPlayersFromVoting,
+        deals: state.votingState.deals,
       });
 
-      callback({ success: true });
+      callback({ success: true, deals: state.votingState.deals });
     } catch (err: any) {
       callback({ success: false, error: err.message });
     }
@@ -66,22 +65,20 @@ export function registerDayEvents(io: Server, socket: Socket) {
   // ── إلغاء اتفاقية ──────────────────────────────
   socket.on('day:remove-deal', async (data: {
     roomId: string;
-    initiatorPhysicalId: number;
-    targetPhysicalId: number;
+    dealId: string;
   }, callback) => {
     try {
       if (socket.data.role !== 'leader') {
         return callback({ success: false, error: 'Only leader' });
       }
 
-      const state = await removeDeal(data.roomId, data.initiatorPhysicalId, data.targetPhysicalId);
+      const state = await removeDeal(data.roomId, data.dealId);
 
       io.to(data.roomId).emit('day:deal-removed', {
-        candidates: state.votingState.candidates,
-        hiddenPlayers: state.votingState.hiddenPlayersFromVoting,
+        deals: state.votingState.deals,
       });
 
-      callback({ success: true });
+      callback({ success: true, deals: state.votingState.deals });
     } catch (err: any) {
       callback({ success: false, error: err.message });
     }
@@ -119,7 +116,7 @@ export function registerDayEvents(io: Server, socket: Socket) {
     }
   });
 
-  // ── حسم النتيجة ──────────────────────────────
+  // ── حسم النتيجة (إرسال النتيجة لليدر فقط أو كتم هويات مؤقتاً) ──
   socket.on('day:resolve', async (data: { roomId: string }, callback) => {
     try {
       if (socket.data.role !== 'leader') {
@@ -134,24 +131,47 @@ export function registerDayEvents(io: Server, socket: Socket) {
           tiedCandidates: result.tiedCandidates,
         });
       } else {
-        io.to(data.roomId).emit('day:elimination', {
+        // نبعث للمشاهد رسالة أن النتيجة حُسمت وأن هناك مقصيين، لكن لا نكشف الأدوار!
+        io.to(data.roomId).emit('day:elimination-pending', {
           eliminated: result.eliminated,
-          revealedRoles: result.revealedRoles,
           type: result.type,
         });
-
-        // فحص نهاية اللعبة
-        if (result.winResult !== WinResult.GAME_CONTINUES) {
-          const state = await getRoom(data.roomId);
-          io.to(data.roomId).emit('game:over', {
-            winner: result.winResult === WinResult.MAFIA_WIN ? 'MAFIA' : 'CITIZEN',
-            players: state?.players,
-          });
-          await setPhase(data.roomId, Phase.GAME_OVER);
-        }
+        
+        // نحتفظ بالنتيجة النهائية ليستخدمها الليدر فوراً
       }
 
       callback({ success: true, result });
+    } catch (err: any) {
+      callback({ success: false, error: err.message });
+    }
+  });
+
+  // ── كشف النتيجة ──────────────────────────────
+  socket.on('day:trigger-reveal', async (data: { roomId: string, result: any }, callback) => {
+    try {
+      if (socket.data.role !== 'leader') {
+        return callback({ success: false, error: 'Only leader' });
+      }
+
+      const result = data.result;
+      
+      io.to(data.roomId).emit('day:elimination-revealed', {
+        eliminated: result.eliminated,
+        revealedRoles: result.revealedRoles,
+        type: result.type,
+      });
+
+      // فحص نهاية اللعبة
+      if (result.winResult !== WinResult.GAME_CONTINUES) {
+        const state = await getRoom(data.roomId);
+        io.to(data.roomId).emit('game:over', {
+          winner: result.winResult === WinResult.MAFIA_WIN ? 'MAFIA' : 'CITIZEN',
+          players: state?.players,
+        });
+        await setPhase(data.roomId, Phase.GAME_OVER);
+      }
+
+      callback({ success: true });
     } catch (err: any) {
       callback({ success: false, error: err.message });
     }
