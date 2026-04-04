@@ -11,24 +11,21 @@ services:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:4000/api}
     depends_on:
       - backend
-    networks:
-      - mafia_net
     restart: unless-stopped
 
   # ── Backend (Node.js + Socket.IO) ───────────────
+  # network_mode: host → يشارك شبكة السيرفر مباشرة
+  # فيقدر يوصل Redis على localhost:6379
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    ports:
-      - "4000:4000"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    network_mode: host
     environment:
       - NODE_ENV=production
       - PORT=4000
-      - REDIS_URL=redis://host.docker.internal:6379
-      - DATABASE_URL=postgresql://mafia_user:mafia_pass@postgres:5432/mafia_db
+      - REDIS_URL=redis://127.0.0.1:6379
+      - DATABASE_URL=postgresql://mafia_user:mafia_pass@127.0.0.1:5432/mafia_db
       - SESSION_SECRET=${SESSION_SECRET:-change-me-in-production}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
@@ -36,8 +33,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    networks:
-      - mafia_net
     restart: unless-stopped
 
   # ── PostgreSQL (Persistent DB) ──────────────────
@@ -56,13 +51,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
-    networks:
-      - mafia_net
     restart: unless-stopped
 
 volumes:
   postgres_data:
-
-networks:
-  mafia_net:
-    driver: bridge
