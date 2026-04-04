@@ -389,18 +389,52 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
   // RENDER PENDING REVEAL
   // ==========================================
   if (gameState.phase === 'DAY_RESOLUTION_PENDING') {
+    const pending = gameState.pendingResolution;
+    const eliminatedIds: number[] = pending?.eliminated || [];
+    const pendingRolesArr = pending?.revealedRoles || [];
+    const pendingRolesMap: Record<number, string> = {};
+    pendingRolesArr.forEach((r: any) => { pendingRolesMap[r.physicalId] = r.role; });
+
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center h-[50vh]">
-        <h2 className="text-3xl font-black text-[#8A0303] mb-6" style={{ fontFamily: 'Amiri, serif' }}>اكتمل التصويت وجاهز للحسم</h2>
-        <p className="text-[#808080] font-mono uppercase tracking-widest text-sm mb-12">
-          TARGET ELIMINATED. AWAITING DIRECTOR ORDER TO DECLASSIFY IDENTITIES...
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <h2 className="text-2xl font-black text-[#8A0303] mb-2" style={{ fontFamily: 'Amiri, serif' }}>اكتمل التصويت وجاهز للحسم</h2>
+        <p className="text-[#808080] font-mono uppercase tracking-widest text-[10px] mb-8">
+          AWAITING DIRECTOR ORDER TO DECLASSIFY IDENTITIES...
         </p>
+
+        {/* كروت المُقصَين — مرئية لليدر فقط */}
+        <div className="space-y-3 mb-8 w-full max-w-sm">
+          <p className="text-[#555] font-mono text-[10px] tracking-widest uppercase mb-2">🔒 LEADER EYES ONLY</p>
+          {eliminatedIds.map((physicalId: number) => {
+            const player = gameState.players.find((p: any) => p.physicalId === physicalId);
+            const role = pendingRolesMap[physicalId] || player?.role || 'UNKNOWN';
+            const isMafia = ['GODFATHER','SILENCER','CHAMELEON','MAFIA_REGULAR'].includes(role);
+
+            return (
+              <div key={physicalId} className={`border p-4 flex items-center gap-4 bg-black/60 ${isMafia ? 'border-[#ff4444]/40' : 'border-[#44ff44]/40'}`}>
+                <div className={`w-12 h-12 border-2 rounded-full flex items-center justify-center font-mono text-xl font-black shrink-0 ${
+                  isMafia ? 'border-[#ff4444] text-[#ff4444]' : 'border-[#44ff44] text-[#44ff44]'
+                }`}>
+                  {physicalId}
+                </div>
+                <div className="text-right flex-1">
+                  <p className="text-white font-bold text-sm" style={{ fontFamily: 'Amiri, serif' }}>{player?.name || 'Unknown'}</p>
+                  <p className={`font-mono text-xs font-bold ${isMafia ? 'text-[#ff4444]' : 'text-[#44ff44]'}`}>
+                    {isMafia ? '🎭' : '🏛'} {role}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
         <button
           onClick={handleTriggerReveal}
-          className="btn-premium px-16 py-6 !text-2xl !border-[#8A0303] animate-pulse"
+          className="btn-premium px-12 py-5 !text-lg !border-[#8A0303] animate-pulse"
         >
           <span className="text-white">DECLASSIFY AND REVEAL IDENTITY 💀</span>
         </button>
+        <p className="text-[#555] font-mono text-[9px] mt-3 tracking-widest">الضغط سيكشف الهوية لجميع اللاعبين</p>
       </div>
     );
   }
