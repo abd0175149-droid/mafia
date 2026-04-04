@@ -130,7 +130,7 @@ export interface GameState {
     type: 'ELIMINATE' | 'ACCEPT_DEAL' | 'REJECT_DEAL' | 'NONE';
   } | null;
   tiedCandidates?: Candidate[]; // In case of tie
-  winner: 'MAFIA' | 'CITIZENS' | null;
+  winner: 'MAFIA' | 'CITIZEN' | null;
   createdAt: string;
 }
 
