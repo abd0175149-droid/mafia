@@ -14,10 +14,6 @@
     --color-success: #2E5C31; /* Darker green */
     --color-danger: #8A0303;
   }
-    --color-success: #22c55e;
-    --color-danger: #ef4444;
-  }
-
   * {
     margin: 0;
     padding: 0;
