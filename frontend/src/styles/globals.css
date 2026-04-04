@@ -2,15 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700;800;900&family=Amiri:wght@400;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 @layer base {
   :root {
-    --color-primary: #ef4444;
-    --color-secondary: #3b82f6;
-    --color-dark-bg: #0f172a;
-    --color-dark-surface: #1e293b;
-    --color-dark-card: #162032;
-    --color-gold: #eab308;
+    --color-primary: #8A0303; /* Blood Red */
+    --color-secondary: #C5A059; /* Vintage Gold */
+    --color-dark-bg: #050505; /* Pitch Black */
+    --color-dark-surface: #111111; /* Charcoal */
+    --color-dark-card: #1A1A1A;
+    --color-gold: #C5A059;
+    --color-success: #2E5C31; /* Darker green */
+    --color-danger: #8A0303;
+  }
     --color-success: #22c55e;
     --color-danger: #ef4444;
   }
@@ -26,9 +29,20 @@
   }
 
   body {
-    @apply bg-dark-900 text-white font-sans antialiased;
+    @apply bg-dark-950 text-white font-sans antialiased relative;
     direction: rtl;
     min-height: 100vh;
+    background-color: #050505;
+  }
+
+  /* ── Noise Overlay ── */
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
   }
 
   /* Custom Scrollbar */
@@ -50,40 +64,35 @@
 }
 
 @layer components {
-  /* ── Glassmorphism Card ─────────────────── */
-  .glass-card {
-    @apply bg-dark-900/40 backdrop-blur-2xl border border-white/5 rounded-3xl shadow-2xl overflow-hidden relative;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  /* ── Noir Card (Classic, Sharp, Serious) ─────────────────── */
+  .noir-card {
+    @apply bg-[#0c0c0c] border border-[#2a2a2a] rounded-none shadow-[0_15px_30px_rgba(0,0,0,0.8)] relative overflow-hidden;
   }
 
-  .glass-card::before {
+  .noir-card::before {
     content: '';
-    @apply absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 transition-opacity duration-500 pointer-events-none;
+    @apply absolute inset-0 border-[1.5px] border-dark-800 m-1 pointer-events-none;
   }
 
-  .glass-card:hover::before {
-    @apply opacity-100;
-  }
-
-  .glass-card-hover {
-    @apply glass-card transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_-10px_rgba(234,179,8,0.15)] hover:border-gold-500/20;
+  .noir-card-hover {
+    @apply noir-card transition-all duration-300 hover:-translate-y-1 hover:border-[#8A0303]/40 hover:shadow-[0_20px_40px_rgba(138,3,3,0.15)];
   }
 
   /* ── Player Card ─────────────────────────── */
   .player-card {
-    @apply glass-card p-4 flex items-center gap-3 cursor-pointer transition-all duration-300;
+    @apply noir-card p-4 flex items-center gap-3 cursor-pointer transition-all duration-300;
   }
 
   .player-card.alive {
-    @apply border-emerald-500/30 hover:border-emerald-400/60;
+    @apply border-dark-600 hover:border-[#C5A059]/60;
   }
 
   .player-card.dead {
-    @apply opacity-40 grayscale border-dark-700/30 cursor-not-allowed;
+    @apply opacity-30 grayscale border-dark-900 cursor-not-allowed;
   }
 
   .player-card.silenced {
-    @apply border-amber-500/30;
+    @apply border-dark-500 bg-[#111111];
   }
 
   .player-card.registered {
@@ -114,85 +123,52 @@
 
   /* ── Buttons ──────────────────────────────── */
   .btn-primary {
-    @apply px-6 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-mafia-600 to-mafia-700 
-           hover:from-mafia-500 hover:to-mafia-600 
-           transition-all duration-300 shadow-lg shadow-mafia-950/50
-           active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply px-6 py-3 rounded-none font-bold text-white bg-[#8A0303] border border-red-950
+           hover:bg-[#a00303] transition-all duration-200 shadow-[0_5px_15px_rgba(138,3,3,0.3)]
+           active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider;
   }
 
   .btn-secondary {
-    @apply px-6 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-citizen-600 to-citizen-700 
-           hover:from-citizen-500 hover:to-citizen-600 
-           transition-all duration-300 shadow-lg shadow-citizen-950/50
-           active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply px-6 py-3 rounded-none font-bold text-dark-950 bg-[#C5A059] border border-amber-700
+           hover:bg-[#d4b069] transition-all duration-200 
+           active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider;
   }
 
   .btn-ghost {
-    @apply px-6 py-3 rounded-xl font-bold text-dark-300 border border-dark-600 
-           hover:bg-dark-800 hover:text-white 
-           transition-all duration-300
-           active:scale-95;
-  }
-
-  .btn-vote {
-    @apply w-12 h-12 rounded-xl font-bold text-xl flex items-center justify-center 
-           transition-all duration-200 active:scale-90;
-  }
-
-  .btn-vote.plus {
-    @apply bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600/40;
-  }
-
-  .btn-vote.minus {
-    @apply bg-mafia-600/20 text-mafia-400 border border-mafia-500/30 hover:bg-mafia-600/40;
-  }
-
-  /* ── Vote Counter ──────────────────────────── */
-  .vote-counter {
-    @apply text-4xl font-black tabular-nums text-gold-400;
-  }
-
-  /* ── Night Queue Step ─────────────────────── */
-  .queue-step {
-    @apply glass-card p-6 border-l-4 transition-all duration-500;
-  }
-
-  .queue-step.active {
-    @apply border-l-gold-500 bg-gold-500/5;
-  }
-
-  .queue-step.completed {
-    @apply border-l-emerald-500 opacity-60;
-  }
-
-  .queue-step.pending {
-    @apply border-l-dark-600 opacity-40;
+    @apply px-6 py-3 rounded-none font-bold text-dark-400 border border-[#2a2a2a] 
+           hover:bg-[#111111] hover:text-[#C5A059] hover:border-[#C5A059]/40
+           transition-all duration-200 active:scale-95;
   }
 
   /* ── Display Screen Background ─────────────── */
   .display-bg {
-    @apply bg-dark-950 min-h-screen relative overflow-hidden;
+    @apply bg-[#050505] min-h-screen relative overflow-hidden;
+    background-image: radial-gradient(circle at 50% 0%, #111111 0%, #050505 70%);
   }
 
-  .ambient-sphere {
-    @apply absolute rounded-full blur-[120px] opacity-40 mix-blend-screen pointer-events-none;
-  }
-
-  /* ── Modern Premium Buttons ───────────────── */
+  /* ── Modern Premium Buttons (Noir Variant) ───────────────── */
   .btn-premium {
-    @apply relative px-8 py-4 rounded-2xl font-black text-xl overflow-hidden transition-all duration-500 transform
-           hover:-translate-y-1 hover:shadow-2xl active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed
-           bg-dark-800 border border-white/10;
+    @apply relative px-8 py-4 rounded-none font-black text-xl overflow-hidden transition-all duration-300 transform
+           hover:-translate-y-[2px] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed
+           bg-[#0c0c0c] border border-[#2a2a2a] text-[#C5A059] uppercase tracking-[0.2em];
   }
 
   .btn-premium::before {
     content: '';
-    @apply absolute inset-0 bg-gradient-to-r from-mafia-600 via-gold-500 to-mafia-600 opacity-0 transition-opacity duration-500;
-    z-index: 0;
+    @apply absolute inset-0 border-2 border-[#8A0303] opacity-0 transition-opacity duration-300 pointer-events-none;
   }
 
   .btn-premium:hover::before {
-    @apply opacity-40;
+    @apply opacity-100;
+  }
+
+  .btn-premium::after {
+    content: '';
+    @apply absolute top-0 left-[-100%] w-[50%] h-full bg-gradient-to-r from-transparent via-white/5 to-transparent transition-all duration-700 pointer-events-none;
+  }
+
+  .btn-premium:hover::after {
+    left: 200%;
   }
 
   .btn-premium span {
@@ -202,14 +178,14 @@
 
 @layer utilities {
   .text-gradient-mafia {
-    @apply bg-gradient-to-r from-mafia-400 to-mafia-600 bg-clip-text text-transparent;
+    @apply text-[#8A0303] drop-shadow-[0_2px_4px_rgba(0,0,0,1)];
   }
 
   .text-gradient-citizen {
-    @apply bg-gradient-to-r from-citizen-400 to-citizen-600 bg-clip-text text-transparent;
+    @apply text-[#e2e2e2] drop-shadow-[0_2px_4px_rgba(0,0,0,1)];
   }
 
   .text-gradient-gold {
-    @apply bg-gradient-to-r from-gold-400 to-amber-500 bg-clip-text text-transparent;
+    @apply text-[#C5A059] drop-shadow-[0_2px_4px_rgba(0,0,0,1)];
   }
 }

@@ -213,17 +213,12 @@ export default function DisplayPage() {
   // 🖥️ واجهة العرض
   // ══════════════════════════════════════════════════
   return (
-    <div className="display-bg flex flex-col items-center justify-center p-8 font-arabic">
+    <div className="display-bg flex flex-col items-center justify-center p-8 font-sans selection:bg-[#8A0303] selection:text-white">
       
-      {/* ── Cinematic Ambient Lighting ── */}
-      <div className="ambient-sphere w-[600px] h-[600px] bg-mafia-600/10 top-[-20%] left-[-10%] animate-pulse" style={{ animationDuration: '8s' }} />
-      <div className="ambient-sphere w-[800px] h-[800px] bg-citizen-600/10 bottom-[-30%] right-[-10%] animate-pulse" style={{ animationDuration: '12s', animationDelay: '2s' }} />
-      <div className="ambient-sphere w-[400px] h-[400px] bg-gold-500/10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-
       {/* Connection indicator */}
-      <div className="absolute top-6 left-6 flex items-center gap-3 bg-dark-900/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/5 shadow-xl z-20">
-        <div className={`w-3 h-3 rounded-full shadow-[0_0_10px_currentColor] ${isConnected ? 'bg-emerald-400 text-emerald-400 animate-pulse' : 'bg-red-500 text-red-500'}`} />
-        <span className="text-xs font-bold tracking-widest text-dark-300 uppercase">{isConnected ? 'متصل بالسيرفر' : 'غير متصل'}</span>
+      <div className="absolute top-6 left-6 flex items-center gap-3 bg-[#0c0c0c] border border-[#2a2a2a] px-4 py-2 opacity-80 z-20">
+        <div className={`w-3 h-3 ${isConnected ? 'bg-[#2E5C31] shadow-[0_0_10px_#2E5C31] animate-pulse' : 'bg-[#8A0303]'}`} />
+        <span className="text-xs font-mono tracking-widest text-[#808080] uppercase">{isConnected ? 'Server Connected' : 'Disconnected'}</span>
       </div>
 
       <AnimatePresence mode="wait">
@@ -234,15 +229,15 @@ export default function DisplayPage() {
         {step === 'pin' && (
           <motion.div
             key="pin-screen"
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
+            exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
-            className="text-center relative z-10 glass-card p-16 border-white/10"
+            className="text-center relative z-10 noir-card p-16 w-full max-w-xl"
           >
-            <div className="text-9xl mb-8 drop-shadow-2xl">🔒</div>
-            <h1 className="text-5xl font-black mb-4 text-white tracking-widest">شاشة العرض</h1>
-            <p className="text-dark-300 mb-10 text-xl font-light">أدخل الرقم السري للوصول إلى الغرفة</p>
+            <div className="text-8xl mb-8 grayscale opacity-80">🗝️</div>
+            <h1 className="text-5xl font-black mb-4 text-white tracking-widest uppercase" style={{ fontFamily: 'Amiri, serif' }}>تصريح الدخول</h1>
+            <p className="text-[#808080] mb-10 text-lg font-mono tracking-widest">ENTER ACCESS CODE</p>
 
             <div className="mb-8">
               <input
@@ -251,30 +246,30 @@ export default function DisplayPage() {
                 value={pin}
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 placeholder="****"
-                className="w-80 p-6 rounded-3xl bg-dark-950/80 border-2 border-dark-600 text-white text-center font-mono text-5xl tracking-[0.5em] focus:border-gold-500 focus:outline-none focus:ring-4 focus:ring-gold-500/20 shadow-inner transition-all mx-auto block"
+                className="w-full max-w-[300px] p-6 bg-[#050505] border border-[#2a2a2a] text-white text-center font-mono text-5xl tracking-[0.5em] focus:border-[#C5A059] focus:outline-none focus:ring-0 transition-all mx-auto block"
                 maxLength={6}
                 autoFocus
                 onKeyDown={(e) => e.key === 'Enter' && handlePinSubmit()}
               />
-              <p className="text-dark-500 font-mono mt-3 uppercase text-sm tracking-widest">{pin.length} / 4+ أرقام</p>
+              <p className="text-[#555] font-mono mt-4 uppercase text-xs tracking-[0.4em]">{pin.length} / 4+ DIGITS</p>
             </div>
 
             {pinError && (
               <motion.div
                 initial={{ opacity: 0, y: -5 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-mafia-500/20 border border-mafia-500/50 rounded-xl p-4 mb-6 max-w-sm mx-auto backdrop-blur-md"
+                className="bg-[#8A0303]/10 border border-[#8A0303]/40 p-4 mb-6 max-w-sm mx-auto"
               >
-                <p className="text-mafia-400 font-bold">❌ {pinError}</p>
+                <p className="text-[#8A0303] font-bold font-mono text-sm uppercase tracking-widest">{pinError}</p>
               </motion.div>
             )}
 
             <button
               onClick={handlePinSubmit}
               disabled={pin.length < 4 || loading}
-              className="btn-premium w-full mt-2"
+              className="btn-premium w-full max-w-[300px] mx-auto block"
             >
-              <span>{loading ? '⏳ جاري التحقق...' : '🔓 فتح الشاشة'}</span>
+              <span>{loading ? 'VERIFYING...' : 'ACCESS'}</span>
             </button>
           </motion.div>
         )}
@@ -290,149 +285,130 @@ export default function DisplayPage() {
             exit={{ opacity: 0, y: -20 }}
             className="text-center w-full max-w-lg relative z-10"
           >
-            <div className="text-6xl mb-4">🎭</div>
-            <h2 className="text-3xl font-black mb-2 text-white">اختر اللعبة</h2>
-            <p className="text-dark-400 mb-8">{activeGames.length} ألعاب نشطة</p>
+            <div className="text-6xl mb-4 grayscale">🎭</div>
+            <h2 className="text-4xl font-black mb-2 text-white" style={{ fontFamily: 'Amiri, serif' }}>اختر اللعبة</h2>
+            <p className="text-[#808080] mb-8 font-mono">{activeGames.length} ACTIVE GAMES</p>
 
             <div className="space-y-4">
               {activeGames.map((game) => (
                 <motion.button
                   key={game.roomId}
-                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => verifyPinAndJoin(game.roomId)}
                   disabled={loading}
-                  className="glass-card p-6 w-full flex items-center justify-between hover:border-gold-500/40 transition-all text-right disabled:opacity-50"
+                  className="noir-card p-6 w-full flex items-center justify-between hover:border-[#C5A059]/40 transition-all text-right disabled:opacity-50"
                 >
                   <div>
-                    <h3 className="text-xl font-bold text-gold-400">{game.gameName}</h3>
-                    <p className="text-dark-400 text-sm mt-1">
-                      كود: <span className="font-mono text-dark-300">{game.roomCode}</span>
-                      {' • '}
-                      <span className="text-emerald-400">{game.playerCount}</span>/{game.maxPlayers} لاعب
+                    <h3 className="text-2xl font-bold text-[#C5A059]" style={{ fontFamily: 'Amiri, serif' }}>{game.gameName}</h3>
+                    <p className="text-[#808080] text-sm mt-2 font-mono">
+                      CODE: <span className="text-white">{game.roomCode}</span>
+                      {' | '}
+                      AGENTS: <span className="text-[#C5A059]">{game.playerCount}</span>/{game.maxPlayers}
                     </p>
                   </div>
-                  <div className="text-4xl">🎮</div>
                 </motion.button>
               ))}
             </div>
 
             {pinError && (
-              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-mafia-400 mt-4">
+              <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[#8A0303] font-mono mt-4">
                 {pinError}
               </motion.p>
             )}
 
             <button
               onClick={() => { setStep('pin'); setPinError(''); }}
-              className="text-dark-500 mt-6 text-sm hover:text-dark-300 transition-colors"
+              className="text-[#555] mt-8 text-sm hover:text-white transition-colors font-mono tracking-widest uppercase"
             >
-              ← رجوع
+              [ Return ]
             </button>
           </motion.div>
         )}
 
         {/* ══════════════════════════════════════════ */}
-        {/* شاشة اللوبي (QR + عداد)                  */}
+        {/* شاشة اللوبي                             */}
         {/* ══════════════════════════════════════════ */}
         {step === 'lobby' && phase === Phase.LOBBY && (
           <motion.div
             key="lobby-screen"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.05 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.8, ease: 'easeOut' }}
-            className="w-full max-w-7xl relative z-10"
+            className="w-full max-w-6xl relative z-10"
           >
             {/* عنوان اللعبة */}
-            <motion.div className="text-center mb-16">
-              <h1 className="text-6xl md:text-8xl font-black tracking-tight drop-shadow-2xl">
-                <span className="text-gradient-gold">🎭 {gameName}</span>
+            <motion.div className="flex items-center justify-between border-b-2 border-[#2a2a2a] pb-6 mb-12">
+              <h1 className="text-6xl md:text-7xl font-black tracking-tighter" style={{ fontFamily: 'Amiri, serif' }}>
+                <span className="text-white">{gameName}</span>
               </h1>
+              <div className="text-right">
+                <p className="text-[#808080] text-sm uppercase tracking-widest font-mono mb-2">OPERATION CODE</p>
+                <p className="text-5xl font-mono text-[#C5A059] tracking-[0.2em]">{roomCode}</p>
+              </div>
             </motion.div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
               
               {/* القسم الأيمن: QR Code */}
-              <div className="flex flex-col items-center justify-center">
-                <motion.div 
-                  className="glass-card p-12 relative group"
-                  whileHover={{ scale: 1.02 }}
-                  transition={{ type: 'spring', stiffness: 300 }}
-                >
-                  {/* تأثيرات خلف الـ QR */}
-                  <div className="absolute inset-0 bg-gradient-to-tr from-gold-500/20 to-emerald-500/20 rounded-3xl blur-2xl group-hover:opacity-100 transition-opacity opacity-50" />
+              <div className="flex flex-col items-center">
+                <div className="noir-card p-8 mb-6 border-[#8A0303]/30 relative">
+                  <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-[#8A0303]" />
+                  <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-[#8A0303]" />
+                  <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-[#8A0303]" />
+                  <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-[#8A0303]" />
                   
-                  <div className="bg-white rounded-3xl p-6 relative z-10 shadow-[0_0_50px_rgba(255,255,255,0.1)]">
+                  <div className="bg-white p-4 grayscale contrast-125 mb-4">
                     <QRDisplay url={joinUrl} />
                   </div>
-                  <p className="text-dark-300 text-xl font-bold mt-8 text-center tracking-widest uppercase">
-                    امسح الكود بكاميرا هاتفك
+                  <p className="text-[#808080] text-sm font-mono mt-4 text-center tracking-widest uppercase">
+                    SCAN TO ENTER THE OPERATION
                   </p>
-                </motion.div>
+                </div>
               </div>
 
               {/* القسم الأيسر: الإحصائيات والأكواد */}
-              <div className="flex flex-col flex-1 h-full justify-center">
+              <div className="flex flex-col h-full">
                 
-                {/* كود اللعبة */}
-                <div className="glass-card p-8 mb-8 text-center border-gold-500/20 bg-gradient-to-bl from-dark-900/80 to-dark-950/80">
-                  <p className="text-dark-400 text-xl mb-3 uppercase tracking-widest font-bold">أو أدخل كود اللعبة يدوياً</p>
-                  <p className="text-7xl lg:text-8xl font-mono font-black text-white tracking-[0.25em] drop-shadow-[0_0_15px_rgba(234,179,8,0.3)]">
-                    {roomCode.split('').map((char, i) => (
-                      <span key={i} className={i < 3 ? 'text-gold-400' : 'text-white'}>{char}</span>
-                    ))}
-                  </p>
-                </div>
-
                 {/* عداد اللاعبين */}
-                <div className="glass-card p-10 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-3xl rounded-full" />
-                  
-                  <p className="text-dark-300 text-xl mb-4 font-bold tracking-widest uppercase">اللاعبون المسجلون</p>
-                  <div className="flex items-end gap-4 mb-6">
-                    <span className="text-8xl font-black text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.4)] leading-none">{playerCount}</span>
-                    <span className="text-4xl font-black text-dark-600 mb-2">/</span>
-                    <span className="text-4xl font-black text-dark-500 mb-2">{maxPlayers}</span>
-                  </div>
-
-                  {/* شريط التقدم */}
-                  <div className="w-full bg-dark-900 rounded-full h-4 shadow-inner">
-                    <motion.div
-                      className="h-full rounded-full bg-gradient-to-l from-emerald-400 to-emerald-600 shadow-[0_0_15px_rgba(52,211,153,0.5)] relative"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${Math.min(100, (playerCount / maxPlayers) * 100)}%` }}
-                      transition={{ duration: 1, ease: 'easeOut' }}
-                    >
-                      {/* لمعة على الشريط */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-full h-full animate-[shimmer_2s_infinite]" />
-                    </motion.div>
+                <div className="mb-10 font-mono">
+                  <p className="text-[#555] text-sm mb-2 tracking-[0.3em] uppercase">AGENTS REGISTERED</p>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-7xl font-black text-[#C5A059]">{playerCount}</span>
+                    <span className="text-3xl text-[#333]">/</span>
+                    <span className="text-3xl text-[#555]">{maxPlayers}</span>
                   </div>
                 </div>
 
                 {/* قائمة اللاعبين */}
-                {players.length > 0 && (
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="mt-8 flex flex-wrap gap-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar"
-                  >
-                    <AnimatePresence>
-                      {players.map((p, i) => (
-                        <motion.div
-                          key={p.physicalId}
-                          initial={{ opacity: 0, scale: 0.5, y: 20 }}
-                          animate={{ opacity: 1, scale: 1, y: 0 }}
-                          transition={{ delay: i * 0.05, type: 'spring' }}
-                          className="bg-dark-800/80 backdrop-blur-md border border-dark-600/50 rounded-2xl px-5 py-2 flex items-center gap-3 shadow-lg"
-                        >
-                          <span className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 font-black flex items-center justify-center text-sm">{p.physicalId}</span>
-                          <span className="text-white font-bold tracking-wide">{p.name}</span>
-                        </motion.div>
-                      ))}
-                    </AnimatePresence>
-                  </motion.div>
-                )}
+                <div>
+                  <p className="text-[#555] text-sm mb-4 tracking-[0.3em] uppercase border-b border-[#2a2a2a] pb-2">ACTIVE ROSTER</p>
+                  {players.length > 0 ? (
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar"
+                    >
+                      <AnimatePresence>
+                        {players.map((p, i) => (
+                          <motion.div
+                            key={p.physicalId}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.05 }}
+                            className="bg-[#0c0c0c] border border-[#2a2a2a] p-3 flex items-center gap-3"
+                          >
+                            <span className="text-xs font-mono text-[#555]">AGENT_{p.physicalId.toString().padStart(2, '0')}</span>
+                            <span className="text-white font-bold tracking-wider">{p.name}</span>
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
+                    </motion.div>
+                  ) : (
+                    <p className="text-[#333] font-mono italic">AWAITING AGENTS...</p>
+                  )}
+                </div>
               </div>
             </div>
           </motion.div>
@@ -440,13 +416,13 @@ export default function DisplayPage() {
 
         {/* ═══ الليل ═══ */}
         {step === 'lobby' && phase === Phase.NIGHT && (
-          <motion.div key="night" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-center relative z-10">
-            <motion.div className="text-9xl mb-8" animate={{ scale: [1, 1.1, 1], opacity: [0.7, 1, 0.7] }} transition={{ duration: 3, repeat: Infinity }}>🌙</motion.div>
-            <h2 className="text-6xl font-black text-dark-300 mb-4">الليل حلّ...</h2>
-            <p className="text-dark-500 text-2xl">الأدوار تتحرك في الظلام</p>
+          <motion.div key="night" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-center relative z-10 w-full">
+            <motion.div className="text-9xl mb-8 grayscale opacity-50" animate={{ opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 4, repeat: Infinity }}>🌑</motion.div>
+            <h2 className="text-6xl font-black text-white mb-4 tracking-widest uppercase" style={{ fontFamily: 'Amiri, serif' }}>الظلام دامس</h2>
+            <p className="text-[#808080] text-xl font-mono tracking-[0.3em]">OPERATION NIGHTFALL</p>
             <AnimatePresence>
               {animation && (
-                <motion.div initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.5 }} className="glass-card p-8 mt-8 max-w-lg mx-auto">
+                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="noir-card p-10 mt-12 max-w-lg mx-auto border-[#8A0303]/40">
                   <NightAnim data={animation} />
                 </motion.div>
               )}
@@ -456,13 +432,17 @@ export default function DisplayPage() {
 
         {/* ═══ نهاية اللعبة ═══ */}
         {step === 'lobby' && phase === Phase.GAME_OVER && winner && (
-          <motion.div key="gameover" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="text-center relative z-10">
-            <motion.div className="text-9xl mb-8" animate={{ rotate: [0, 360] }} transition={{ duration: 2 }}>
-              {winner === 'MAFIA' ? '🔪' : '🛡️'}
+          <motion.div key="gameover" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center relative z-10 w-full max-w-3xl noir-card p-20 border-[#C5A059]/40">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[100%] h-1 bg-gradient-to-r from-transparent via-[#C5A059] to-transparent opacity-50" />
+            <motion.div className="text-9xl mb-10 grayscale">
+              {winner === 'MAFIA' ? '🩸' : '⚖️'}
             </motion.div>
-            <h1 className={`text-7xl font-black ${winner === 'MAFIA' ? 'text-gradient-mafia' : 'text-gradient-citizen'}`}>
-              {winner === 'MAFIA' ? 'فازت المافيا!' : 'فاز المواطنون!'}
+            <h1 className="text-7xl font-black uppercase tracking-tighter text-white" style={{ fontFamily: 'Amiri, serif' }}>
+              {winner === 'MAFIA' ? 'انتصار المافيا' : 'تطهير المدينة'}
             </h1>
+            <p className="text-[#808080] font-mono mt-6 tracking-[0.4em] uppercase">
+              {winner === 'MAFIA' ? 'ALL CITIZENS ELIMINATED' : 'THREAT NEUTRALIZED'}
+            </p>
           </motion.div>
         )}
 
@@ -495,18 +475,18 @@ function QRDisplay({ url }: { url: string }) {
 // ══════════════════════════════════════════════════════
 function NightAnim({ data }: { data: any }) {
   const map: Record<string, { icon: string; text: string; color: string }> = {
-    ASSASSINATION: { icon: '💀', text: 'تم الاغتيال!', color: 'text-mafia-400' },
-    ASSASSINATION_BLOCKED: { icon: '🛡️', text: 'الحماية نجحت!', color: 'text-emerald-400' },
-    SILENCE: { icon: '🤐', text: 'تم الإسكات', color: 'text-amber-400' },
-    INVESTIGATION: { icon: '🔍', text: 'جاري الاستعلام...', color: 'text-citizen-400' },
-    PROTECTION: { icon: '💓', text: 'حماية نشطة', color: 'text-emerald-400' },
-    SNIPE: { icon: '🎯', text: 'قنص!', color: 'text-orange-400' },
+    ASSASSINATION: { icon: '🩸', text: 'تم التصفية', color: 'text-[#8A0303]' },
+    ASSASSINATION_BLOCKED: { icon: '⚕️', text: 'نجت الضحية', color: 'text-white' },
+    SILENCE: { icon: '🤐', text: 'ممنوع من الكلام', color: 'text-[#555555]' },
+    INVESTIGATION: { icon: '👁️', text: 'كشف الهوية', color: 'text-[#C5A059]' },
+    PROTECTION: { icon: '💉', text: 'رعاية طبية', color: 'text-[#555555]' },
+    SNIPE: { icon: '🎯', text: 'قنص قاتل', color: 'text-[#8A0303]' },
   };
-  const a = map[data.type] || { icon: '❓', text: data.type, color: 'text-white' };
+  const a = map[data.type] || { icon: '❓', text: data.type, color: 'text-[#808080]' };
   return (
-    <div className="text-center">
-      <motion.div className="text-7xl mb-4" animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1, repeat: 2 }}>{a.icon}</motion.div>
-      <p className={`text-3xl font-bold ${a.color}`}>{a.text}</p>
+    <div className="text-center border-t border-b border-[#2a2a2a] py-8">
+      <motion.div className="text-7xl mb-4 grayscale" animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 1, repeat: 2 }}>{a.icon}</motion.div>
+      <p className={`text-3xl font-black tracking-widest ${a.color}`} style={{ fontFamily: 'Amiri, serif' }}>{a.text}</p>
     </div>
   );
 }

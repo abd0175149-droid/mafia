@@ -44,53 +44,42 @@ export default function HomePage() {
   };
 
   return (
-    <div className="display-bg min-h-screen flex flex-col items-center justify-center p-6 sm:p-12 relative overflow-hidden font-arabic">
+    <div className="display-bg min-h-screen flex flex-col items-center justify-center p-6 sm:p-12 relative overflow-hidden font-arabic selection:bg-[#8A0303] selection:text-white">
       
-      {/* ── Cinematic Ambient Lighting ── */}
-      <div className="ambient-sphere w-[600px] h-[600px] bg-mafia-600/20 top-[-20%] left-[-10%] animate-pulse" style={{ animationDuration: '8s' }} />
-      <div className="ambient-sphere w-[800px] h-[800px] bg-citizen-600/10 bottom-[-30%] right-[-10%] animate-pulse" style={{ animationDuration: '12s', animationDelay: '2s' }} />
-      <div className="ambient-sphere w-[400px] h-[400px] bg-gold-500/10 top-[20%] left-[50%] -translate-x-1/2" />
-
-      {/* ── Logo & Title ── */}
+      {/* ── Logo & Title (Noir Style) ── */}
       <motion.div
-        initial={{ opacity: 0, y: -40 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1, ease: 'easeOut' }}
-        className="text-center mb-16 relative z-10"
+        transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+        className="text-center mb-16 relative z-10 w-full max-w-4xl"
       >
-        <motion.div
-          className="text-9xl mb-6 drop-shadow-2xl"
-          animate={{ y: [-10, 10, -10] }}
-          transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-        >
-          🎭
-        </motion.div>
-        <h1 className="text-6xl md:text-8xl font-black mb-4 tracking-tight drop-shadow-2xl">
-          <span className="text-gradient-mafia">محرك</span>{' '}
-          <span className="text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.3)]">المافيا</span>{' '}
-          <span className="text-gradient-citizen">الهجين</span>
+        <div className="absolute top-[-50%] left-1/2 -translate-x-1/2 w-64 h-64 bg-[#8A0303] rounded-full blur-[150px] opacity-20 pointer-events-none" />
+        
+        <h1 className="text-7xl md:text-9xl font-black mb-6 tracking-tighter mix-blend-screen" style={{ fontFamily: 'Amiri, serif' }}>
+          <span className="text-[#8A0303] tracking-normal drop-shadow-[0_5px_15px_rgba(138,3,3,0.5)]">المافيا</span>
         </h1>
-        <p className="text-dark-300 text-xl font-light max-w-2xl mx-auto tracking-wide">
-          نظام متطور لإدارة ألعاب المافيا • يدمج بين الواقع والرقمي
+        <div className="h-[1px] w-32 bg-gradient-to-r from-transparent via-[#C5A059] to-transparent mx-auto mb-6 opacity-60" />
+        <p className="text-[#a0a0a0] text-xl font-light uppercase tracking-[0.3em] font-mono">
+          Phygital Engine
         </p>
       </motion.div>
 
       {/* ── Core Navigation Cards ── */}
       <motion.div
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1, delay: 0.3, ease: 'easeOut' }}
-        className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-3xl relative z-10 mb-12"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1, delay: 0.3 }}
+        className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-3xl relative z-10 mb-16"
       >
         {/* Display Card */}
         <Link href="/display" className="group block h-full">
           <motion.div
-            className="glass-card-hover h-full p-10 text-center flex flex-col items-center justify-center border-mafia-500/10 group-hover:bg-mafia-950/40"
+            className="noir-card-hover h-full p-12 text-center flex flex-col items-center justify-center border-b-4 border-b-[#2a2a2a] group-hover:border-b-[#8A0303]"
           >
-            <div className="text-7xl mb-6 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3 drop-shadow-2xl">🖥️</div>
-            <h2 className="text-3xl font-black mb-3 text-gradient-mafia tracking-wide">شاشة العرض</h2>
-            <p className="text-dark-400 text-base">
-              العرض السينمائي للجمهور
+            <div className="text-6xl mb-6 grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500">👁️</div>
+            <h2 className="text-3xl font-black mb-3 text-white tracking-widest uppercase" style={{ fontFamily: 'Amiri, serif' }}>شاشة العرض</h2>
+            <p className="text-[#808080] text-sm tracking-wide">
+              واجهة المراقبة والاستجواب
             </p>
           </motion.div>
         </Link>
@@ -98,12 +87,12 @@ export default function HomePage() {
         {/* Player Card */}
         <Link href="/player" className="group block h-full">
           <motion.div
-            className="glass-card-hover h-full p-10 text-center flex flex-col items-center justify-center border-citizen-500/10 group-hover:bg-citizen-950/40"
+            className="noir-card-hover h-full p-12 text-center flex flex-col items-center justify-center border-b-4 border-b-[#2a2a2a] group-hover:border-b-[#C5A059]"
           >
-            <div className="text-7xl mb-6 transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-3 drop-shadow-2xl">📱</div>
-            <h2 className="text-3xl font-black mb-3 text-gradient-citizen tracking-wide">اللاعب</h2>
-            <p className="text-dark-400 text-base">
-              انضم للعبة عبر رقم هاتفك
+            <div className="text-6xl mb-6 grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500">🎭</div>
+            <h2 className="text-3xl font-black mb-3 text-white tracking-widest uppercase" style={{ fontFamily: 'Amiri, serif' }}>بطاقة اللاعب</h2>
+            <p className="text-[#808080] text-sm tracking-wide">
+              تسجيل الدخول للهوية السرية
             </p>
           </motion.div>
         </Link>
@@ -120,31 +109,29 @@ export default function HomePage() {
           {isLeaderLoggedIn ? (
             <motion.div
               key="leader-card"
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -20, scale: 0.95 }}
-              transition={{ duration: 0.5, ease: 'easeOut' }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.4 }}
             >
-              <div className="flex items-center justify-between mb-4 px-2">
-                <p className="text-dark-300 text-sm">
-                  مرحباً <span className="text-gold-400 font-bold">{leaderName}</span> 👑
+              <div className="flex items-center justify-between mb-4 px-2 border-b border-[#2a2a2a] pb-3">
+                <p className="text-[#808080] text-sm font-mono uppercase tracking-widest">
+                  Agent: <span className="text-[#C5A059] font-bold">{leaderName}</span>
                 </p>
                 <button
                   onClick={handleLogout}
-                  className="text-dark-500 text-xs hover:text-mafia-400 transition-colors uppercase tracking-wider font-bold"
+                  className="text-[#555] text-xs hover:text-[#8A0303] transition-colors uppercase tracking-widest font-bold"
                 >
-                  تسجيل خروج
+                  (تسجيل الخروج)
                 </button>
               </div>
               <Link href="/leader" className="group block">
                 <motion.div
-                  className="glass-card-hover p-8 py-10 text-center border-gold-500/20 group-hover:border-gold-500/40 bg-gradient-to-br from-gold-500/10 to-transparent"
+                  className="noir-card-hover py-8 text-center border-[#C5A059]/20"
                 >
-                  <div className="text-6xl mb-4 transition-transform duration-500 group-hover:scale-110 drop-shadow-2xl">👑</div>
-                  <h2 className="text-3xl font-black mb-2 text-gradient-gold tracking-wide">لوحة الليدر</h2>
-                  <p className="text-dark-300 text-sm">
-                    إنشاء وإدارة الألعاب
-                  </p>
+                  <h2 className="text-2xl font-bold mb-2 text-[#C5A059] tracking-widest uppercase" style={{ fontFamily: 'Amiri, serif' }}>
+                    غرفة العمليات (الليدر)
+                  </h2>
                 </motion.div>
               </Link>
             </motion.div>
@@ -157,13 +144,11 @@ export default function HomePage() {
               className="text-center"
             >
               <Link href="/leader/login">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-8 py-4 rounded-2xl bg-dark-800/50 backdrop-blur-md border border-white/5 text-dark-400 hover:text-gold-400 hover:bg-dark-800 hover:border-gold-500/30 transition-all duration-300 text-sm font-bold tracking-wider"
+                <button
+                  className="btn-ghost px-10 py-5 text-sm uppercase tracking-[0.2em]"
                 >
-                  🔐 تسجيل دخول الليدر
-                </motion.button>
+                  وصول الإدارة (Restricted)
+                </button>
               </Link>
             </motion.div>
           )}
@@ -171,14 +156,17 @@ export default function HomePage() {
       </motion.div>
 
       {/* ── Footer ── */}
-      <motion.p
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1, delay: 1 }}
-        className="absolute bottom-6 text-dark-600 text-xs tracking-widest font-mono uppercase z-10"
+        className="absolute bottom-8 left-0 w-full text-center z-10 pointer-events-none"
       >
-        Phygital Mafia Engine v2.0 • Built with ❤️
-      </motion.p>
+        <div className="h-[1px] w-24 bg-[#2a2a2a] mx-auto mb-4" />
+        <p className="text-[#444] text-[10px] tracking-[0.4em] font-mono uppercase">
+          Classified • Mafia Engine v2.0
+        </p>
+      </motion.div>
     </div>
   );
 }
