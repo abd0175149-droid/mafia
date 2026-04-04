@@ -17,6 +17,7 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
   const [startSpeakerId, setStartSpeakerId] = useState<number | ''>('');
   const [discussionTimeLimit, setDiscussionTimeLimit] = useState<number>(30);
   const [localTimeRemaining, setLocalTimeRemaining] = useState<number>(0);
+  const [showDealsUI, setShowDealsUI] = useState(false);
 
   // Timer Tick Effect for Leader
   useEffect(() => {
@@ -357,7 +358,7 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
     );
   }
 
-  const [showDealsUI, setShowDealsUI] = useState(false);
+
 
   // ==========================================
   // RENDER DAY_DISCUSSION
@@ -631,7 +632,8 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
   // ==========================================
   if (gameState.phase === 'DAY_VOTING') {
     const totalVotes = gameState.votingState?.totalVotesCast || 0;
-    const isComplete = totalVotes >= alivePlayers.length;
+    const votingAliveCount = alivePlayers.filter((p: any) => !p.isSilenced).length;
+    const isComplete = totalVotes >= votingAliveCount;
 
     return (
       <div>

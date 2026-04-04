@@ -230,7 +230,7 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
     };
   }, [roomId]);
 
-  const aliveCount = players.filter((p: any) => p.isAlive).length;
+  const aliveCount = players.filter((p: any) => p.isAlive && !p.isSilenced).length;
 
   const prevVotesRef = useRef(totalVotesCast);
   const sortedCandidates = [...candidates].sort((a,b) => b.votes - a.votes);
