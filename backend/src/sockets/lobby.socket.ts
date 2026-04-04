@@ -312,11 +312,33 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
     }
   });
 
+  // ── شاشة العرض تنضم للغرفة (بعد التحقق من PIN عبر REST) ──
+  socket.on('display:join-room', (data: { roomId: string }) => {
+    if (data.roomId) {
+      socket.join(data.roomId);
+      socket.data.role = 'display';
+      socket.data.roomId = data.roomId;
+      console.log(`📺 Display joined room: ${data.roomId}`);
+    }
+  });
+
+  // ── الليدر يستعيد الغرفة بعد إعادة الاتصال ──
+  socket.on('room:rejoin-leader', (data: { roomId: string }) => {
+    if (data.roomId) {
+      socket.join(data.roomId);
+      socket.data.role = 'leader';
+      socket.data.roomId = data.roomId;
+      console.log(`👑 Leader rejoined room: ${data.roomId}`);
+    }
+  });
+
   // ── تنظيف عند قطع الاتصال ─────────────────────
   socket.on('disconnect', () => {
-    // إذا كان ليدر وانقطع، نبقي الغرفة نشطة (ممكن يرجع)
     if (socket.data.role === 'leader' && socket.data.roomId) {
       console.log(`⚠️ Leader disconnected from room ${socket.data.roomId}`);
+    }
+    if (socket.data.role === 'display' && socket.data.roomId) {
+      console.log(`⚠️ Display disconnected from room ${socket.data.roomId}`);
     }
   });
 }

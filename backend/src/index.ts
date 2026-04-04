@@ -13,6 +13,7 @@ import { connectDB, type Database } from './config/db.js';
 import leaderRoutes from './routes/leader.routes.js';
 import playerRoutes from './routes/player.routes.js';
 import statsRoutes from './routes/stats.routes.js';
+import gameRoutes from './routes/game.routes.js';
 import { registerLobbyEvents } from './sockets/lobby.socket.js';
 import { registerDayEvents } from './sockets/day.socket.js';
 import { registerNightEvents } from './sockets/night.socket.js';
@@ -45,6 +46,7 @@ async function main() {
   app.use('/api/leader', leaderRoutes);
   app.use('/api/player', playerRoutes);
   app.use('/api/stats', statsRoutes);
+  app.use('/api/game', gameRoutes);
 
   // Health check
   app.get('/api/health', (_req, res) => {
