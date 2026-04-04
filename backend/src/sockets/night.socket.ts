@@ -31,6 +31,9 @@ export function registerNightEvents(io: Server, socket: Socket) {
       const state = await resetNightActions(data.roomId);
       await setPhase(data.roomId, Phase.NIGHT);
 
+      // إبلاغ جميع الأطراف بتغير المرحلة
+      io.to(data.roomId).emit('game:phase-changed', { phase: Phase.NIGHT });
+
       // إرسال أنيميشن الليل لشاشة العرض
       io.to(data.roomId).emit('display:night-started');
 

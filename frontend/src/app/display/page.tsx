@@ -26,6 +26,7 @@ interface PlayerInfo {
   physicalId: number;
   name: string;
   isAlive: boolean;
+  role?: string;
 }
 
 export default function DisplayPage() {
@@ -50,6 +51,7 @@ export default function DisplayPage() {
   const [winner, setWinner] = useState<string | null>(null);
   const [animation, setAnimation] = useState<any>(null);
   const [discussionState, setDiscussionState] = useState<any>(null);
+  const [teamCounts, setTeamCounts] = useState<{citizenAlive: number; mafiaAlive: number}>({citizenAlive: 0, mafiaAlive: 0});
 
   // ── Socket Init ──
   useEffect(() => {
@@ -91,8 +93,28 @@ export default function DisplayPage() {
       });
     };
 
-    const onPhaseChanged = (data: any) => {
+    const onPhaseChanged = async (data: any) => {
       setPhase(data.phase);
+      // تحديث بيانات اللاعبين عند تغير المرحلة
+      try {
+        const res = await fetch(`/api/game/state/${currentRoomId}`);
+        const d = await res.json();
+        if (d.success && d.state?.players) {
+          setPlayers(prev => {
+            return d.state.players.map((p: any) => ({
+              physicalId: p.physicalId,
+              name: p.name,
+              isAlive: p.isAlive,
+              gender: p.gender,
+              role: prev.find((pp: any) => pp.physicalId === p.physicalId)?.role || p.role,
+            }));
+          });
+        }
+        // تحديث أعداد الفرق (من الباك إند مباشرة)
+        if (d.state?.teamCounts) {
+          setTeamCounts(d.state.teamCounts);
+        }
+      } catch (_) {}
     };
 
     const onNightAnimation = (data: any) => {
@@ -202,6 +224,7 @@ export default function DisplayPage() {
             name: p.name,
             isAlive: p.isAlive,
             gender: p.gender,
+            role: p.role,
           })));
         }
       }
@@ -427,7 +450,7 @@ export default function DisplayPage() {
 
         {/* ═══ النهار ═══ */}
         {step === 'lobby' && phase.startsWith('DAY_') && (
-          <DisplayDayView key="day-view" roomId={currentRoomId} players={players} initialDiscussionState={discussionState} />
+          <DisplayDayView key="day-view" roomId={currentRoomId} players={players} initialDiscussionState={discussionState} teamCounts={teamCounts} />
         )}
 
         {/* ═══ الليل ═══ */}

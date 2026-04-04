@@ -267,6 +267,18 @@ export default function LeaderPage() {
       });
     });
 
+    // Elimination Revealed — بعد كشف الهوية
+    const offEliminationRevealed = on('day:elimination-revealed', (data: any) => {
+      setGameState(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          phase: 'DAY_REVEALED',
+          revealedData: data,
+        } as any;
+      });
+    });
+
     // Discussion Update
     const offDiscussionUpdate = on('day:discussion-updated', (data: any) => {
       setGameState(prev => {
@@ -294,6 +306,7 @@ export default function LeaderPage() {
       offJustificationStarted();
       offJustTimerStarted();
       offEliminationPending();
+      offEliminationRevealed();
       offDiscussionUpdate();
       offGameClosed();
     };

@@ -78,9 +78,10 @@ interface DisplayDayViewProps {
   roomId: string;
   players: any[]; // Roster to get names
   initialDiscussionState?: any;
+  teamCounts?: {citizenAlive: number; mafiaAlive: number};
 }
 
-export default function DisplayDayView({ roomId, players, initialDiscussionState }: DisplayDayViewProps) {
+export default function DisplayDayView({ roomId, players, initialDiscussionState, teamCounts }: DisplayDayViewProps) {
   const [phase, setPhase] = useState<'DISCUSSION' | 'VOTING' | 'JUSTIFICATION' | 'PENDING' | 'REVEALED' | 'TIE'>('DISCUSSION');
   const [candidates, setCandidates] = useState<any[]>([]);
   const [totalVotesCast, setTotalVotesCast] = useState(0);
@@ -397,12 +398,12 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
               <div className="flex justify-center gap-8 mt-3">
                 <span className="font-mono text-sm tracking-widest">
                   <span className="text-[#44ff44]">🏛</span> <span className="text-white">مواطنون:</span>{' '}
-                  <span className="text-[#44ff44] font-bold">{players.filter((p: any) => p.isAlive && !['GODFATHER','SILENCER','CHAMELEON','MAFIA_REGULAR'].includes(p.role)).length}</span>
+                  <span className="text-[#44ff44] font-bold">{teamCounts?.citizenAlive ?? '?'}</span>
                 </span>
                 <span className="text-[#2a2a2a]">|</span>
                 <span className="font-mono text-sm tracking-widest">
                   <span className="text-[#ff4444]">🎭</span> <span className="text-white">مافيا:</span>{' '}
-                  <span className="text-[#ff4444] font-bold">{players.filter((p: any) => p.isAlive && ['GODFATHER','SILENCER','CHAMELEON','MAFIA_REGULAR'].includes(p.role)).length}</span>
+                  <span className="text-[#ff4444] font-bold">{teamCounts?.mafiaAlive ?? '?'}</span>
                 </span>
               </div>
             </div>

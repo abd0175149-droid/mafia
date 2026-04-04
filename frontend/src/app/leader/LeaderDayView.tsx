@@ -20,6 +20,7 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
   const [showDealsUI, setShowDealsUI] = useState(false);
 
   const localVoteTotalRef = useRef(0);
+  const [revealedRoles, setRevealedRoles] = useState<Set<number>>(new Set());
 
   // Timer Tick Effect for Leader
   useEffect(() => {
@@ -398,6 +399,79 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
   }
 
   // ==========================================
+  // RENDER DAY_REVEALED (بعد كشف الهوية — قبل الليل)
+  // ==========================================
+  if (gameState.phase === 'DAY_REVEALED') {
+    const revealed = gameState.revealedData;
+    const eliminated = revealed?.eliminated || [];
+    // revealedRoles is array of {physicalId, role} — convert to map
+    const rolesArr = revealed?.revealedRoles || [];
+    const revealedRolesData: Record<number, string> = {};
+    rolesArr.forEach((r: any) => { revealedRolesData[r.physicalId] = r.role; });
+
+    const handleStartNight = async () => {
+      setLoading(true);
+      try {
+        await emit('night:start', { roomId: gameState.roomId });
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    return (
+      <div className="flex flex-col items-center justify-center p-8 text-center">
+        <div className="mb-8">
+          <div className="text-6xl mb-4">💀</div>
+          <h2 className="text-3xl font-black text-[#8A0303] mb-3" style={{ fontFamily: 'Amiri, serif' }}>تم كشف الهوية</h2>
+          <p className="text-[#808080] font-mono uppercase tracking-widest text-xs">IDENTITY DECLASSIFIED • ELIMINATION COMPLETE</p>
+        </div>
+
+        {/* قائمة المُقصَين */}
+        <div className="space-y-4 mb-10 w-full max-w-md">
+          {eliminated.map((physicalId: number) => {
+            const player = gameState.players.find((p: any) => p.physicalId === physicalId);
+            const role = revealedRolesData[physicalId];
+            const isMafia = role && ['GODFATHER','SILENCER','CHAMELEON','MAFIA_REGULAR'].includes(role);
+
+            return (
+              <div key={physicalId} className={`noir-card p-6 ${isMafia ? 'border-[#ff4444]/50' : 'border-[#44ff44]/50'}`}>
+                <div className="flex items-center gap-4">
+                  <div className={`w-16 h-16 border-2 rounded-full flex items-center justify-center font-mono text-3xl font-black ${
+                    isMafia ? 'border-[#ff4444] text-[#ff4444] bg-[#ff4444]/10' : 'border-[#44ff44] text-[#44ff44] bg-[#44ff44]/10'
+                  }`}>
+                    {physicalId}
+                  </div>
+                  <div className="text-right flex-1">
+                    <h3 className="text-xl font-bold text-white" style={{ fontFamily: 'Amiri, serif' }}>{player?.name || 'Unknown'}</h3>
+                    <p className={`font-mono text-sm font-bold mt-1 ${isMafia ? 'text-[#ff4444]' : 'text-[#44ff44]'}`}>
+                      {role || 'UNKNOWN'}
+                    </p>
+                    <p className={`text-[10px] font-mono tracking-widest mt-1 ${isMafia ? 'text-[#ff4444]/60' : 'text-[#44ff44]/60'}`}>
+                      {isMafia ? '🎭 MAFIA OPERATIVE — ELIMINATED' : '🏛 CITIZEN — ELIMINATED'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* زر بدء الليل */}
+        <button
+          onClick={handleStartNight}
+          disabled={loading}
+          className="btn-premium px-16 py-6 !text-xl !border-[#C5A059] group"
+        >
+          <span className="text-white group-hover:tracking-[0.3em] transition-all">🌙 بدء مرحلة الليل</span>
+        </button>
+        <p className="text-[#555] font-mono text-[10px] mt-4 tracking-widest uppercase">COMMENCE NIGHTFALL OPERATIONS</p>
+      </div>
+    );
+  }
+
+  // ==========================================
   // RENDER TIE-BREAKER (fallback for old flow)
   // ==========================================
   if (gameState.phase === 'DAY_TIEBREAKER') {
@@ -758,13 +832,43 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
                 )}
                 
                 {/* Candidate Info */}
-                <div className="text-center mt-2 mb-4">
+                <div className="text-center mt-2 mb-4 relative">
                   <div className={`w-14 h-14 mx-auto mb-2 flex items-center justify-center font-mono text-2xl border ${isDeal ? 'border-[#8A0303]/50 text-[#8A0303] bg-black' : 'border-[#555] text-white bg-black'}`}>
                     {candidate.targetPhysicalId}
                   </div>
                   <p className="text-white font-bold text-sm truncate">{targetDetails?.name}</p>
                   {isDeal && (
                     <p className="text-[#8A0303] text-[10px] mt-1 font-mono">LINKED TO #{initiatorDetails?.physicalId}</p>
+                  )}
+
+                  {/* Eye Button — يكشف الدور لليدر فقط */}
+                  <button
+                    onClick={() => {
+                      setRevealedRoles(prev => {
+                        const next = new Set(prev);
+                        if (next.has(candidate.targetPhysicalId)) {
+                          next.delete(candidate.targetPhysicalId);
+                        } else {
+                          next.add(candidate.targetPhysicalId);
+                        }
+                        return next;
+                      });
+                    }}
+                    className="absolute top-0 left-0 w-7 h-7 flex items-center justify-center text-xs bg-black/70 border border-[#333] hover:border-[#C5A059] rounded-full transition-colors"
+                    title="كشف الدور"
+                  >
+                    {revealedRoles.has(candidate.targetPhysicalId) ? '🙈' : '👁'}
+                  </button>
+
+                  {/* Role Badge (visible when revealed) */}
+                  {revealedRoles.has(candidate.targetPhysicalId) && targetDetails?.role && (
+                    <div className={`mt-1 text-[9px] font-mono font-bold px-2 py-0.5 inline-block border rounded ${
+                      ['GODFATHER','SILENCER','CHAMELEON','MAFIA_REGULAR'].includes(targetDetails.role)
+                        ? 'border-[#ff4444]/50 text-[#ff4444] bg-[#ff4444]/10'
+                        : 'border-[#44ff44]/50 text-[#44ff44] bg-[#44ff44]/10'
+                    }`}>
+                      🔒 {targetDetails.role}
+                    </div>
                   )}
                 </div>
 

@@ -84,6 +84,10 @@ router.get('/state/:roomId', async (req: Request, res: Response) => {
         gender: p.gender,
         // لا نُرسل role!
       })),
+      teamCounts: {
+        citizenAlive: state.players.filter(p => p.isAlive && p.role && !['GODFATHER','SILENCER','CHAMELEON','MAFIA_REGULAR'].includes(p.role)).length,
+        mafiaAlive: state.players.filter(p => p.isAlive && p.role && ['GODFATHER','SILENCER','CHAMELEON','MAFIA_REGULAR'].includes(p.role)).length,
+      },
       winner: state.winner,
     },
   });
