@@ -1,22 +1,23 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSocket } from '@/hooks/useSocket';
 import { Phase } from '@/lib/constants';
-import { QRCodeSVG } from 'qrcode.react';
+import { getSocket } from '@/lib/socket';
+import type { Socket } from 'socket.io-client';
 
 type DisplayStep = 'pin' | 'select-game' | 'lobby' | 'game';
 
 export default function DisplayPage() {
-  const { on, emit, isConnected } = useSocket();
+  const socketRef = useRef<Socket | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
   const [step, setStep] = useState<DisplayStep>('pin');
   const [pin, setPin] = useState('');
   const [pinError, setPinError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   // Game data
   const [activeGames, setActiveGames] = useState<any[]>([]);
-  const [selectedRoom, setSelectedRoom] = useState<any>(null);
   const [phase, setPhase] = useState<Phase>(Phase.LOBBY);
   const [roomCode, setRoomCode] = useState('------');
   const [gameName, setGameName] = useState('');
@@ -25,87 +26,120 @@ export default function DisplayPage() {
   const [animation, setAnimation] = useState<any>(null);
   const [winner, setWinner] = useState<string | null>(null);
 
-  // جلب قائمة الألعاب النشطة
-  const fetchActiveGames = async () => {
+  // تهيئة السوكت
+  useEffect(() => {
+    const socket = getSocket();
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      console.log('🔌 Display socket connected');
+      setIsConnected(true);
+    });
+    socket.on('disconnect', () => setIsConnected(false));
+    if (socket.connected) setIsConnected(true);
+
+    return () => {
+      socket.off('connect');
+      socket.off('disconnect');
+    };
+  }, []);
+
+  // Helper: emit with promise
+  const socketEmit = useCallback((event: string, data: any): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      const socket = socketRef.current;
+      if (!socket || !socket.connected) {
+        return reject(new Error('السوكت غير متصل'));
+      }
+      console.log(`📤 Emitting: ${event}`, data);
+      socket.emit(event, data, (response: any) => {
+        console.log(`📥 Response for ${event}:`, response);
+        if (response?.success) {
+          resolve(response);
+        } else {
+          reject(new Error(response?.error || 'خطأ غير معروف'));
+        }
+      });
+    });
+  }, []);
+
+  // ── إدخال PIN ثم جلب الألعاب ──
+  const handlePinSubmit = async () => {
+    if (pin.length < 4) return;
+    setPinError('');
+    setLoading(true);
+
     try {
-      const res = await emit('room:list-active', {});
-      setActiveGames(res.rooms || []);
-    } catch (err) {
-      console.error('Failed to fetch active games:', err);
+      console.log('🔍 Fetching active games...');
+      const res = await socketEmit('room:list-active', {});
+      const rooms = res.rooms || [];
+      console.log('📋 Active rooms:', rooms);
+      setActiveGames(rooms);
+
+      if (rooms.length === 0) {
+        setPinError('لا توجد ألعاب نشطة حالياً');
+        setLoading(false);
+        return;
+      }
+
+      if (rooms.length === 1) {
+        await verifyAndJoin(rooms[0].roomId);
+      } else {
+        setStep('select-game');
+      }
+    } catch (err: any) {
+      console.error('❌ Error:', err);
+      setPinError(err.message || 'خطأ في الاتصال');
     }
+    setLoading(false);
   };
 
-  // التحقق من PIN والدخول للعبة
-  const handleVerifyPin = async (roomId: string) => {
-    setPinError('');
+  // ── التحقق من PIN والدخول للعبة ──
+  const verifyAndJoin = async (roomId: string) => {
     try {
-      const res = await emit('room:verify-display-pin', { roomId, pin });
-      setSelectedRoom(res);
+      console.log(`🔐 Verifying PIN for room: ${roomId}`);
+      const res = await socketEmit('room:verify-display-pin', { roomId, pin });
+      console.log('✅ PIN verified:', res);
       setGameName(res.gameName);
       setRoomCode(res.roomCode);
       setPlayerCount(res.playerCount || 0);
       setMaxPlayers(res.maxPlayers || 10);
       setStep('lobby');
     } catch (err: any) {
+      console.error('❌ PIN error:', err);
       setPinError(err.message || 'الرقم السري غير صحيح');
     }
   };
 
-  // اختيار لعبة من القائمة
-  const handleSelectGame = async (game: any) => {
-    await handleVerifyPin(game.roomId);
-  };
-
-  // الخطوة الأولى: إدخال PIN ثم جلب الألعاب
-  const handlePinSubmit = async () => {
-    if (pin.length < 4) return;
-    setPinError('');
-
-    try {
-      // جلب الألعاب مباشرة واستخدام البيانات المُرجعة
-      const res = await emit('room:list-active', {});
-      const rooms = res.rooms || [];
-      setActiveGames(rooms);
-
-      if (rooms.length === 0) {
-        setPinError('لا توجد ألعاب نشطة حالياً');
-        return;
-      }
-
-      if (rooms.length === 1) {
-        // لعبة واحدة → ندخلها مباشرة بالـ PIN
-        await handleVerifyPin(rooms[0].roomId);
-      } else {
-        // أكثر من لعبة → نعرض القائمة
-        setStep('select-game');
-      }
-    } catch (err: any) {
-      setPinError('خطأ في الاتصال بالسيرفر');
-    }
-  };
-
+  // ── أحداث اللعبة ──
   useEffect(() => {
     if (step !== 'lobby' && step !== 'game') return;
+    const socket = socketRef.current;
+    if (!socket) return;
 
-    const cleanups = [
-      on('room:player-joined', (data: any) => {
-        setPlayerCount(data.totalPlayers);
-      }),
-      on('game:phase-changed', (data: { phase: Phase }) => {
-        setPhase(data.phase);
-      }),
-      on('night:animation', (data: any) => {
-        setAnimation(data);
-        setTimeout(() => setAnimation(null), 5000);
-      }),
-      on('game:over', (data: any) => {
-        setWinner(data.winner);
-        setPhase(Phase.GAME_OVER);
-      }),
-    ];
+    const onPlayerJoined = (data: any) => setPlayerCount(data.totalPlayers);
+    const onPhaseChanged = (data: { phase: Phase }) => setPhase(data.phase);
+    const onNightAnim = (data: any) => {
+      setAnimation(data);
+      setTimeout(() => setAnimation(null), 5000);
+    };
+    const onGameOver = (data: any) => {
+      setWinner(data.winner);
+      setPhase(Phase.GAME_OVER);
+    };
 
-    return () => cleanups.forEach(c => c());
-  }, [on, step]);
+    socket.on('room:player-joined', onPlayerJoined);
+    socket.on('game:phase-changed', onPhaseChanged);
+    socket.on('night:animation', onNightAnim);
+    socket.on('game:over', onGameOver);
+
+    return () => {
+      socket.off('room:player-joined', onPlayerJoined);
+      socket.off('game:phase-changed', onPhaseChanged);
+      socket.off('night:animation', onNightAnim);
+      socket.off('game:over', onGameOver);
+    };
+  }, [step]);
 
   const joinUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/join/${roomCode}`
@@ -156,10 +190,10 @@ export default function DisplayPage() {
 
             <button
               onClick={handlePinSubmit}
-              disabled={pin.length < 4 || !isConnected}
+              disabled={pin.length < 4 || !isConnected || loading}
               className="btn-primary mt-8 px-12 text-lg disabled:opacity-50"
             >
-              {isConnected ? 'دخول' : '⏳ جاري الاتصال...'}
+              {loading ? '⏳ جاري التحقق...' : isConnected ? 'دخول' : '⏳ جاري الاتصال...'}
             </button>
           </motion.div>
         )}
@@ -174,14 +208,13 @@ export default function DisplayPage() {
             className="text-center w-full max-w-lg"
           >
             <h2 className="text-3xl font-black mb-6 text-white">اختر اللعبة</h2>
-
             <div className="space-y-4">
               {activeGames.map((game) => (
                 <motion.button
                   key={game.roomId}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => handleSelectGame(game)}
+                  onClick={() => verifyAndJoin(game.roomId)}
                   className="glass-card p-6 w-full text-right flex items-center justify-between hover:border-gold-500/40 transition-all"
                 >
                   <div>
@@ -206,7 +239,6 @@ export default function DisplayPage() {
             exit={{ opacity: 0 }}
             className="text-center"
           >
-            {/* اسم اللعبة */}
             <motion.h1
               className="text-5xl font-black mb-8 text-gradient-gold"
               animate={{ scale: [1, 1.02, 1] }}
@@ -229,7 +261,6 @@ export default function DisplayPage() {
               )}
             </div>
 
-            {/* كود اللعبة */}
             <div className="mb-8">
               <p className="text-dark-400 text-lg mb-2">أو أدخل الكود:</p>
               <p className="text-5xl font-mono font-black text-gold-400 tracking-[0.3em]">
@@ -237,7 +268,6 @@ export default function DisplayPage() {
               </p>
             </div>
 
-            {/* عداد اللاعبين */}
             <motion.div
               className="glass-card px-12 py-6 inline-block"
               animate={{ scale: [1, 1.01, 1] }}
@@ -249,7 +279,6 @@ export default function DisplayPage() {
                 <span className="text-dark-500 mx-3">/</span>
                 <span className="text-dark-400">{maxPlayers}</span>
               </p>
-              {/* Progress bar */}
               <div className="w-full bg-dark-700 rounded-full h-2 mt-4">
                 <motion.div
                   className="bg-gradient-to-r from-emerald-500 to-gold-500 h-2 rounded-full"
@@ -264,31 +293,13 @@ export default function DisplayPage() {
 
         {/* ── شاشة الليل ── */}
         {phase === Phase.NIGHT && (
-          <motion.div
-            key="night"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="text-center"
-          >
-            <motion.div
-              className="text-9xl mb-8"
-              animate={{ scale: [1, 1.1, 1], opacity: [0.7, 1, 0.7] }}
-              transition={{ duration: 3, repeat: Infinity }}
-            >
-              🌙
-            </motion.div>
+          <motion.div key="night" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-center">
+            <motion.div className="text-9xl mb-8" animate={{ scale: [1, 1.1, 1], opacity: [0.7, 1, 0.7] }} transition={{ duration: 3, repeat: Infinity }}>🌙</motion.div>
             <h2 className="text-5xl font-black text-dark-300">الليل حلّ...</h2>
             <p className="text-dark-500 text-xl mt-4">الأدوار تتحرك في الظلام</p>
-
             <AnimatePresence>
               {animation && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.5 }}
-                  className="glass-card p-8 mt-8 max-w-lg mx-auto"
-                >
+                <motion.div initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.5 }} className="glass-card p-8 mt-8 max-w-lg mx-auto">
                   <NightAnimationDisplay data={animation} />
                 </motion.div>
               )}
@@ -298,22 +309,11 @@ export default function DisplayPage() {
 
         {/* ── نهاية اللعبة ── */}
         {phase === Phase.GAME_OVER && winner && (
-          <motion.div
-            key="gameover"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center"
-          >
-            <motion.div
-              className="text-9xl mb-8"
-              animate={{ rotate: [0, 360] }}
-              transition={{ duration: 2, ease: 'easeInOut' }}
-            >
+          <motion.div key="gameover" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
+            <motion.div className="text-9xl mb-8" animate={{ rotate: [0, 360] }} transition={{ duration: 2, ease: 'easeInOut' }}>
               {winner === 'MAFIA' ? '🔪' : '🛡️'}
             </motion.div>
-            <h1 className={`text-7xl font-black mb-4 ${
-              winner === 'MAFIA' ? 'text-gradient-mafia' : 'text-gradient-citizen'
-            }`}>
+            <h1 className={`text-7xl font-black mb-4 ${winner === 'MAFIA' ? 'text-gradient-mafia' : 'text-gradient-citizen'}`}>
               {winner === 'MAFIA' ? 'فازت المافيا!' : 'فاز المواطنون!'}
             </h1>
           </motion.div>
@@ -324,7 +324,30 @@ export default function DisplayPage() {
   );
 }
 
-// ── Night Animation Component ──
+// ── QR Code component (dynamic import fallback) ──
+function QRCodeSVG(props: any) {
+  const [QR, setQR] = useState<any>(null);
+
+  useEffect(() => {
+    import('qrcode.react').then(mod => {
+      setQR(() => mod.QRCodeSVG);
+    }).catch(() => {
+      console.warn('QR code library not available');
+    });
+  }, []);
+
+  if (!QR) {
+    return (
+      <div className="w-[280px] h-[280px] flex items-center justify-center text-dark-400">
+        ⏳ تحميل QR...
+      </div>
+    );
+  }
+
+  return <QR {...props} />;
+}
+
+// ── Night Animation ──
 function NightAnimationDisplay({ data }: { data: any }) {
   const animations: Record<string, { icon: string; text: string; color: string }> = {
     ASSASSINATION_ATTEMPT: { icon: '🔪', text: 'محاولة اغتيال...', color: 'text-mafia-400' },
@@ -334,21 +357,15 @@ function NightAnimationDisplay({ data }: { data: any }) {
     INVESTIGATION: { icon: '🔍', text: 'جاري الاستعلام...', color: 'text-citizen-400' },
     PROTECTION: { icon: '💓', text: 'حماية نشطة', color: 'text-emerald-400' },
     SNIPE: { icon: '🎯', text: 'قنص!', color: 'text-orange-400' },
-    SNIPE_MAFIA: { icon: '🎯', text: 'قنص ناجح!', color: 'text-emerald-400' },
-    SNIPE_CITIZEN: { icon: '💔', text: 'قنص فاشل...', color: 'text-mafia-400' },
   };
 
   const anim = animations[data.type] || { icon: '❓', text: data.type, color: 'text-white' };
 
   return (
     <div className="text-center">
-      <motion.div className="text-7xl mb-4" animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1, repeat: 2 }}>
-        {anim.icon}
-      </motion.div>
+      <motion.div className="text-7xl mb-4" animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1, repeat: 2 }}>{anim.icon}</motion.div>
       <p className={`text-3xl font-bold ${anim.color}`}>{anim.text}</p>
-      {data.targetName && (
-        <p className="text-dark-400 mt-2 text-xl">#{data.targetPhysicalId} - {data.targetName}</p>
-      )}
+      {data.targetName && <p className="text-dark-400 mt-2 text-xl">#{data.targetPhysicalId} - {data.targetName}</p>}
     </div>
   );
 }
