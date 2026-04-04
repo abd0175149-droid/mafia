@@ -37,21 +37,39 @@ export function useSocket() {
   }, []);
 
   /**
-   * إرسال حدث مع callback
+   * إرسال حدث مع callback و Timeout
    */
   const emit = useCallback((event: string, data: any): Promise<any> => {
     return new Promise((resolve, reject) => {
       if (!socketRef.current) {
         return reject(new Error('Socket not initialized'));
       }
-
-      socketRef.current.emit(event, data, (response: any) => {
-        if (response?.success) {
-          resolve(response);
-        } else {
-          reject(new Error(response?.error || 'Unknown error'));
-        }
-      });
+      
+      // نضيف Timeout لمدة 5 ثواني حتى لا يظل معلقاً للأبد
+      if (typeof socketRef.current.timeout === 'function') {
+        socketRef.current.timeout(5000).emit(event, data, (err: Error, response: any) => {
+          if (err) {
+            console.error(`[useSocket] ❌ Timeout emitting ${event}:`, err);
+            return reject(new Error('الخادم في وضع قطع الاتصال أو لا يستجيب (Timeout)'));
+          }
+          if (response?.success) {
+            resolve(response);
+          } else {
+            console.error(`[useSocket] ❌ Server returned error for ${event}:`, response?.error);
+            reject(new Error(response?.error || 'Unknown error'));
+          }
+        });
+      } else {
+        // Fallback for older Socket.io clients
+        socketRef.current.emit(event, data, (response: any) => {
+          if (response?.success) {
+            resolve(response);
+          } else {
+            console.error(`[useSocket] ❌ Server returned error for ${event}:`, response?.error);
+            reject(new Error(response?.error || 'Unknown error'));
+          }
+        });
+      }
     });
   }, []);
 
