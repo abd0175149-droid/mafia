@@ -2,8 +2,8 @@
 
 import { io, Socket } from 'socket.io-client';
 
-// في الإنتاج: نفس الدومين (Next.js rewrites تحوّل /socket.io للباك إند)
-// في التطوير: بورت الباك إند مباشرة
+// NEXT_PUBLIC_SOCKET_URL يشير لـ API hostname مباشرة
+// مثلاً: https://mafia-api.grade.sbs
 const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:4000';
 
 let socket: Socket | null = null;

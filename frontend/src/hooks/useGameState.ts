@@ -98,11 +98,11 @@ export function useGameState() {
   }, [on]);
 
   // ── إنشاء غرفة ──────────────────────────────
-  const createRoom = useCallback(async (maxJustifications: number = 2) => {
+  const createRoom = useCallback(async (maxJustifications: number = 2, playerCount: number = 10) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await emit('room:create', { maxJustifications });
+      const response = await emit('room:create', { maxJustifications, playerCount });
       setGameState({
         roomId: response.roomId,
         roomCode: response.roomCode,
