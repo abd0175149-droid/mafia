@@ -213,15 +213,17 @@ export default function DisplayPage() {
   // 🖥️ واجهة العرض
   // ══════════════════════════════════════════════════
   return (
-    <div className="display-bg min-h-screen flex flex-col items-center justify-center p-8 relative overflow-hidden">
-      {/* Ambient lights */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-mafia-600/5 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-citizen-600/5 rounded-full blur-3xl" />
+    <div className="display-bg flex flex-col items-center justify-center p-8 font-arabic">
+      
+      {/* ── Cinematic Ambient Lighting ── */}
+      <div className="ambient-sphere w-[600px] h-[600px] bg-mafia-600/10 top-[-20%] left-[-10%] animate-pulse" style={{ animationDuration: '8s' }} />
+      <div className="ambient-sphere w-[800px] h-[800px] bg-citizen-600/10 bottom-[-30%] right-[-10%] animate-pulse" style={{ animationDuration: '12s', animationDelay: '2s' }} />
+      <div className="ambient-sphere w-[400px] h-[400px] bg-gold-500/10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
 
       {/* Connection indicator */}
-      <div className="absolute top-4 left-4 flex items-center gap-2">
-        <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-red-500'}`} />
-        <span className="text-xs text-dark-500">{isConnected ? 'متصل' : 'غير متصل'}</span>
+      <div className="absolute top-6 left-6 flex items-center gap-3 bg-dark-900/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/5 shadow-xl z-20">
+        <div className={`w-3 h-3 rounded-full shadow-[0_0_10px_currentColor] ${isConnected ? 'bg-emerald-400 text-emerald-400 animate-pulse' : 'bg-red-500 text-red-500'}`} />
+        <span className="text-xs font-bold tracking-widest text-dark-300 uppercase">{isConnected ? 'متصل بالسيرفر' : 'غير متصل'}</span>
       </div>
 
       <AnimatePresence mode="wait">
@@ -232,46 +234,47 @@ export default function DisplayPage() {
         {step === 'pin' && (
           <motion.div
             key="pin-screen"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="text-center relative z-10"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+            className="text-center relative z-10 glass-card p-16 border-white/10"
           >
-            <div className="text-8xl mb-6">🔒</div>
-            <h1 className="text-4xl font-black mb-3 text-white">شاشة العرض</h1>
-            <p className="text-dark-400 mb-8 text-lg">أدخل الرقم السري للوصول</p>
+            <div className="text-9xl mb-8 drop-shadow-2xl">🔒</div>
+            <h1 className="text-5xl font-black mb-4 text-white tracking-widest">شاشة العرض</h1>
+            <p className="text-dark-300 mb-10 text-xl font-light">أدخل الرقم السري للوصول إلى الغرفة</p>
 
-            <div className="mb-6">
+            <div className="mb-8">
               <input
                 type="password"
                 inputMode="numeric"
                 value={pin}
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 placeholder="****"
-                className="w-72 p-5 rounded-2xl bg-dark-800/80 border-2 border-dark-600 text-white text-center font-mono text-4xl tracking-[0.5em] focus:border-gold-500 focus:outline-none transition-all mx-auto block"
+                className="w-80 p-6 rounded-3xl bg-dark-950/80 border-2 border-dark-600 text-white text-center font-mono text-5xl tracking-[0.5em] focus:border-gold-500 focus:outline-none focus:ring-4 focus:ring-gold-500/20 shadow-inner transition-all mx-auto block"
                 maxLength={6}
                 autoFocus
                 onKeyDown={(e) => e.key === 'Enter' && handlePinSubmit()}
               />
-              <p className="text-dark-600 text-xs mt-2">{pin.length} / 4+ أرقام</p>
+              <p className="text-dark-500 font-mono mt-3 uppercase text-sm tracking-widest">{pin.length} / 4+ أرقام</p>
             </div>
 
             {pinError && (
               <motion.div
                 initial={{ opacity: 0, y: -5 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-mafia-500/10 border border-mafia-500/30 rounded-xl p-3 mb-4 max-w-xs mx-auto"
+                className="bg-mafia-500/20 border border-mafia-500/50 rounded-xl p-4 mb-6 max-w-sm mx-auto backdrop-blur-md"
               >
-                <p className="text-mafia-400 text-sm">❌ {pinError}</p>
+                <p className="text-mafia-400 font-bold">❌ {pinError}</p>
               </motion.div>
             )}
 
             <button
               onClick={handlePinSubmit}
               disabled={pin.length < 4 || loading}
-              className="btn-primary mt-4 px-16 py-4 text-xl disabled:opacity-40 disabled:cursor-not-allowed"
+              className="btn-premium w-full mt-2"
             >
-              {loading ? '⏳ جاري التحقق...' : '🔓 دخول'}
+              <span>{loading ? '⏳ جاري التحقق...' : '🔓 فتح الشاشة'}</span>
             </button>
           </motion.div>
         )}
@@ -337,76 +340,98 @@ export default function DisplayPage() {
             key="lobby-screen"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            className="text-center relative z-10"
+            exit={{ opacity: 0, scale: 1.05 }}
+            transition={{ duration: 0.8, ease: 'easeOut' }}
+            className="w-full max-w-7xl relative z-10"
           >
             {/* عنوان اللعبة */}
-            <motion.h1
-              className="text-5xl md:text-6xl font-black mb-10"
-              animate={{ scale: [1, 1.02, 1] }}
-              transition={{ duration: 3, repeat: Infinity }}
-            >
-              <span className="text-gradient-gold">🎭 {gameName}</span>
-            </motion.h1>
+            <motion.div className="text-center mb-16">
+              <h1 className="text-6xl md:text-8xl font-black tracking-tight drop-shadow-2xl">
+                <span className="text-gradient-gold">🎭 {gameName}</span>
+              </h1>
+            </motion.div>
 
-            <div className="flex flex-col md:flex-row items-center justify-center gap-12">
-              {/* QR Code */}
-              <div className="glass-card p-8">
-                <div className="bg-white rounded-2xl p-4 mb-4">
-                  <QRDisplay url={joinUrl} />
-                </div>
-                <p className="text-dark-400 text-sm">امسح للانضمام</p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+              
+              {/* القسم الأيمن: QR Code */}
+              <div className="flex flex-col items-center justify-center">
+                <motion.div 
+                  className="glass-card p-12 relative group"
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ type: 'spring', stiffness: 300 }}
+                >
+                  {/* تأثيرات خلف الـ QR */}
+                  <div className="absolute inset-0 bg-gradient-to-tr from-gold-500/20 to-emerald-500/20 rounded-3xl blur-2xl group-hover:opacity-100 transition-opacity opacity-50" />
+                  
+                  <div className="bg-white rounded-3xl p-6 relative z-10 shadow-[0_0_50px_rgba(255,255,255,0.1)]">
+                    <QRDisplay url={joinUrl} />
+                  </div>
+                  <p className="text-dark-300 text-xl font-bold mt-8 text-center tracking-widest uppercase">
+                    امسح الكود بكاميرا هاتفك
+                  </p>
+                </motion.div>
               </div>
 
-              {/* معلومات اللعبة */}
-              <div className="text-center">
+              {/* القسم الأيسر: الإحصائيات والأكواد */}
+              <div className="flex flex-col flex-1 h-full justify-center">
+                
                 {/* كود اللعبة */}
-                <div className="mb-8">
-                  <p className="text-dark-400 text-lg mb-2">أو أدخل الكود:</p>
-                  <p className="text-6xl font-mono font-black text-gold-400 tracking-[0.3em]">
-                    {roomCode}
+                <div className="glass-card p-8 mb-8 text-center border-gold-500/20 bg-gradient-to-bl from-dark-900/80 to-dark-950/80">
+                  <p className="text-dark-400 text-xl mb-3 uppercase tracking-widest font-bold">أو أدخل كود اللعبة يدوياً</p>
+                  <p className="text-7xl lg:text-8xl font-mono font-black text-white tracking-[0.25em] drop-shadow-[0_0_15px_rgba(234,179,8,0.3)]">
+                    {roomCode.split('').map((char, i) => (
+                      <span key={i} className={i < 3 ? 'text-gold-400' : 'text-white'}>{char}</span>
+                    ))}
                   </p>
                 </div>
 
                 {/* عداد اللاعبين */}
-                <motion.div
-                  className="glass-card px-12 py-6"
-                  animate={{ scale: [1, 1.005, 1] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                >
-                  <p className="text-dark-400 text-lg mb-3">اللاعبون المسجلون</p>
-                  <p className="text-6xl font-black mb-3">
-                    <span className="text-emerald-400">{playerCount}</span>
-                    <span className="text-dark-600 mx-2">/</span>
-                    <span className="text-dark-500">{maxPlayers}</span>
-                  </p>
+                <div className="glass-card p-10 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 blur-3xl rounded-full" />
+                  
+                  <p className="text-dark-300 text-xl mb-4 font-bold tracking-widest uppercase">اللاعبون المسجلون</p>
+                  <div className="flex items-end gap-4 mb-6">
+                    <span className="text-8xl font-black text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.4)] leading-none">{playerCount}</span>
+                    <span className="text-4xl font-black text-dark-600 mb-2">/</span>
+                    <span className="text-4xl font-black text-dark-500 mb-2">{maxPlayers}</span>
+                  </div>
 
                   {/* شريط التقدم */}
-                  <div className="w-64 bg-dark-700 rounded-full h-3 mx-auto">
+                  <div className="w-full bg-dark-900 rounded-full h-4 shadow-inner">
                     <motion.div
-                      className="bg-gradient-to-r from-emerald-500 to-gold-500 h-3 rounded-full"
+                      className="h-full rounded-full bg-gradient-to-l from-emerald-400 to-emerald-600 shadow-[0_0_15px_rgba(52,211,153,0.5)] relative"
                       initial={{ width: 0 }}
                       animate={{ width: `${Math.min(100, (playerCount / maxPlayers) * 100)}%` }}
-                      transition={{ duration: 0.5, ease: 'easeOut' }}
-                    />
+                      transition={{ duration: 1, ease: 'easeOut' }}
+                    >
+                      {/* لمعة على الشريط */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-full h-full animate-[shimmer_2s_infinite]" />
+                    </motion.div>
                   </div>
-                </motion.div>
+                </div>
 
                 {/* قائمة اللاعبين */}
                 {players.length > 0 && (
-                  <div className="mt-6 flex flex-wrap justify-center gap-2 max-w-md">
-                    {players.map((p) => (
-                      <motion.span
-                        key={p.physicalId}
-                        initial={{ opacity: 0, scale: 0 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="bg-dark-800/80 border border-dark-600 rounded-full px-3 py-1 text-sm"
-                      >
-                        <span className="text-emerald-400 font-bold">#{p.physicalId}</span>
-                        <span className="text-dark-300 mr-1"> {p.name}</span>
-                      </motion.span>
-                    ))}
-                  </div>
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="mt-8 flex flex-wrap gap-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar"
+                  >
+                    <AnimatePresence>
+                      {players.map((p, i) => (
+                        <motion.div
+                          key={p.physicalId}
+                          initial={{ opacity: 0, scale: 0.5, y: 20 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          transition={{ delay: i * 0.05, type: 'spring' }}
+                          className="bg-dark-800/80 backdrop-blur-md border border-dark-600/50 rounded-2xl px-5 py-2 flex items-center gap-3 shadow-lg"
+                        >
+                          <span className="w-8 h-8 rounded-full bg-emerald-500/20 text-emerald-400 font-black flex items-center justify-center text-sm">{p.physicalId}</span>
+                          <span className="text-white font-bold tracking-wide">{p.name}</span>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </motion.div>
                 )}
               </div>
             </div>

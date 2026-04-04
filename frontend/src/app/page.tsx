@@ -9,7 +9,6 @@ export default function HomePage() {
   const [leaderName, setLeaderName] = useState('');
 
   useEffect(() => {
-    // التحقق من تسجيل دخول الليدر
     const token = localStorage.getItem('leader_token');
     if (token) {
       fetch('/api/leader/verify', {
@@ -45,79 +44,77 @@ export default function HomePage() {
   };
 
   return (
-    <div className="display-bg min-h-screen flex flex-col items-center justify-center p-8">
-      {/* Background glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-mafia-600/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-citizen-600/10 rounded-full blur-3xl" />
+    <div className="display-bg min-h-screen flex flex-col items-center justify-center p-6 sm:p-12 relative overflow-hidden font-arabic">
+      
+      {/* ── Cinematic Ambient Lighting ── */}
+      <div className="ambient-sphere w-[600px] h-[600px] bg-mafia-600/20 top-[-20%] left-[-10%] animate-pulse" style={{ animationDuration: '8s' }} />
+      <div className="ambient-sphere w-[800px] h-[800px] bg-citizen-600/10 bottom-[-30%] right-[-10%] animate-pulse" style={{ animationDuration: '12s', animationDelay: '2s' }} />
+      <div className="ambient-sphere w-[400px] h-[400px] bg-gold-500/10 top-[20%] left-[50%] -translate-x-1/2" />
 
-      {/* Logo & Title */}
+      {/* ── Logo & Title ── */}
       <motion.div
-        initial={{ opacity: 0, y: -30 }}
+        initial={{ opacity: 0, y: -40 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-        className="text-center mb-12 relative z-10"
+        transition={{ duration: 1, ease: 'easeOut' }}
+        className="text-center mb-16 relative z-10"
       >
         <motion.div
-          className="text-8xl mb-6"
-          animate={{ rotate: [0, -5, 5, 0] }}
-          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+          className="text-9xl mb-6 drop-shadow-2xl"
+          animate={{ y: [-10, 10, -10] }}
+          transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
         >
           🎭
         </motion.div>
-        <h1 className="text-5xl md:text-7xl font-black mb-4">
+        <h1 className="text-6xl md:text-8xl font-black mb-4 tracking-tight drop-shadow-2xl">
           <span className="text-gradient-mafia">محرك</span>{' '}
-          <span className="text-white">المافيا</span>{' '}
+          <span className="text-white drop-shadow-[0_0_25px_rgba(255,255,255,0.3)]">المافيا</span>{' '}
           <span className="text-gradient-citizen">الهجين</span>
         </h1>
-        <p className="text-dark-400 text-xl font-light max-w-xl mx-auto">
+        <p className="text-dark-300 text-xl font-light max-w-2xl mx-auto tracking-wide">
           نظام متطور لإدارة ألعاب المافيا • يدمج بين الواقع والرقمي
         </p>
       </motion.div>
 
-      {/* Role Selection Cards */}
+      {/* ── Core Navigation Cards ── */}
       <motion.div
-        initial={{ opacity: 0, y: 30 }}
+        initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 0.3 }}
-        className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl relative z-10 mb-8"
+        transition={{ duration: 1, delay: 0.3, ease: 'easeOut' }}
+        className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-3xl relative z-10 mb-12"
       >
         {/* Display Card */}
-        <Link href="/display" className="group">
+        <Link href="/display" className="group block h-full">
           <motion.div
-            whileHover={{ scale: 1.03, y: -5 }}
-            whileTap={{ scale: 0.98 }}
-            className="glass-card p-8 text-center cursor-pointer group-hover:border-mafia-500/40 transition-all duration-300"
+            className="glass-card-hover h-full p-10 text-center flex flex-col items-center justify-center border-mafia-500/10 group-hover:bg-mafia-950/40"
           >
-            <div className="text-5xl mb-4">🖥️</div>
-            <h2 className="text-2xl font-bold mb-2 text-gradient-mafia">شاشة العرض</h2>
-            <p className="text-dark-400 text-sm">
+            <div className="text-7xl mb-6 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3 drop-shadow-2xl">🖥️</div>
+            <h2 className="text-3xl font-black mb-3 text-gradient-mafia tracking-wide">شاشة العرض</h2>
+            <p className="text-dark-400 text-base">
               العرض السينمائي للجمهور
             </p>
           </motion.div>
         </Link>
 
         {/* Player Card */}
-        <Link href="/player" className="group">
+        <Link href="/player" className="group block h-full">
           <motion.div
-            whileHover={{ scale: 1.03, y: -5 }}
-            whileTap={{ scale: 0.98 }}
-            className="glass-card p-8 text-center cursor-pointer group-hover:border-citizen-500/40 transition-all duration-300"
+            className="glass-card-hover h-full p-10 text-center flex flex-col items-center justify-center border-citizen-500/10 group-hover:bg-citizen-950/40"
           >
-            <div className="text-5xl mb-4">📱</div>
-            <h2 className="text-2xl font-bold mb-2 text-gradient-citizen">اللاعب</h2>
-            <p className="text-dark-400 text-sm">
+            <div className="text-7xl mb-6 transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-3 drop-shadow-2xl">📱</div>
+            <h2 className="text-3xl font-black mb-3 text-gradient-citizen tracking-wide">اللاعب</h2>
+            <p className="text-dark-400 text-base">
               انضم للعبة عبر رقم هاتفك
             </p>
           </motion.div>
         </Link>
       </motion.div>
 
-      {/* Leader Section */}
+      {/* ── Leader Section ── */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.6 }}
-        className="relative z-10 w-full max-w-2xl"
+        transition={{ duration: 1, delay: 0.6 }}
+        className="relative z-10 w-full max-w-xl"
       >
         <AnimatePresence mode="wait">
           {isLeaderLoggedIn ? (
@@ -126,29 +123,26 @@ export default function HomePage() {
               initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -20, scale: 0.95 }}
-              transition={{ duration: 0.4 }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
             >
-              {/* Logged in: Show leader card */}
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-dark-400 text-sm">
+              <div className="flex items-center justify-between mb-4 px-2">
+                <p className="text-dark-300 text-sm">
                   مرحباً <span className="text-gold-400 font-bold">{leaderName}</span> 👑
                 </p>
                 <button
                   onClick={handleLogout}
-                  className="text-dark-500 text-xs hover:text-mafia-400 transition-colors"
+                  className="text-dark-500 text-xs hover:text-mafia-400 transition-colors uppercase tracking-wider font-bold"
                 >
                   تسجيل خروج
                 </button>
               </div>
               <Link href="/leader" className="group block">
                 <motion.div
-                  whileHover={{ scale: 1.02, y: -3 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="glass-card p-8 text-center cursor-pointer border-gold-500/30 group-hover:border-gold-500/60 transition-all duration-300 bg-gradient-to-br from-gold-500/5 to-transparent"
+                  className="glass-card-hover p-8 py-10 text-center border-gold-500/20 group-hover:border-gold-500/40 bg-gradient-to-br from-gold-500/10 to-transparent"
                 >
-                  <div className="text-5xl mb-4">👑</div>
-                  <h2 className="text-2xl font-bold mb-2 text-gradient-gold">لوحة الليدر</h2>
-                  <p className="text-dark-400 text-sm">
+                  <div className="text-6xl mb-4 transition-transform duration-500 group-hover:scale-110 drop-shadow-2xl">👑</div>
+                  <h2 className="text-3xl font-black mb-2 text-gradient-gold tracking-wide">لوحة الليدر</h2>
+                  <p className="text-dark-300 text-sm">
                     إنشاء وإدارة الألعاب
                   </p>
                 </motion.div>
@@ -164,9 +158,9 @@ export default function HomePage() {
             >
               <Link href="/leader/login">
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="glass-card px-8 py-3 text-dark-400 hover:text-gold-400 hover:border-gold-500/30 transition-all duration-300 text-sm"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-8 py-4 rounded-2xl bg-dark-800/50 backdrop-blur-md border border-white/5 text-dark-400 hover:text-gold-400 hover:bg-dark-800 hover:border-gold-500/30 transition-all duration-300 text-sm font-bold tracking-wider"
                 >
                   🔐 تسجيل دخول الليدر
                 </motion.button>
@@ -176,12 +170,12 @@ export default function HomePage() {
         </AnimatePresence>
       </motion.div>
 
-      {/* Footer */}
+      {/* ── Footer ── */}
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 1 }}
-        className="mt-12 text-dark-600 text-sm relative z-10"
+        transition={{ duration: 1, delay: 1 }}
+        className="absolute bottom-6 text-dark-600 text-xs tracking-widest font-mono uppercase z-10"
       >
         Phygital Mafia Engine v2.0 • Built with ❤️
       </motion.p>
