@@ -60,21 +60,27 @@ export default function DisplayPage() {
   const handlePinSubmit = async () => {
     if (pin.length < 4) return;
     setPinError('');
-    await fetchActiveGames();
 
-    if (activeGames.length === 0) {
-      // لم نجد ألعاب — ننتظر
-      await fetchActiveGames();
-    }
+    try {
+      // جلب الألعاب مباشرة واستخدام البيانات المُرجعة
+      const res = await emit('room:list-active', {});
+      const rooms = res.rooms || [];
+      setActiveGames(rooms);
 
-    if (activeGames.length === 1) {
-      // لعبة واحدة → ندخلها مباشرة
-      await handleVerifyPin(activeGames[0].roomId);
-    } else if (activeGames.length > 1) {
-      // أكثر من لعبة → نعرض القائمة
-      setStep('select-game');
-    } else {
-      setPinError('لا توجد ألعاب نشطة حالياً');
+      if (rooms.length === 0) {
+        setPinError('لا توجد ألعاب نشطة حالياً');
+        return;
+      }
+
+      if (rooms.length === 1) {
+        // لعبة واحدة → ندخلها مباشرة بالـ PIN
+        await handleVerifyPin(rooms[0].roomId);
+      } else {
+        // أكثر من لعبة → نعرض القائمة
+        setStep('select-game');
+      }
+    } catch (err: any) {
+      setPinError('خطأ في الاتصال بالسيرفر');
     }
   };
 
