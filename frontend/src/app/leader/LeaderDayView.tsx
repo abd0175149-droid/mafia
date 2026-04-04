@@ -149,10 +149,19 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
   const [justAllDone, setJustAllDone] = useState(false);
 
   const accused = gameState.justificationData?.accused || [];
-  const canJustifyList = gameState.justificationData?.canJustifyList || [];
+  const canJustifyList = gameState.justificationData?.canJustifyList || accused;
   const allExhausted = gameState.justificationData?.allExhausted || false;
   const justResultType = gameState.justificationData?.resultType;
   const maxJustifications = gameState.justificationData?.maxJustifications || 2;
+
+  // تصفير حالة التبرير عند استلام بيانات تبرير جديدة
+  useEffect(() => {
+    if (gameState.phase === 'DAY_JUSTIFICATION' && gameState.justificationData) {
+      setJustCurrentIdx(0);
+      setJustTimerStarted(false);
+      setJustAllDone(false);
+    }
+  }, [gameState.justificationData]);
 
   const handleStartJustificationTimer = async (physicalId: number) => {
     setLoading(true);
@@ -172,7 +181,7 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
 
   const handleResetJustificationTimer = async (physicalId: number) => {
     try {
-      await emit('day:start-justification-timer', {
+      await emit('day:reset-justification-timer', {
         roomId: gameState.roomId,
         physicalId,
         timeLimitSeconds: justTimerDuration,
@@ -220,9 +229,7 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
     // مرحلة التيمر والدفاع (فقط لمن يقدر يبرر)
     if (!showDecision && canJustifyList.length > 0) {
       const currentAccused = canJustifyList[justCurrentIdx];
-      if (!currentAccused) {
-        setJustAllDone(true);
-      } else {
+      if (currentAccused) {
         const isMafiaRole = currentAccused.role?.includes('MAFIA') || currentAccused.role === 'GODFATHER' || currentAccused.role === 'SILENCER' || currentAccused.role === 'CHAMELEON';
         return (
           <div className="p-6">

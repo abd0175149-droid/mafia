@@ -228,6 +228,28 @@ export function registerDayEvents(io: Server, socket: Socket) {
     }
   });
 
+  // ── إعادة تايمر التبرير (بدون زيادة العداد) ──────
+  socket.on('day:reset-justification-timer', async (data: {
+    roomId: string;
+    physicalId: number;
+    timeLimitSeconds: number;
+  }, callback) => {
+    try {
+      if (socket.data.role !== 'leader') return callback({ success: false, error: 'Only leader' });
+
+      // إعادة بث التايمر بدون زيادة justificationCount
+      io.to(data.roomId).emit('day:justification-timer-started', {
+        physicalId: data.physicalId,
+        timeLimitSeconds: data.timeLimitSeconds,
+        startTime: Date.now(),
+      });
+
+      callback({ success: true });
+    } catch (err: any) {
+      callback({ success: false, error: err.message });
+    }
+  });
+
   // ── تنفيذ الإقصاء (بعد التبرير) ──────────────────
   socket.on('day:execute-elimination', async (data: { roomId: string }, callback) => {
     try {
