@@ -131,6 +131,15 @@ export default function LeaderPage() {
       });
     });
 
+    if (!gameState?.roomId) return;
+
+    // إعادة المصادقة كـ ليدر في حال انقطع الاتصال وعاد (Cloudflare / Network Drops)
+    const offConnect = on('connect', () => {
+      console.log('🔄 Socket Reconnected! Automatically re-joining as leader for room:', gameState.roomId);
+      const socketPayload = { roomId: gameState.roomId };
+      emit('room:rejoin-leader', socketPayload);
+    });
+
     // Phase changed
     const offPhaseChanged = on('game:phase-changed', (data: any) => {
       setGameState(prev => prev ? { ...prev, phase: data.phase } : prev);
@@ -224,6 +233,7 @@ export default function LeaderPage() {
     });
 
     return () => {
+      offConnect();
       offPlayerJoined();
       offPhaseChanged();
       offPlayerKicked();
@@ -234,7 +244,7 @@ export default function LeaderPage() {
       offEliminationPending();
       offGameClosed();
     };
-  }, [on, gameState?.roomId]);
+  }, [on, emit, gameState?.roomId]);
 
   // ── Create Room ──
   const handleCreateRoom = async () => {
