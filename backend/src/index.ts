@@ -83,7 +83,7 @@ async function main() {
   });
 
   // ── 5. Start Server ───────────────────────────
-  httpServer.listen(env.PORT, () => {
+  httpServer.listen(env.PORT, async () => {
     console.log(`
 ╔══════════════════════════════════════════════╗
 ║  🎭 Phygital Mafia Engine v2                ║
