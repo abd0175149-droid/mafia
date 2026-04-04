@@ -286,6 +286,17 @@ export default function LeaderPage() {
         displayPin: displayPin || undefined,
       });
 
+      // تجهيز اللاعبين الافتراضيين محلياً
+      const autoPlayers = Array.from({ length: maxPlayers }, (_, i) => ({
+        physicalId: i + 1,
+        name: `لاعب ${i + 1}`,
+        phone: '0700000000',
+        dob: '2000-01-01',
+        gender: 'MALE',
+        isAlive: true,
+        isSilenced: false,
+      }));
+
       setGameState({
         roomId: response.roomId,
         roomCode: response.roomCode,
@@ -295,7 +306,7 @@ export default function LeaderPage() {
           maxPlayers,
           displayPin: response.displayPin || '',
         },
-        players: [],
+        players: autoPlayers,
         rolesPool: [],
       });
 

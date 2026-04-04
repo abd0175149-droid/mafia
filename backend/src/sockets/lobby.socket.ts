@@ -64,6 +64,12 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
         data.displayPin,
       );
 
+      // تجهيز كروت اللاعبين تلقائياً بأسماء افتراضية
+      for (let i = 1; i <= maxPlayers; i++) {
+        await addPlayer(state.roomId, i, `لاعب ${i}`, `0700000000`, null);
+        await updatePlayer(state.roomId, i, { gender: 'MALE', dob: '2000-01-01' });
+      }
+
       socket.join(state.roomId);
       socket.data.role = 'leader';
       socket.data.roomId = state.roomId;
@@ -73,10 +79,19 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
         roomId: state.roomId,
         roomCode: state.roomCode,
         gameName,
-        playerCount: 0,
+        playerCount: maxPlayers,
         maxPlayers,
         displayPin: state.config.displayPin,
       });
+
+      // إرسال حدث انضمام كل لاعب للواجهات
+      for (let i = 1; i <= maxPlayers; i++) {
+        io.to(state.roomId).emit('room:player-joined', {
+          physicalId: i,
+          name: `لاعب ${i}`,
+          totalPlayers: i,
+        });
+      }
 
       callback({
         success: true,
@@ -85,7 +100,7 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
         displayPin: state.config.displayPin,
         gameName,
       });
-      console.log(`🏠 Room created: ${state.roomId} (code: ${state.roomCode}, name: ${gameName})`);
+      console.log(`🏠 Room created: ${state.roomId} (code: ${state.roomCode}, name: ${gameName}) with ${maxPlayers} auto-players`);
     } catch (err: any) {
       callback({ success: false, error: err.message });
     }
