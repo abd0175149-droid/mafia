@@ -1,46 +1,18 @@
 // ══════════════════════════════════════════════════════
-// 🔐 مسارات المصادقة (Auth Routes)
-// Google OAuth 2.0
+// 🔐 مسارات المصادقة (Auth Routes) - DEPRECATED
+// تم استبداله بـ leader.routes.ts و player.routes.ts
 // ══════════════════════════════════════════════════════
 
 import { Router } from 'express';
-import passport from 'passport';
-import { env } from '../config/env.js';
 
 const router = Router();
 
-// بدء تدفق Google OAuth
-router.get('/google',
-  passport.authenticate('google', {
-    scope: ['profile', 'email'],
-  })
-);
+// Auth routes have been moved to:
+// - /api/leader (leader.routes.ts)
+// - /api/player (player.routes.ts)
 
-// استقبال الـ callback
-router.get('/google/callback',
-  passport.authenticate('google', {
-    failureRedirect: `${env.FRONTEND_URL}?error=auth_failed`,
-  }),
-  (req, res) => {
-    // نجاح المصادقة → إعادة التوجيه للفرونت إند
-    res.redirect(`${env.FRONTEND_URL}/player/join?authenticated=true`);
-  }
-);
-
-// الحصول على بيانات المستخدم الحالي
-router.get('/me', (req, res) => {
-  if (req.isAuthenticated && req.isAuthenticated()) {
-    res.json({ user: req.user });
-  } else {
-    res.status(401).json({ error: 'Not authenticated' });
-  }
-});
-
-// تسجيل الخروج
-router.post('/logout', (req, res) => {
-  req.logout?.(() => {
-    res.json({ success: true });
-  });
+router.get('/status', (_req, res) => {
+  res.json({ message: 'Auth routes deprecated. Use /api/leader/login instead.' });
 });
 
 export default router;
