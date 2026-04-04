@@ -64,16 +64,16 @@ function DroppablePlayerCard({ player, children }: { player: any; children: Reac
       className={`bg-[#0c0c0c] border p-4 flex flex-col items-center gap-3 relative transition-colors ${
         isOver 
           ? 'border-[#C5A059] bg-[#C5A059]/10' 
-          : isFemale ? 'border-[#5C2329]/50' : 'border-[#2a2a2a]'
+          : isFemale ? 'border-[#4c1d95]/50' : 'border-[#2a2a2a]'
       }`}
     >
       <div className={`w-12 h-12 rounded-none bg-[#111] border flex items-center justify-center font-mono text-xl z-10 relative ${
-        isFemale ? 'border-[#5C2329] text-[#e0a6af]' : 'border-[#2a2a2a] text-[#808080]'
+        isFemale ? 'border-[#4c1d95] text-[#c4b5fd]' : 'border-[#2a2a2a] text-[#808080]'
       }`}>
         {player.physicalId}
       </div>
       <div className="text-center w-full z-10 relative">
-        <p className={`font-bold text-sm truncate ${isFemale ? 'text-[#ffccd5]' : 'text-white'}`}>{player.name}</p>
+        <p className={`font-bold text-sm truncate ${isFemale ? 'text-[#ddd6fe]' : 'text-white'}`}>{player.name}</p>
         <p className="text-[9px] uppercase tracking-widest mt-1 opacity-50 font-mono text-[#808080]">
           {isFemale ? 'FEMALE' : 'MALE'}
         </p>

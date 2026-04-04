@@ -1,8 +1,42 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getSocket } from '@/lib/socket';
+
+const playAudioBeep = (type: 'tick' | 'buzzer') => {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const audioCtx = new AudioContextClass();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    
+    if (type === 'tick') {
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // High pitch A5
+      gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 0.1);
+    } else {
+      oscillator.type = 'sawtooth';
+      // Discordant buzzer sound
+      oscillator.frequency.setValueAtTime(150, audioCtx.currentTime); 
+      oscillator.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.8);
+      gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.8);
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 0.8);
+    }
+  } catch(e) {
+    // Ignore audio play errors (e.g., policy restrictions)
+  }
+};
 
 interface DisplayDayViewProps {
   roomId: string;
@@ -24,6 +58,7 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
   const [discussionState, setDiscussionState] = useState<any>(initialDiscussionState || null);
   const [silencedPlayerId, setSilencedPlayerId] = useState<number | null>(null);
   const [localTimeRemaining, setLocalTimeRemaining] = useState<number>(initialDiscussionState?.timeRemaining || 0);
+  const prevTimeRef = useRef<number>(initialDiscussionState?.timeRemaining || 0);
 
   // Timer Tick Effect
   useEffect(() => {
@@ -34,6 +69,15 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
       const elapsed = Math.floor((Date.now() - discussionState.startTime) / 1000);
       const remaining = Math.max(0, discussionState.timeRemaining - elapsed);
       setLocalTimeRemaining(remaining);
+      
+      if (remaining !== prevTimeRef.current) {
+        if (remaining <= 10 && remaining > 0) {
+          playAudioBeep('tick');
+        } else if (remaining === 0 && prevTimeRef.current > 0) {
+          playAudioBeep('buzzer');
+        }
+        prevTimeRef.current = remaining;
+      }
     }, 100); // 100ms for smoother updates if needed, though seconds suffice
     return () => clearInterval(interval);
   }, [discussionState]);

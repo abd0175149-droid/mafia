@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 interface LeaderDayViewProps {
@@ -16,6 +16,23 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
   
   const [startSpeakerId, setStartSpeakerId] = useState<number | ''>('');
   const [discussionTimeLimit, setDiscussionTimeLimit] = useState<number>(30);
+  const [localTimeRemaining, setLocalTimeRemaining] = useState<number>(0);
+
+  // Timer Tick Effect for Leader
+  useEffect(() => {
+    if (!gameState.discussionState || gameState.discussionState.status !== 'SPEAKING' || gameState.discussionState.startTime === null) {
+      if (gameState.discussionState && gameState.discussionState.status !== 'SPEAKING') {
+        setLocalTimeRemaining(gameState.discussionState.timeRemaining);
+      }
+      return;
+    }
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - gameState.discussionState.startTime) / 1000);
+      const remaining = Math.max(0, gameState.discussionState.timeRemaining - elapsed);
+      setLocalTimeRemaining(remaining);
+    }, 100);
+    return () => clearInterval(interval);
+  }, [gameState.discussionState]);
 
   const alivePlayers = gameState.players.filter((p: any) => p.isAlive);
   const deals = gameState.votingState?.deals || [];
@@ -239,9 +256,16 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
                 <p className="font-mono text-xs text-[#808080] tracking-widest uppercase mb-1">Status</p>
                 <div className="text-lg font-mono font-bold">
                   {ds.status === 'WAITING' && <span className="text-yellow-500">AWAITING START</span>}
-                  {ds.status === 'SPEAKING' && <span className="text-green-500">LIVE (MIC OPEN)</span>}
+                  {ds.status === 'SPEAKING' && <span className="text-green-500">{localTimeRemaining > 0 ? 'LIVE (MIC OPEN)' : 'TIME EXPIRED'}</span>}
                   {ds.status === 'PAUSED' && <span className="text-[#8A0303]">PAUSED (MIC MUTED)</span>}
                 </div>
+              </div>
+              
+              <div className="text-center mt-4 border-t border-[#2a2a2a] pt-4 w-full">
+                 <span className={`text-6xl font-black font-mono transition-colors duration-300 ${localTimeRemaining <= 10 && ds.status === 'SPEAKING' ? 'text-[#8A0303] animate-pulse' : 'text-white'}`}>
+                   {localTimeRemaining}
+                 </span>
+                 <span className="text-sm text-[#808080] font-mono tracking-widest uppercase ml-2">SEC</span>
               </div>
             </div>
 
@@ -271,7 +295,11 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
                     setError(e.message);
                   }
                 }}
-                className="bg-[#111] border border-[#555] text-white p-4 font-mono uppercase tracking-widest hover:border-white transition-colors"
+                className={`p-4 font-mono uppercase tracking-widest transition-colors border ${
+                  localTimeRemaining <= 0 && ds.status !== 'WAITING'
+                    ? 'bg-[#8A0303] text-white border-[#ffccd5] animate-pulse shadow-[0_0_20px_rgba(138,3,3,0.8)]'
+                    : 'bg-[#111] border-[#555] text-white hover:border-white'
+                }`}
               >
                 ⏭ NEXT & SKIP
               </button>
