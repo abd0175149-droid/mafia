@@ -107,21 +107,23 @@ function PlayerFlow({ initialRoomCode = '' }: { initialRoomCode?: string }) {
   };
 
   return (
-    <div className="min-h-screen bg-dark-900 flex items-center justify-center p-6">
+    <div className="display-bg flex flex-col items-center justify-center p-6 font-sans">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass-card p-8 max-w-sm w-full"
+        className="noir-card p-10 max-w-sm w-full border-[#8A0303]/20 relative"
       >
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#8A0303] to-transparent opacity-50" />
+        
         <AnimatePresence mode="wait">
 
           {/* ── خطوة 1: كود اللعبة ── */}
           {step === 'code' && (
             <motion.div key="code" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <div className="text-center mb-6">
-                <div className="text-5xl mb-4">🎮</div>
-                <h1 className="text-2xl font-bold mb-2">الانضمام للعبة</h1>
-                <p className="text-dark-400 text-sm">أدخل كود اللعبة المكون من 6 أرقام</p>
+              <div className="text-center mb-8 border-b border-[#2a2a2a] pb-6">
+                <div className="text-6xl mb-4 grayscale opacity-80">🕵️</div>
+                <h1 className="text-3xl font-black mb-2 text-white" style={{ fontFamily: 'Amiri, serif' }}>الانضمام للعبة</h1>
+                <p className="text-[#808080] text-xs font-mono uppercase tracking-widest">ENTER OPERATION CODE</p>
               </div>
 
               <input
@@ -129,20 +131,20 @@ function PlayerFlow({ initialRoomCode = '' }: { initialRoomCode?: string }) {
                 inputMode="numeric"
                 value={roomCode}
                 onChange={(e) => setRoomCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="000000"
-                className="w-full p-4 rounded-xl bg-dark-800 border border-dark-600 text-white text-center font-mono text-3xl tracking-[0.5em] focus:border-gold-500 focus:outline-none transition-colors"
+                placeholder="------"
+                className="w-full p-4 bg-[#050505] border border-[#2a2a2a] text-white text-center font-mono text-4xl tracking-[0.4em] focus:border-[#C5A059] focus:outline-none transition-colors mb-6 placeholder-dark-800"
                 maxLength={6}
                 autoFocus
               />
 
-              {apiError && <p className="text-mafia-400 text-sm text-center mt-3">{apiError}</p>}
+              {apiError && <p className="text-[#8A0303] text-xs font-mono text-center mb-4 tracking-widest uppercase">{apiError}</p>}
 
               <button
                 onClick={handleFindRoom}
                 disabled={roomCode.length !== 6 || !isConnected}
-                className="btn-primary w-full mt-6 disabled:opacity-50"
+                className="btn-premium w-full !text-base disabled:opacity-50"
               >
-                {isConnected ? 'التالي ←' : '⏳ جاري الاتصال...'}
+                <span>{isConnected ? 'CONNECT' : 'CONNECTING...'}</span>
               </button>
             </motion.div>
           )}
@@ -150,14 +152,14 @@ function PlayerFlow({ initialRoomCode = '' }: { initialRoomCode?: string }) {
           {/* ── خطوة 2: رقم الهاتف ── */}
           {step === 'phone' && (
             <motion.div key="phone" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <div className="text-center mb-6">
-                <div className="text-5xl mb-4">📱</div>
-                <h1 className="text-2xl font-bold mb-2">{gameName || 'لعبة مافيا'}</h1>
-                <p className="text-dark-400 text-sm">أدخل رقم هاتفك للتسجيل</p>
+              <div className="text-center mb-8 border-b border-[#2a2a2a] pb-6">
+                <div className="text-6xl mb-4 grayscale opacity-80">☎️</div>
+                <h1 className="text-3xl font-black mb-2 text-[#C5A059]" style={{ fontFamily: 'Amiri, serif' }}>{gameName || 'لعبة مافيا'}</h1>
+                <p className="text-[#808080] text-xs font-mono uppercase tracking-widest">AGENT IDENTIFICATION</p>
               </div>
 
-              <div className="flex items-center gap-2 mb-6">
-                <span className="bg-dark-700 border border-dark-600 rounded-xl px-4 py-3 text-dark-300 font-mono text-lg shrink-0">
+              <div className="flex items-center gap-2 mb-6 font-mono">
+                <span className="bg-[#050505] border border-[#2a2a2a] px-3 py-4 text-[#808080] text-lg shrink-0">
                   +962
                 </span>
                 <input
@@ -166,20 +168,20 @@ function PlayerFlow({ initialRoomCode = '' }: { initialRoomCode?: string }) {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                   placeholder="7XXXXXXXX"
-                  className="w-full p-3 rounded-xl bg-dark-800 border border-dark-600 text-white font-mono text-lg focus:border-gold-500 focus:outline-none transition-colors"
+                  className="w-full p-4 bg-[#050505] border border-[#2a2a2a] text-white text-lg tracking-widest focus:border-[#C5A059] focus:outline-none transition-colors"
                   maxLength={10}
                   autoFocus
                 />
               </div>
 
-              {apiError && <p className="text-mafia-400 text-sm text-center mb-3">{apiError}</p>}
+              {apiError && <p className="text-[#8A0303] text-xs font-mono text-center mb-4 tracking-widest uppercase">{apiError}</p>}
 
               <button
                 onClick={handlePhoneLookup}
                 disabled={phone.length < 9}
-                className="btn-primary w-full disabled:opacity-50"
+                className="btn-premium w-full !text-base disabled:opacity-50"
               >
-                التالي ←
+                <span>VERIFY IDENTITY</span>
               </button>
             </motion.div>
           )}
@@ -187,35 +189,35 @@ function PlayerFlow({ initialRoomCode = '' }: { initialRoomCode?: string }) {
           {/* ── خطوة 3: التسجيل (للجدد) ── */}
           {step === 'register' && (
             <motion.div key="register" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <div className="text-center mb-5">
-                <h2 className="text-xl font-bold mb-1">مرحباً بك! 🎉</h2>
-                <p className="text-dark-400 text-sm">أكمل بياناتك للتسجيل</p>
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-black mb-1 text-white" style={{ fontFamily: 'Amiri, serif' }}>إنشاء هوية جديدة</h2>
+                <p className="text-[#808080] text-xs font-mono tracking-[0.2em] uppercase">NEW AGENT REGISTRATION</p>
               </div>
 
               {/* الاسم */}
-              <div className="mb-4">
-                <label className="block text-sm text-dark-400 mb-1">الاسم المستعار</label>
+              <div className="mb-5">
+                <label className="block text-xs font-mono text-[#808080] mb-2 tracking-widest uppercase">Codename</label>
                 <input
                   type="text"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="مثال: محمود"
-                  className="w-full p-3 rounded-xl bg-dark-800 border border-dark-600 text-white text-center text-lg focus:border-gold-500 focus:outline-none transition-colors"
+                  placeholder="الاسم المستعار"
+                  className="w-full p-4 bg-[#050505] border border-[#2a2a2a] text-white text-center text-lg focus:border-[#C5A059] focus:outline-none transition-colors font-bold"
                   maxLength={20}
                   autoFocus
                 />
               </div>
 
               {/* تاريخ الميلاد */}
-              <div className="mb-4">
-                <label className="block text-sm text-dark-400 mb-1">تاريخ الميلاد</label>
-                <div className="grid grid-cols-3 gap-2">
+              <div className="mb-5">
+                <label className="block text-xs font-mono text-[#808080] mb-2 tracking-widest uppercase">Date of Birth</label>
+                <div className="grid grid-cols-3 gap-2 font-mono">
                   <select
                     value={dobDay}
                     onChange={(e) => setDobDay(e.target.value)}
-                    className="p-3 rounded-xl bg-dark-800 border border-dark-600 text-white text-center focus:border-gold-500 focus:outline-none"
+                    className="p-3 bg-[#050505] border border-[#2a2a2a] text-white text-center focus:border-[#C5A059] focus:outline-none text-sm"
                   >
-                    <option value="">يوم</option>
+                    <option value="">DD</option>
                     {Array.from({ length: 31 }, (_, i) => (
                       <option key={i + 1} value={String(i + 1)}>{i + 1}</option>
                     ))}
@@ -223,20 +225,19 @@ function PlayerFlow({ initialRoomCode = '' }: { initialRoomCode?: string }) {
                   <select
                     value={dobMonth}
                     onChange={(e) => setDobMonth(e.target.value)}
-                    className="p-3 rounded-xl bg-dark-800 border border-dark-600 text-white text-center focus:border-gold-500 focus:outline-none"
+                    className="p-3 bg-[#050505] border border-[#2a2a2a] text-white text-center focus:border-[#C5A059] focus:outline-none text-sm"
                   >
-                    <option value="">شهر</option>
-                    {['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
-                      .map((m, i) => (
-                        <option key={i + 1} value={String(i + 1)}>{m}</option>
-                      ))}
+                    <option value="">MM</option>
+                    {Array.from({ length: 12 }, (_, i) => (
+                      <option key={i + 1} value={String(i + 1)}>{i + 1}</option>
+                    ))}
                   </select>
                   <select
                     value={dobYear}
                     onChange={(e) => setDobYear(e.target.value)}
-                    className="p-3 rounded-xl bg-dark-800 border border-dark-600 text-white text-center focus:border-gold-500 focus:outline-none"
+                    className="p-3 bg-[#050505] border border-[#2a2a2a] text-white text-center focus:border-[#C5A059] focus:outline-none text-sm"
                   >
-                    <option value="">سنة</option>
+                    <option value="">YYYY</option>
                     {Array.from({ length: 50 }, (_, i) => {
                       const year = new Date().getFullYear() - 8 - i;
                       return <option key={year} value={String(year)}>{year}</option>;
@@ -246,40 +247,40 @@ function PlayerFlow({ initialRoomCode = '' }: { initialRoomCode?: string }) {
               </div>
 
               {/* الجنس */}
-              <div className="mb-6">
-                <label className="block text-sm text-dark-400 mb-2">الجنس</label>
-                <div className="grid grid-cols-2 gap-3">
+              <div className="mb-8">
+                <label className="block text-xs font-mono text-[#808080] mb-2 tracking-widest uppercase">Gender</label>
+                <div className="grid grid-cols-2 gap-3 font-mono">
                   <button
                     onClick={() => setGender('male')}
-                    className={`p-3 rounded-xl border text-center font-bold transition-all ${
+                    className={`p-3 border text-center font-bold tracking-widest transition-all ${
                       gender === 'male'
-                        ? 'bg-citizen-600/30 border-citizen-500 text-citizen-400'
-                        : 'bg-dark-800 border-dark-600 text-dark-400 hover:border-dark-500'
+                        ? 'bg-[#1a1a1a] border-[#C5A059] text-white'
+                        : 'bg-[#050505] border-[#2a2a2a] text-[#555] hover:border-[#555]'
                     }`}
                   >
-                    ♂ ذكر
+                    MALE
                   </button>
                   <button
                     onClick={() => setGender('female')}
-                    className={`p-3 rounded-xl border text-center font-bold transition-all ${
+                    className={`p-3 border text-center font-bold tracking-widest transition-all ${
                       gender === 'female'
-                        ? 'bg-mafia-600/30 border-mafia-500 text-mafia-400'
-                        : 'bg-dark-800 border-dark-600 text-dark-400 hover:border-dark-500'
+                        ? 'bg-[#1a1a1a] border-[#8A0303] text-white'
+                        : 'bg-[#050505] border-[#2a2a2a] text-[#555] hover:border-[#555]'
                     }`}
                   >
-                    ♀ أنثى
+                    FEMALE
                   </button>
                 </div>
               </div>
 
-              {apiError && <p className="text-mafia-400 text-sm text-center mb-3">{apiError}</p>}
+              {apiError && <p className="text-[#8A0303] text-xs font-mono text-center mb-4 tracking-widest uppercase">{apiError}</p>}
 
               <button
                 onClick={handleRegister}
                 disabled={!displayName}
-                className="btn-primary w-full disabled:opacity-50"
+                className="btn-premium w-full !text-base disabled:opacity-50"
               >
-                التالي ←
+                <span>SUBMIT ARCHIVE</span>
               </button>
             </motion.div>
           )}
@@ -287,10 +288,9 @@ function PlayerFlow({ initialRoomCode = '' }: { initialRoomCode?: string }) {
           {/* ── خطوة 4: رقم اللاعب ── */}
           {step === 'number' && (
             <motion.div key="number" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <div className="text-center mb-6">
-                <div className="text-4xl mb-3">👋</div>
-                <h2 className="text-xl font-bold mb-1">أهلاً {displayName}!</h2>
-                <p className="text-dark-400 text-sm">اختر رقمك في اللعبة</p>
+              <div className="text-center mb-8 border-b border-[#2a2a2a] pb-6">
+                <h2 className="text-3xl font-black mb-2 text-white" style={{ fontFamily: 'Amiri, serif' }}>مرحباً {displayName}</h2>
+                <p className="text-[#808080] text-xs font-mono uppercase tracking-[0.2em]">ASSIGN AGENT ID</p>
               </div>
 
               <input
@@ -298,53 +298,45 @@ function PlayerFlow({ initialRoomCode = '' }: { initialRoomCode?: string }) {
                 inputMode="numeric"
                 value={physicalId}
                 onChange={(e) => setPhysicalId(e.target.value)}
-                placeholder="رقمك"
-                className="w-full p-4 rounded-xl bg-dark-800 border border-dark-600 text-white text-center text-4xl font-black focus:border-gold-500 focus:outline-none transition-colors"
+                placeholder="0"
+                className="w-full p-6 bg-[#050505] border border-[#2a2a2a] text-white text-center text-6xl font-mono focus:border-[#C5A059] focus:outline-none transition-colors mb-6 placeholder-[#222]"
                 min={1}
                 max={27}
                 autoFocus
               />
 
-              {physicalId && (
-                <div className="glass-card p-3 mt-4 text-center">
-                  <p className="text-dark-400 text-xs mb-1">ستظهر كـ</p>
-                  <p className="text-xl font-bold text-gold-400">
-                    #{physicalId} - {displayName}
-                  </p>
-                </div>
-              )}
-
-              {apiError && <p className="text-mafia-400 text-sm text-center mt-3">{apiError}</p>}
+              {apiError && <p className="text-[#8A0303] text-xs font-mono text-center mb-4 tracking-widest uppercase">{apiError}</p>}
 
               <button
                 onClick={handleJoinGame}
                 disabled={!physicalId || loading}
-                className="btn-primary w-full mt-6 disabled:opacity-50"
+                className="btn-premium w-full !text-base disabled:opacity-50"
               >
-                {loading ? '⏳ جاري الدخول...' : '🎮 دخول اللعبة'}
+                <span>{loading ? 'JOINING...' : 'CONFIRM ID & ENTER'}</span>
               </button>
             </motion.div>
           )}
 
           {/* ── خطوة 5: تم ── */}
           {step === 'done' && (
-            <motion.div key="done" initial={{ scale: 0.8 }} animate={{ scale: 1 }} className="text-center">
+            <motion.div key="done" initial={{ scale: 0.95 }} animate={{ scale: 1 }} className="text-center py-6">
               <motion.div
-                className="text-7xl mb-6"
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 1, repeat: 2 }}
+                className="text-7xl mb-6 grayscale opacity-90"
+                animate={{ scale: [1, 1.1, 1], opacity: [0.7, 1, 0.7] }}
+                transition={{ duration: 4, repeat: Infinity }}
               >
-                ✅
+                ♟️
               </motion.div>
-              <h2 className="text-2xl font-bold mb-2 text-emerald-400">تم التسجيل بنجاح!</h2>
-              <p className="text-xl font-bold text-gold-400 mb-4">
-                #{physicalId} - {displayName}
-              </p>
-              <div className="glass-card p-4">
-                <p className="text-dark-400">
-                  يمكنك الآن إغلاق الهاتف والانتظار حتى يبدأ الليدر اللعبة 🎭
+              <h2 className="text-2xl font-black mb-4 text-[#C5A059]" style={{ fontFamily: 'Amiri, serif' }}>اكتمل التسجيل</h2>
+              <div className="bg-[#050505] border border-[#2a2a2a] p-4 inline-block mx-auto mb-6">
+                <p className="text-white text-xl font-bold tracking-widest">
+                  AGENT_{physicalId?.toString().padStart(2, '0')}: <span className="text-[#808080]">{displayName}</span>
                 </p>
               </div>
+              <p className="text-[#555] text-xs font-mono uppercase tracking-[0.2em] leading-relaxed">
+                STATUS CONFIRMED. WAITING FOR OPERATION COMMENCEMENT. 
+                PLEASE STAND BY.
+              </p>
             </motion.div>
           )}
 

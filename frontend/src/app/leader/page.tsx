@@ -182,8 +182,8 @@ export default function LeaderPage() {
 
   if (checkingAuth || !isAuthenticated) {
     return (
-      <div className="min-h-screen bg-dark-900 flex items-center justify-center">
-        <div className="text-dark-400 text-xl">⏳ جاري التحقق...</div>
+      <div className="display-bg min-h-screen flex items-center justify-center font-sans">
+        <div className="text-[#555] text-sm font-mono tracking-widest uppercase">VERIFYING CREDENTIALS...</div>
       </div>
     );
   }
@@ -193,61 +193,62 @@ export default function LeaderPage() {
   // ══════════════════════════════════════════════════
   if (gameState) {
     return (
-      <div className="min-h-screen bg-dark-900 p-6">
+      <div className="display-bg min-h-screen p-8 font-sans">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-10 border-b border-[#2a2a2a] pb-6">
           <div>
-            <h1 className="text-2xl font-bold">👑 {gameState.config.gameName}</h1>
-            <p className="text-dark-400 text-sm mt-1">
-              كود اللعبة: <span className="text-gold-400 font-mono font-bold text-xl">{gameState.roomCode}</span>
-              {' • '}
-              PIN: <span className="text-emerald-400 font-mono font-bold">{gameState.config.displayPin}</span>
+            <h1 className="text-3xl font-black text-white" style={{ fontFamily: 'Amiri, serif' }}>{gameState.config.gameName}</h1>
+            <p className="text-[#808080] text-xs mt-2 font-mono uppercase tracking-[0.2em]">
+              OP_CODE: <span className="text-[#C5A059]">{gameState.roomCode}</span>
+              {' | '}
+              PIN: <span className="text-[#8A0303]">{gameState.config.displayPin}</span>
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="glass-card px-4 py-2 text-sm">
-              <span className="text-dark-400">المرحلة: </span>
-              <span className="text-gold-400 font-bold">{gameState.phase}</span>
+          <div className="flex items-center gap-4">
+            <div className="noir-card px-6 py-3 text-xs font-mono uppercase tracking-widest border-[#C5A059]/30">
+              <span className="text-[#555]">Phase: </span>
+              <span className="text-[#C5A059] font-bold">{gameState.phase}</span>
             </div>
             <button
               onClick={() => setGameState(null)}
-              className="glass-card px-4 py-2 text-sm text-dark-400 hover:text-white transition-colors"
+              className="text-[#555] text-xs font-mono uppercase tracking-widest hover:text-white transition-colors"
             >
-              ← رجوع
+              [ Return ]
             </button>
           </div>
         </div>
 
         {/* Players Grid */}
-        <div className="mb-6">
-          <h2 className="text-xl font-bold mb-4">
-            اللاعبون: <span className="text-emerald-400">{gameState.players.length}</span>
-            <span className="text-dark-500"> / {gameState.config.maxPlayers}</span>
+        <div className="mb-10">
+          <h2 className="text-sm font-mono tracking-[0.3em] uppercase mb-6 text-[#555]">
+            AGENT ROSTER: <span className="text-[#C5A059]">{gameState.players.length}</span>
+            <span className="text-[#333]"> / {gameState.config.maxPlayers}</span>
           </h2>
 
           {gameState.players.length === 0 ? (
-            <div className="glass-card p-8 text-center">
-              <p className="text-dark-400 text-lg">⏳ بانتظار انضمام اللاعبين...</p>
-              <p className="text-dark-500 text-sm mt-2">
-                شارك كود اللعبة <span className="text-gold-400 font-mono font-bold">{gameState.roomCode}</span> مع اللاعبين
+            <div className="noir-card p-12 text-center border-[#2a2a2a]">
+              <p className="text-[#808080] text-sm font-mono tracking-[0.2em] uppercase">AWAITING AGENT CONNECTIONS...</p>
+              <p className="text-[#555] text-xs mt-4 font-mono tracking-widest uppercase">
+                DISTRIBUTE OP_CODE: <span className="text-[#C5A059] font-bold">{gameState.roomCode}</span>
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {gameState.players.map((player: any, i: number) => (
                 <motion.div
                   key={player.physicalId}
-                  initial={{ opacity: 0, scale: 0.8 }}
+                  initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: i * 0.03 }}
-                  className="glass-card p-3 flex items-center gap-3 border-emerald-500/20"
+                  className="bg-[#0c0c0c] border border-[#2a2a2a] p-4 flex flex-col items-center gap-3 relative overflow-hidden group"
                 >
-                  <div className="w-10 h-10 rounded-full bg-emerald-600/30 flex items-center justify-center text-emerald-400 font-bold text-lg">
+                  <div className="absolute top-0 left-0 w-full h-[2px] bg-[#C5A059] opacity-30 group-hover:opacity-100 transition-opacity" />
+                  <div className="w-12 h-12 rounded-none bg-[#111] border border-[#2a2a2a] flex items-center justify-center text-[#808080] font-mono text-xl">
                     {player.physicalId}
                   </div>
-                  <div className="min-w-0">
-                    <p className="font-bold text-sm truncate">{player.name}</p>
-                    <p className="text-emerald-400 text-xs">✓</p>
+                  <div className="text-center w-full">
+                    <p className="font-bold text-sm text-white truncate">{player.name}</p>
+                    <p className="text-[#C5A059] text-[10px] font-mono tracking-widest uppercase mt-1">VERIFIED</p>
                   </div>
                 </motion.div>
               ))}
@@ -257,7 +258,7 @@ export default function LeaderPage() {
 
         {/* Start Game Button */}
         {gameState.players.length >= 6 && gameState.phase === 'LOBBY' && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center mt-8">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mt-12">
             <button
               onClick={async () => {
                 try {
@@ -266,14 +267,14 @@ export default function LeaderPage() {
                   setError(err.message);
                 }
               }}
-              className="btn-primary text-xl px-12 py-4"
+              className="btn-premium px-16 py-5 !text-lg !border-[#8A0303]/50"
             >
-              🎲 بدء التوليد
+              <span>COMMENCE OPERATION</span>
             </button>
           </motion.div>
         )}
 
-        {error && <p className="text-mafia-400 mt-4 text-center">{error}</p>}
+        {error && <p className="text-[#8A0303] mt-6 text-sm font-mono tracking-widest text-center uppercase">{error}</p>}
       </div>
     );
   }
@@ -282,18 +283,18 @@ export default function LeaderPage() {
   // شاشة إنشاء لعبة + الألعاب النشطة
   // ══════════════════════════════════════════════════
   return (
-    <div className="min-h-screen bg-dark-900 flex flex-col items-center justify-center p-6">
-      <div className="w-full max-w-lg">
+    <div className="display-bg min-h-screen flex flex-col items-center py-12 px-6 font-sans">
+      <div className="w-full max-w-2xl">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="text-5xl mb-3">👑</div>
-          <h1 className="text-3xl font-bold mb-1">لوحة الليدر</h1>
-          <p className="text-dark-400 text-sm">
-            مرحباً <span className="text-gold-400 font-bold">{leaderName}</span>
+        <div className="text-center mb-12 border-b border-[#2a2a2a] pb-8">
+          <div className="text-6xl mb-4 grayscale opacity-80">⚖️</div>
+          <h1 className="text-4xl font-black mb-2 text-white" style={{ fontFamily: 'Amiri, serif' }}>المقر الرئيسي</h1>
+          <p className="text-[#808080] text-xs font-mono tracking-[0.2em] uppercase">
+            DIRECTOR: <span className="text-[#C5A059]">{leaderName}</span>
           </p>
-          <div className="flex items-center justify-center gap-2 mt-2">
-            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-400' : 'bg-red-500'}`} />
-            <span className="text-dark-500 text-xs">{isConnected ? 'متصل' : 'غير متصل'}</span>
+          <div className="flex items-center justify-center gap-2 mt-4 font-mono">
+            <div className={`w-2 h-2 ${isConnected ? 'bg-[#2E5C31] shadow-[0_0_10px_#2E5C31]' : 'bg-[#8A0303]'} animate-pulse`} />
+            <span className="text-[#555] text-[10px] tracking-widest uppercase">{isConnected ? 'SERVER CONN_ESTABLISHED' : 'OFFLINE'}</span>
           </div>
         </div>
 
@@ -302,31 +303,30 @@ export default function LeaderPage() {
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-8"
+            className="mb-12"
           >
-            <h2 className="text-lg font-bold text-gold-400 mb-3">🎮 ألعاب نشطة ({activeGames.length})</h2>
-            <div className="space-y-3">
+            <h2 className="text-xs font-mono tracking-[0.3em] text-[#555] mb-4 uppercase">ACTIVE OPERATIONS ({activeGames.length})</h2>
+            <div className="space-y-4">
               {activeGames.map(game => (
                 <motion.button
                   key={game.roomId}
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.99 }}
                   onClick={() => handleRejoinGame(game)}
-                  className="glass-card p-4 w-full flex items-center justify-between text-right hover:border-gold-500/30 transition-all"
+                  className="noir-card p-6 w-full flex items-center justify-between text-right hover:border-[#C5A059]/40 transition-all border-[#2a2a2a]"
                 >
                   <div>
-                    <h3 className="font-bold text-gold-400">{game.gameName}</h3>
-                    <p className="text-dark-400 text-xs mt-1">
-                      كود: <span className="font-mono">{game.roomCode}</span>
-                      {' • PIN: '}<span className="font-mono">{game.displayPin}</span>
-                      {' • '}<span className="text-emerald-400">{game.playerCount}</span>/{game.maxPlayers}
+                    <h3 className="font-black text-white text-xl" style={{ fontFamily: 'Amiri, serif' }}>{game.gameName}</h3>
+                    <p className="text-[#808080] text-xs mt-2 font-mono tracking-widest uppercase">
+                      CODE: <span className="text-[#C5A059]">{game.roomCode}</span>
+                      {' | '}PIN: <span className="text-[#8A0303]">{game.displayPin}</span>
+                      {' | '}AGENTS: <span className="text-white">{game.playerCount}</span>/{game.maxPlayers}
                     </p>
                   </div>
-                  <span className="text-dark-400 text-sm">استعادة ←</span>
+                  <span className="text-[#555] text-xs font-mono uppercase tracking-[0.2em] group-hover:text-white transition-colors">RESUME [→]</span>
                 </motion.button>
               ))}
             </div>
-            <hr className="border-dark-700 my-6" />
           </motion.div>
         )}
 
@@ -335,58 +335,62 @@ export default function LeaderPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="glass-card p-8"
+          className="noir-card p-10 border-[#111]"
         >
-          <h2 className="text-xl font-bold mb-6 text-center">✨ إنشاء لعبة جديدة</h2>
+          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#808080] to-transparent opacity-20" />
+          
+          <h2 className="text-2xl font-black mb-8 text-center text-white" style={{ fontFamily: 'Amiri, serif' }}>تأسيس عملية جديدة</h2>
 
           {/* اسم اللعبة */}
-          <div className="mb-5">
-            <label className="block text-sm text-dark-400 mb-2">🏷️ اسم اللعبة</label>
+          <div className="mb-6">
+            <label className="block text-xs font-mono text-[#808080] mb-2 tracking-widest uppercase">Operation Name</label>
             <input
               type="text"
               value={gameName}
               onChange={(e) => setGameName(e.target.value)}
-              placeholder="مثال: بطولة المافيا #3"
-              className="w-full p-3 rounded-xl bg-dark-800 border border-dark-600 text-white text-center text-lg focus:border-gold-500 focus:outline-none transition-colors"
+              placeholder="اسم العملية..."
+              className="w-full p-4 bg-[#050505] border border-[#2a2a2a] text-white text-center text-lg focus:border-[#C5A059] focus:outline-none transition-colors placeholder-[#222]"
               maxLength={50}
             />
           </div>
 
-          {/* عدد اللاعبين */}
-          <div className="mb-5">
-            <label className="block text-sm text-dark-400 mb-2">👥 عدد اللاعبين (6-27)</label>
-            <div className="flex items-center justify-center gap-3">
-              <button onClick={() => setMaxPlayers(Math.max(6, maxPlayers - 1))} className="w-12 h-12 rounded-xl bg-mafia-600/30 text-mafia-400 font-bold text-xl hover:bg-mafia-600/50 transition-colors">−</button>
-              <input
-                type="number"
-                value={maxPlayers}
-                onChange={(e) => setMaxPlayers(Math.min(27, Math.max(6, parseInt(e.target.value) || 6)))}
-                className="w-20 p-3 rounded-xl bg-dark-800 border border-dark-600 text-white text-center text-2xl font-bold focus:border-gold-500 focus:outline-none"
-                min={6} max={27}
-              />
-              <button onClick={() => setMaxPlayers(Math.min(27, maxPlayers + 1))} className="w-12 h-12 rounded-xl bg-emerald-600/30 text-emerald-400 font-bold text-xl hover:bg-emerald-600/50 transition-colors">+</button>
+          <div className="grid grid-cols-2 gap-6 mb-8">
+            {/* عدد اللاعبين */}
+            <div>
+              <label className="block text-xs font-mono text-[#808080] mb-2 tracking-widest uppercase text-center">Max Agents</label>
+              <div className="flex items-center justify-center gap-2">
+                <button onClick={() => setMaxPlayers(Math.max(6, maxPlayers - 1))} className="w-10 h-10 bg-[#050505] border border-[#2a2a2a] text-[#808080] hover:text-white hover:border-[#555] transition-colors font-mono">−</button>
+                <input
+                  type="number"
+                  value={maxPlayers}
+                  onChange={(e) => setMaxPlayers(Math.min(27, Math.max(6, parseInt(e.target.value) || 6)))}
+                  className="w-16 p-2 bg-[#050505] border-b border-[#2a2a2a] text-white text-center text-xl font-mono focus:border-[#C5A059] focus:outline-none"
+                  min={6} max={27}
+                />
+                <button onClick={() => setMaxPlayers(Math.min(27, maxPlayers + 1))} className="w-10 h-10 bg-[#050505] border border-[#2a2a2a] text-[#808080] hover:text-white hover:border-[#555] transition-colors font-mono">+</button>
+              </div>
             </div>
-          </div>
 
-          {/* عدد التبريرات */}
-          <div className="mb-5">
-            <label className="block text-sm text-dark-400 mb-2">💬 عدد التبريرات</label>
-            <div className="flex items-center justify-center gap-3">
-              <button onClick={() => setMaxJustifications(Math.max(1, maxJustifications - 1))} className="w-12 h-12 rounded-xl bg-mafia-600/30 text-mafia-400 font-bold text-xl hover:bg-mafia-600/50 transition-colors">−</button>
-              <span className="text-2xl font-bold text-gold-400 w-12 text-center">{maxJustifications}</span>
-              <button onClick={() => setMaxJustifications(Math.min(5, maxJustifications + 1))} className="w-12 h-12 rounded-xl bg-emerald-600/30 text-emerald-400 font-bold text-xl hover:bg-emerald-600/50 transition-colors">+</button>
+            {/* عدد التبريرات */}
+            <div>
+              <label className="block text-xs font-mono text-[#808080] mb-2 tracking-widest uppercase text-center">Justifications</label>
+              <div className="flex items-center justify-center gap-2">
+                <button onClick={() => setMaxJustifications(Math.max(1, maxJustifications - 1))} className="w-10 h-10 bg-[#050505] border border-[#2a2a2a] text-[#808080] hover:text-white hover:border-[#555] transition-colors font-mono">−</button>
+                <span className="text-xl font-mono text-white w-16 text-center border-b border-[#2a2a2a] pb-1">{maxJustifications}</span>
+                <button onClick={() => setMaxJustifications(Math.min(5, maxJustifications + 1))} className="w-10 h-10 bg-[#050505] border border-[#2a2a2a] text-[#808080] hover:text-white hover:border-[#555] transition-colors font-mono">+</button>
+              </div>
             </div>
           </div>
 
           {/* PIN */}
-          <div className="mb-8">
-            <label className="block text-sm text-dark-400 mb-2">🔒 رقم سري لشاشة العرض <span className="text-dark-600">(اختياري)</span></label>
+          <div className="mb-10">
+            <label className="block text-xs font-mono text-[#808080] mb-2 tracking-widest uppercase text-center">Display PIN (Optional)</label>
             <input
               type="text"
               value={displayPin}
               onChange={(e) => setDisplayPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              placeholder="يُولّد تلقائياً"
-              className="w-full p-3 rounded-xl bg-dark-800 border border-dark-600 text-white text-center font-mono text-lg focus:border-gold-500 focus:outline-none tracking-widest"
+              placeholder="AUTO-GENERATED"
+              className="w-full p-4 bg-[#050505] border border-[#2a2a2a] text-[#C5A059] text-center font-mono text-xl tracking-[0.4em] focus:border-[#C5A059] focus:outline-none placeholder-[#222]"
               maxLength={6}
             />
           </div>
@@ -394,18 +398,18 @@ export default function LeaderPage() {
           <button
             onClick={handleCreateRoom}
             disabled={!isConnected || creating || !gameName.trim()}
-            className="btn-primary w-full text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn-premium w-full text-base disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {creating ? '⏳ جاري الإنشاء...' : '🎮 إنشاء اللعبة'}
+            <span>{creating ? 'INITIALIZING...' : 'CREATE OPERATION'}</span>
           </button>
 
-          {error && <p className="text-mafia-400 mt-4 text-sm text-center">{error}</p>}
+          {error && <p className="text-[#8A0303] mt-6 text-xs font-mono text-center tracking-widest uppercase">{error}</p>}
         </motion.div>
 
         {/* رجوع */}
-        <div className="text-center mt-6">
-          <button onClick={() => router.push('/')} className="text-dark-500 text-sm hover:text-dark-300 transition-colors">
-            ← العودة للرئيسية
+        <div className="text-center mt-12 mb-8">
+          <button onClick={() => router.push('/')} className="text-[#555] text-xs font-mono tracking-[0.2em] uppercase hover:text-white transition-colors">
+            [ ABORT TO MAIN MENU ]
           </button>
         </div>
       </div>
