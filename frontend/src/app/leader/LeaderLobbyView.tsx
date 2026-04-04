@@ -17,6 +17,10 @@ export default function LeaderLobbyView({ gameState, emit, setError }: LeaderLob
 
   const handleForceAdd = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!addForm.physicalId || !addForm.name) {
+      setLocalError("الرجاء إدخال المعرف واسم اللاعب بالكامل!");
+      return;
+    }
     setLocalError('');
     try {
       await emit('room:force-add-player', {
@@ -71,12 +75,12 @@ export default function LeaderLobbyView({ gameState, emit, setError }: LeaderLob
           >
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div>
-                <label className="block text-[10px] font-mono text-[#555] uppercase tracking-widest mb-1">Physical ID</label>
-                <input required type="number" value={addForm.physicalId} onChange={(e) => setAddForm({...addForm, physicalId: e.target.value})} className="w-full bg-[#050505] border border-[#2a2a2a] p-2 text-white font-mono outline-none focus:border-[#C5A059]" />
+                <label className="block text-[10px] font-mono text-[#555] uppercase tracking-widest mb-1">Physical ID (*)</label>
+                <input type="number" value={addForm.physicalId} onChange={(e) => setAddForm({...addForm, physicalId: e.target.value})} className="w-full bg-[#050505] border border-[#2a2a2a] p-2 text-white font-mono outline-none focus:border-[#C5A059]" autoComplete="off" />
               </div>
               <div>
-                <label className="block text-[10px] font-mono text-[#555] uppercase tracking-widest mb-1">Agent Name</label>
-                <input required type="text" value={addForm.name} onChange={(e) => setAddForm({...addForm, name: e.target.value})} className="w-full bg-[#050505] border border-[#2a2a2a] p-2 text-white font-mono outline-none focus:border-[#C5A059]" />
+                <label className="block text-[10px] font-mono text-[#555] uppercase tracking-widest mb-1">Agent Name (*)</label>
+                <input type="text" value={addForm.name} onChange={(e) => setAddForm({...addForm, name: e.target.value})} className="w-full bg-[#050505] border border-[#2a2a2a] p-2 text-white font-mono outline-none focus:border-[#C5A059]" autoComplete="off" />
               </div>
               <div>
                 <label className="block text-[10px] font-mono text-[#555] uppercase tracking-widest mb-1">Phone Number</label>
