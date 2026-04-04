@@ -147,18 +147,6 @@ export function validateRoleDistribution(roles: Role[], playerCount: number): { 
     return { valid: false, error: `عدد الأدوار (${roles.length}) لا يتطابق مع عدد اللاعبين (${playerCount})` };
   }
 
-  const mafiaCount = roles.filter(r => isMafiaRole(r)).length;
-  const citizenCount = roles.filter(r => isCitizenRole(r)).length;
-
-  // يجب أن يكون هناك شيخ مافيا واحد على الأقل
-  if (!roles.includes(Role.GODFATHER)) {
-    return { valid: false, error: 'يجب أن يكون هناك شيخ مافيا واحد على الأقل' };
-  }
-
-  // يجب أن يكون عدد المافيا أقل من المواطنين لبدء اللعبة
-  if (mafiaCount >= citizenCount) {
-    return { valid: false, error: 'عدد المافيا يجب أن يكون أقل من عدد المواطنين عند بدء اللعبة' };
-  }
-
+  // السماح لليدر بحرية مطلقة كما طلب المستخدم
   return { valid: true };
 }

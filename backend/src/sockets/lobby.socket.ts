@@ -4,7 +4,7 @@
 // ══════════════════════════════════════════════════════
 
 import { Server, Socket } from 'socket.io';
-import { createRoom, addPlayer, updatePlayer, getRoom, getRoomByCode, bindRole, setPhase, Phase } from '../game/state.js';
+import { createRoom, addPlayer, updatePlayer, updateRoom, getRoom, getRoomByCode, bindRole, setPhase, Phase } from '../game/state.js';
 import { generateRoles, validateRoleDistribution, Role } from '../game/roles.js';
 
 // ── قائمة الغرف النشطة (in-memory tracker) ──
@@ -178,7 +178,7 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
         return callback({ success: false, error: 'Only leader can override' });
       }
 
-      let state;
+      let state = await getRoom(data.roomId);
       if (data.isNew) {
         state = await addPlayer(data.roomId, data.physicalId, data.name);
       } else {
@@ -192,6 +192,78 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
       });
 
       callback({ success: true });
+    } catch (err: any) {
+      callback({ success: false, error: err.message });
+    }
+  });
+
+  // ── صلاحية الليدر: إضافة لاعب أوفلاين مع كامل البيانات ──
+  socket.on('room:force-add-player', async (data: {
+    roomId: string;
+    physicalId: number;
+    name: string;
+    phone: string;
+    dob: string;
+    gender: string;
+  }, callback) => {
+    try {
+      if (socket.data.role !== 'leader') {
+        return callback({ success: false, error: 'Only leader can override' });
+      }
+
+      const state = await addPlayer(data.roomId, data.physicalId, data.name, data.phone);
+      
+      // Update with dob and gender natively
+      await updatePlayer(data.roomId, data.physicalId, { dob: data.dob, gender: data.gender });
+
+      const room = activeRooms.get(data.roomId);
+      if (room) {
+        room.playerCount = state.players.length;
+      }
+
+      io.to(data.roomId).emit('room:player-joined', {
+        physicalId: data.physicalId,
+        name: data.name,
+        totalPlayers: state.players.length,
+        maxPlayers: state.config.maxPlayers,
+      });
+
+      callback({ success: true });
+      console.log(`👑 Leader force-added player: #${data.physicalId} - ${data.name}`);
+    } catch (err: any) {
+      callback({ success: false, error: err.message });
+    }
+  });
+
+  // ── صلاحية الليدر: إزالة لاعب ──
+  socket.on('room:kick-player', async (data: {
+    roomId: string;
+    physicalId: number;
+  }, callback) => {
+    try {
+      if (socket.data.role !== 'leader') {
+        return callback({ success: false, error: 'Only leader can kick' });
+      }
+
+      const state = await getRoom(data.roomId);
+      if (!state) return callback({ success: false, error: 'Room not found' });
+
+      // Remove player
+      state.players = state.players.filter(p => p.physicalId !== data.physicalId);
+      await updateRoom(data.roomId, { players: state.players });
+
+      const room = activeRooms.get(data.roomId);
+      if (room) {
+        room.playerCount = state.players.length;
+      }
+
+      io.to(data.roomId).emit('room:player-kicked', {
+        physicalId: data.physicalId,
+        totalPlayers: state.players.length,
+      });
+
+      callback({ success: true });
+      console.log(`👑 Leader kicked player: #${data.physicalId}`);
     } catch (err: any) {
       callback({ success: false, error: err.message });
     }
@@ -247,7 +319,7 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
         return callback({ success: false, error: validation.error });
       }
 
-      await setPhase(data.roomId, Phase.ROLE_BINDING);
+      await updateRoom(data.roomId, { phase: Phase.ROLE_BINDING, rolesPool: data.roles });
 
       socket.emit('setup:binding-start', {
         players: state.players.map(p => ({ physicalId: p.physicalId, name: p.name })),

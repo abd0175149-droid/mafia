@@ -134,12 +134,49 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
     );
   }
 
+  const [showDealsUI, setShowDealsUI] = useState(false);
+
   // ==========================================
   // RENDER DAY_DISCUSSION (Deals Proposition)
   // ==========================================
   if (gameState.phase === 'DAY_DISCUSSION') {
+    if (!showDealsUI) {
+      return (
+        <div className="flex flex-col items-center justify-center p-12 text-center h-[50vh]">
+          <h2 className="text-3xl font-black text-white mb-6" style={{ fontFamily: 'Amiri, serif' }}>انتهت جولة النقاش</h2>
+          <p className="text-[#808080] font-mono uppercase tracking-widest text-sm mb-12">
+            ANY DEALS ESTABLISHED DURING DISCUSSION?
+          </p>
+          <div className="flex gap-6">
+            <button
+              onClick={() => setShowDealsUI(true)}
+              className="btn-premium px-12 py-4"
+            >
+              <span className="text-white">YES - REGISTER DEALS</span>
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  await emit('day:start-voting', { roomId: gameState.roomId });
+                } catch (err: any) {
+                  setError(err.message);
+                }
+              }}
+              className="px-12 py-4 border border-[#8A0303] text-[#8A0303] hover:bg-[#8A0303]/10 font-mono tracking-widest uppercase transition-colors"
+            >
+              NO - SKIP TO VOTING
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-lg font-mono text-[#555] uppercase tracking-widest">DEAL REGISTRATION</h2>
+          <button onClick={() => setShowDealsUI(false)} className="text-[#808080] text-xs font-mono uppercase hover:text-white pb-1 border-b border-[#2a2a2a]">&lt; CANCEL</button>
+        </div>
         <div className="grid md:grid-cols-2 gap-8 mb-8">
           
           {/* Create Deal Panel */}

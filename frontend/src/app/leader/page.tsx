@@ -5,6 +5,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useSocket } from '@/hooks/useSocket';
 import LeaderDayView from './LeaderDayView';
+import LeaderLobbyView from './LeaderLobbyView';
+import LeaderRoleConfigurator from './LeaderRoleConfigurator';
+import LeaderRoleBinding from './LeaderRoleBinding';
 
 interface ActiveGame {
   roomId: string;
@@ -132,6 +135,17 @@ export default function LeaderPage() {
       setGameState(prev => prev ? { ...prev, phase: data.phase } : prev);
     });
 
+    // Player kicked
+    const offPlayerKicked = on('room:player-kicked', (data: any) => {
+      setGameState(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          players: prev.players.filter(p => p.physicalId !== data.physicalId),
+        };
+      });
+    });
+
     // Deals created
     const offDealCreated = on('day:deal-created', (data: any) => {
       setGameState(prev => {
@@ -207,6 +221,7 @@ export default function LeaderPage() {
     return () => {
       offPlayerJoined();
       offPhaseChanged();
+      offPlayerKicked();
       offDealCreated();
       offDealRemoved();
       offVotingStarted();
@@ -319,61 +334,15 @@ export default function LeaderPage() {
         {/* ── Main Content based on Phase ── */}
         
         {gameState.phase === 'LOBBY' && (
-          <div className="mb-10">
-            <h2 className="text-sm font-mono tracking-[0.3em] uppercase mb-6 text-[#555]">
-              AGENT ROSTER: <span className="text-[#C5A059]">{gameState.players.length}</span>
-              <span className="text-[#333]"> / {gameState.config.maxPlayers}</span>
-            </h2>
+          <LeaderLobbyView gameState={gameState} emit={emit} setError={setError} />
+        )}
 
-            {gameState.players.length === 0 ? (
-              <div className="noir-card p-12 text-center border-[#2a2a2a]">
-                <p className="text-[#808080] text-sm font-mono tracking-[0.2em] uppercase">AWAITING AGENT CONNECTIONS...</p>
-                <p className="text-[#555] text-xs mt-4 font-mono tracking-widest uppercase">
-                  DISTRIBUTE OP_CODE: <span className="text-[#C5A059] font-bold">{gameState.roomCode}</span>
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                {gameState.players.map((player: any, i: number) => (
-                  <motion.div
-                    key={player.physicalId}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: i * 0.03 }}
-                    className="bg-[#0c0c0c] border border-[#2a2a2a] p-4 flex flex-col items-center gap-3 relative overflow-hidden group"
-                  >
-                    <div className="absolute top-0 left-0 w-full h-[2px] bg-[#C5A059] opacity-30 group-hover:opacity-100 transition-opacity" />
-                    <div className="w-12 h-12 rounded-none bg-[#111] border border-[#2a2a2a] flex items-center justify-center text-[#808080] font-mono text-xl">
-                      {player.physicalId}
-                    </div>
-                    <div className="text-center w-full">
-                      <p className="font-bold text-sm text-white truncate">{player.name}</p>
-                      <p className="text-[#C5A059] text-[10px] font-mono tracking-widest uppercase mt-1">VERIFIED</p>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            )}
+        {gameState.phase === 'ROLE_GENERATION' && (
+          <LeaderRoleConfigurator gameState={gameState} emit={emit} setError={setError} />
+        )}
 
-            {/* Start Game Button */}
-            {gameState.players.length >= 6 && (
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mt-12">
-                <button
-                  onClick={async () => {
-                    try {
-                      // Note: For now we jump straight to DAY_DISCUSSION to test the Day phase engine!
-                      await emit('game:transition-phase', { roomId: gameState.roomId, targetPhase: 'DAY_DISCUSSION' });
-                    } catch (err: any) {
-                      setError(err.message);
-                    }
-                  }}
-                  className="btn-premium px-16 py-5 !text-lg !border-[#8A0303]/50"
-                >
-                  <span>COMMENCE OPERATION</span>
-                </button>
-              </motion.div>
-            )}
-          </div>
+        {gameState.phase === 'ROLE_BINDING' && (
+          <LeaderRoleBinding gameState={gameState} emit={emit} setError={setError} />
         )}
 
         {(gameState.phase.startsWith('DAY_')) && (

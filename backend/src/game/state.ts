@@ -25,6 +25,8 @@ export interface Player {
   physicalId: number;
   name: string;
   phone: string | null;
+  dob?: string | null;
+  gender?: string | null;
   playerId: number | null;
   role: Role | null;
   isAlive: boolean;
@@ -100,6 +102,7 @@ export interface GameState {
   round: number;
   config: GameConfig;
   players: Player[];
+  rolesPool: Role[];
   votingState: VotingState;
   nightActions: NightActions;
   morningEvents: MorningEvent[];
@@ -143,6 +146,7 @@ export async function createRoom(
       displayPin: displayPin || generateDisplayPin(),
     },
     players: [],
+    rolesPool: [],
     votingState: {
       totalVotesCast: 0,
       deals: [],
@@ -220,10 +224,19 @@ export async function addPlayer(
     throw new Error(`الرقم ${physicalId} مسجل مسبقاً`);
   }
 
+  // التحقق من عدم تكرار رقم الهاتف (يُستثنى 0700000000)
+  if (phone && phone !== '0700000000') {
+    if (state.players.some(p => p.phone === phone)) {
+      throw new Error(`رقم الهاتف ${phone} مسجل مسبقاً في هذه الغرفة`);
+    }
+  }
+
   const player: Player = {
     physicalId,
     name,
     phone,
+    dob: null,
+    gender: null,
     playerId,
     role: null,
     isAlive: true,
@@ -241,7 +254,7 @@ export async function addPlayer(
 export async function updatePlayer(
   roomId: string,
   physicalId: number,
-  updates: Partial<Pick<Player, 'name' | 'physicalId'>>
+  updates: Partial<Pick<Player, 'name' | 'physicalId' | 'dob' | 'gender'>>
 ): Promise<GameState> {
   const state = await getGameState(roomId);
   if (!state) throw new Error(`Room ${roomId} not found`);
