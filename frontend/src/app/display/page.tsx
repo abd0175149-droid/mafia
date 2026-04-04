@@ -48,11 +48,21 @@ export default function DisplayPage() {
   const socketEmit = useCallback((event: string, data: any): Promise<any> => {
     return new Promise((resolve, reject) => {
       const socket = socketRef.current;
+      console.log(`📤 Attempting emit: ${event}`, { connected: socket?.connected, id: socket?.id });
+      
       if (!socket || !socket.connected) {
+        console.error('❌ Socket not connected!');
         return reject(new Error('السوكت غير متصل'));
       }
-      console.log(`📤 Emitting: ${event}`, data);
+
+      // Timeout بعد 5 ثواني
+      const timeout = setTimeout(() => {
+        console.error(`⏰ Timeout for ${event} - no response after 5s`);
+        reject(new Error('انتهت مهلة الاتصال'));
+      }, 5000);
+
       socket.emit(event, data, (response: any) => {
+        clearTimeout(timeout);
         console.log(`📥 Response for ${event}:`, response);
         if (response?.success) {
           resolve(response);
@@ -65,7 +75,11 @@ export default function DisplayPage() {
 
   // ── إدخال PIN ثم جلب الألعاب ──
   const handlePinSubmit = async () => {
-    if (pin.length < 4) return;
+    console.log('🔘 Button clicked! pin:', pin, 'length:', pin.length, 'connected:', isConnected, 'loading:', loading);
+    if (pin.length < 4) {
+      console.log('⚠️ PIN too short, returning');
+      return;
+    }
     setPinError('');
     setLoading(true);
 
@@ -78,7 +92,6 @@ export default function DisplayPage() {
 
       if (rooms.length === 0) {
         setPinError('لا توجد ألعاب نشطة حالياً');
-        setLoading(false);
         return;
       }
 
@@ -90,8 +103,9 @@ export default function DisplayPage() {
     } catch (err: any) {
       console.error('❌ Error:', err);
       setPinError(err.message || 'خطأ في الاتصال');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   // ── التحقق من PIN والدخول للعبة ──
