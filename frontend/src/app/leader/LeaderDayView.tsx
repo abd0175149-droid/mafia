@@ -117,6 +117,209 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
     }
   };
 
+  // ── 5. Justification ──
+  const [justTimerDuration, setJustTimerDuration] = useState(30);
+  const [justCurrentIdx, setJustCurrentIdx] = useState(0);
+  const [justTimerStarted, setJustTimerStarted] = useState(false);
+  const [justAllDone, setJustAllDone] = useState(false);
+
+  const accused = gameState.justificationData?.accused || [];
+  const justResultType = gameState.justificationData?.resultType;
+
+  const handleStartJustificationTimer = async (physicalId: number) => {
+    setLoading(true);
+    try {
+      await emit('day:start-justification-timer', {
+        roomId: gameState.roomId,
+        physicalId,
+        timeLimitSeconds: justTimerDuration,
+      });
+      setJustTimerStarted(true);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleNextAccused = () => {
+    if (justCurrentIdx < accused.length - 1) {
+      setJustCurrentIdx(justCurrentIdx + 1);
+      setJustTimerStarted(false);
+    } else {
+      setJustAllDone(true);
+    }
+  };
+
+  const handleExecuteElimination = async () => {
+    setLoading(true);
+    try {
+      await emit('day:execute-elimination', { roomId: gameState.roomId });
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePardon = async () => {
+    setLoading(true);
+    try {
+      await emit('day:pardon', { roomId: gameState.roomId });
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ==========================================
+  // RENDER DAY_JUSTIFICATION
+  // ==========================================
+  if (gameState.phase === 'DAY_JUSTIFICATION') {
+    const currentAccused = accused[justCurrentIdx];
+    const isTie = justResultType === 'TIE';
+
+    // مرحلة التيمر والدفاع
+    if (!justAllDone && currentAccused) {
+      return (
+        <div className="p-6">
+          <div className="text-center mb-6 border-b border-[#2a2a2a] pb-4">
+            <h2 className="text-2xl font-black text-[#C5A059] mb-2" style={{ fontFamily: 'Amiri, serif' }}>مرحلة التبرير</h2>
+            <p className="text-[#808080] font-mono uppercase text-xs tracking-widest">
+              {isTie ? `TIED: ${accused.length} DEFENDANTS • CURRENT: ${justCurrentIdx + 1}/${accused.length}` : 'SINGLE ACCUSED • DEFENSE HEARING'}
+            </p>
+          </div>
+
+          {/* Accused Info + Role (visible to leader only) */}
+          <div className="noir-card p-6 border-[#C5A059]/40 mb-6">
+            <div className="flex items-center gap-6">
+              <div className="w-20 h-20 bg-[#111] border-2 border-[#C5A059] rounded-full flex items-center justify-center text-4xl text-[#C5A059] font-mono font-black">
+                {currentAccused.targetPhysicalId}
+              </div>
+              <div>
+                <h3 className="text-2xl font-bold text-white" style={{ fontFamily: 'Amiri, serif' }}>{currentAccused.name || 'Unknown'}</h3>
+                <p className="text-[#808080] text-xs font-mono tracking-widest uppercase">VOTES: {gameState.justificationData?.topVotes}</p>
+                {currentAccused.role && (
+                  <p className="mt-2 text-sm font-mono font-bold px-3 py-1 inline-block border rounded" style={{
+                    color: currentAccused.role?.includes('MAFIA') || currentAccused.role === 'GODFATHER' || currentAccused.role === 'SILENCER' || currentAccused.role === 'CHAMELEON' ? '#ff4444' : '#44ff44',
+                    borderColor: currentAccused.role?.includes('MAFIA') || currentAccused.role === 'GODFATHER' || currentAccused.role === 'SILENCER' || currentAccused.role === 'CHAMELEON' ? '#ff4444' : '#44ff44',
+                  }}>
+                    🔒 {currentAccused.role}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Timer Controls */}
+          {!justTimerStarted ? (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-mono text-[#808080] mb-2 uppercase">Defense Time (وقت التبرير)</label>
+                <select
+                  value={justTimerDuration}
+                  onChange={e => setJustTimerDuration(Number(e.target.value))}
+                  className="w-full p-3 bg-[#050505] border border-[#2a2a2a] text-white focus:border-[#C5A059] outline-none"
+                >
+                  <option value={15}>15 ثانية</option>
+                  <option value={30}>30 ثانية</option>
+                  <option value={45}>45 ثانية</option>
+                  <option value={60}>دقيقة كاملة</option>
+                </select>
+              </div>
+              <button
+                onClick={() => handleStartJustificationTimer(currentAccused.targetPhysicalId)}
+                disabled={loading}
+                className="w-full btn-premium py-4"
+              >
+                <span className="text-white uppercase tracking-widest">▶ ابدأ تايمر التبرير</span>
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="noir-card p-6 border-[#2a2a2a] text-center">
+                <p className="text-[#C5A059] font-mono text-sm uppercase tracking-widest mb-2">DEFENSE ACTIVE</p>
+                <p className="text-[#808080] font-mono text-xs">Timer running on display screen</p>
+              </div>
+              <button
+                onClick={handleNextAccused}
+                className="w-full bg-[#111] border border-[#C5A059]/50 text-[#C5A059] py-4 hover:bg-[#C5A059]/10 font-mono tracking-widest uppercase"
+              >
+                {justCurrentIdx < accused.length - 1 ? `⏭ المتهم التالي (${justCurrentIdx + 2}/${accused.length})` : '✅ انتهت جميع التبريرات'}
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // مرحلة القرار (بعد انتهاء كل التبريرات)
+    return (
+      <div className="p-6">
+        <div className="text-center mb-8 border-b border-[#2a2a2a] pb-4">
+          <h2 className="text-2xl font-black text-[#C5A059] mb-2" style={{ fontFamily: 'Amiri, serif' }}>انتهت التبريرات - اتخذ القرار</h2>
+          <p className="text-[#808080] font-mono uppercase text-xs tracking-widest">ALL DEFENSES COMPLETE. RENDER YOUR VERDICT.</p>
+        </div>
+
+        {/* Show accused summary */}
+        <div className="space-y-3 mb-8">
+          {accused.map((acc: any) => (
+            <div key={acc.targetPhysicalId} className="noir-card p-4 border-[#2a2a2a] flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-[#111] border border-[#555] rounded-full flex items-center justify-center text-xl text-white font-mono font-black">
+                  {acc.targetPhysicalId}
+                </div>
+                <div>
+                  <p className="text-white font-bold">{acc.name}</p>
+                  <p className="text-xs font-mono" style={{ color: acc.role?.includes('MAFIA') || acc.role === 'GODFATHER' || acc.role === 'SILENCER' || acc.role === 'CHAMELEON' ? '#ff4444' : '#44ff44' }}>
+                    🔒 {acc.role || 'UNKNOWN'}
+                  </p>
+                </div>
+              </div>
+              <span className="text-[#C5A059] font-mono font-bold text-lg">{gameState.justificationData?.topVotes} أصوات</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Decision Buttons */}
+        {isTie ? (
+          <div className="space-y-3">
+            <button onClick={() => handleTieBreaker('REVOTE')} className="w-full noir-card p-4 text-white hover:border-[#C5A059] transition-colors text-center font-mono uppercase tracking-widest">
+              🔁 إعادة التصويت (Revote)
+            </button>
+            <button onClick={() => handleTieBreaker('NARROW')} className="w-full noir-card p-4 text-white hover:border-[#C5A059] transition-colors text-center font-mono uppercase tracking-widest">
+              🎯 حصر التصويت بين المتعادلين (Narrow)
+            </button>
+            <button onClick={handlePardon} className="w-full noir-card p-4 text-[#C5A059] hover:border-[#C5A059] transition-colors text-center font-mono uppercase tracking-widest">
+              ❌ إلغاء التصويت والانتقال لليل (Cancel)
+            </button>
+            <button onClick={() => handleTieBreaker('ELIMINATE_ALL')} className="w-full bg-[#8A0303]/20 border border-[#8A0303] p-4 text-[#8A0303] font-bold text-center font-mono uppercase tracking-widest hover:bg-[#8A0303]/40 transition-colors">
+              💀 إقصاء جميع المتعادلين (Eliminate All)
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <button
+              onClick={handleExecuteElimination}
+              disabled={loading}
+              className="w-full bg-[#8A0303]/20 border-2 border-[#8A0303] text-white p-5 font-mono uppercase tracking-widest hover:bg-[#8A0303]/40 transition-colors text-xl font-black"
+            >
+              💀 تنفيذ الإقصاء (Execute Elimination)
+            </button>
+            <button
+              onClick={handlePardon}
+              disabled={loading}
+              className="w-full bg-[#2E5C31]/20 border-2 border-[#2E5C31] text-[#44ff44] p-5 font-mono uppercase tracking-widest hover:bg-[#2E5C31]/40 transition-colors text-lg"
+            >
+              ✅ العفو والانتقال لليل (Pardon & Move to Night)
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   // ==========================================
   // RENDER PENDING REVEAL
   // ==========================================
@@ -138,7 +341,7 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
   }
 
   // ==========================================
-  // RENDER TIE-BREAKER
+  // RENDER TIE-BREAKER (fallback for old flow)
   // ==========================================
   if (gameState.phase === 'DAY_TIEBREAKER') {
     return (
@@ -487,7 +690,8 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
                     </div>
                     <button
                       onClick={() => handleVote(index, 1)}
-                      className="w-10 h-10 text-[#555] hover:text-white hover:bg-[#2a2a2a] font-mono text-xl focus:outline-none"
+                      disabled={isComplete}
+                      className="w-10 h-10 text-[#555] hover:text-white hover:bg-[#2a2a2a] disabled:opacity-30 disabled:hover:bg-transparent font-mono text-xl focus:outline-none"
                     >
                       +
                     </button>

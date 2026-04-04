@@ -125,17 +125,6 @@ router.get('/leader-rooms', (_req: Request, res: Response) => {
     displayPin: r.displayPin,
   }));
 
-  if (rooms.length === 0) {
-    rooms.push({
-      roomId: 'fallback-1234',
-      roomCode: '999999',
-      gameName: 'Hardcoded Fallback Game (Cache/Empty test)',
-      playerCount: 1,
-      maxPlayers: 10,
-      displayPin: '1111',
-    });
-  }
-
   res.json({ success: true, rooms });
 });
 

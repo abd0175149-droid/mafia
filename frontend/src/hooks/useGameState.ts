@@ -100,6 +100,36 @@ export function useGameState() {
           players: data.players,
         } : prev);
       }),
+
+      on('day:justification-started', (data: { resultType: string; accused: any[]; topVotes: number; candidates: Candidate[] }) => {
+        setGameState(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            phase: 'DAY_JUSTIFICATION' as Phase,
+            justificationData: {
+              resultType: data.resultType,
+              accused: data.accused,
+              topVotes: data.topVotes,
+            },
+            votingState: {
+              ...prev.votingState,
+              candidates: data.candidates,
+            },
+          } as any;
+        });
+      }),
+
+      on('day:elimination-pending', (data: { eliminated: number[]; type: string }) => {
+        setGameState(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            phase: 'DAY_RESOLUTION_PENDING' as Phase,
+            pendingResolution: data,
+          } as any;
+        });
+      }),
     ];
 
     return () => {

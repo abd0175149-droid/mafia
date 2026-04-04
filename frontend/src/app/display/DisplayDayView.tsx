@@ -81,7 +81,7 @@ interface DisplayDayViewProps {
 }
 
 export default function DisplayDayView({ roomId, players, initialDiscussionState }: DisplayDayViewProps) {
-  const [phase, setPhase] = useState<'DISCUSSION' | 'VOTING' | 'PENDING' | 'REVEALED' | 'TIE'>('DISCUSSION');
+  const [phase, setPhase] = useState<'DISCUSSION' | 'VOTING' | 'JUSTIFICATION' | 'PENDING' | 'REVEALED' | 'TIE'>('DISCUSSION');
   const [candidates, setCandidates] = useState<any[]>([]);
   const [totalVotesCast, setTotalVotesCast] = useState(0);
 
@@ -89,6 +89,11 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
   const [eliminatedIds, setEliminatedIds] = useState<number[]>([]);
   const [revealedRoles, setRevealedRoles] = useState<any[]>([]);
   const [revealType, setRevealType] = useState<string>('');
+
+  // Justification UI States
+  const [justificationData, setJustificationData] = useState<any>(null);
+  const [justTimer, setJustTimer] = useState<{physicalId: number; timeLimitSeconds: number; startTime: number} | null>(null);
+  const [justTimeRemaining, setJustTimeRemaining] = useState(0);
 
   // Discussion UI States
   const [discussionState, setDiscussionState] = useState<any>(initialDiscussionState || null);
@@ -117,6 +122,19 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
     }, 100); // 100ms for smoother updates if needed, though seconds suffice
     return () => clearInterval(interval);
   }, [discussionState]);
+
+  // Justification Timer Tick Effect
+  useEffect(() => {
+    if (!justTimer) return;
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - justTimer.startTime) / 1000);
+      const remaining = Math.max(0, justTimer.timeLimitSeconds - elapsed);
+      setJustTimeRemaining(remaining);
+      if (remaining <= 10 && remaining > 0) playAudioBeep('tick');
+      if (remaining === 0) { playAudioBeep('buzzer'); clearInterval(interval); }
+    }, 200);
+    return () => clearInterval(interval);
+  }, [justTimer]);
 
   useEffect(() => {
     const socket = getSocket();
@@ -169,6 +187,22 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
       }, 4000); // Show animation for 4 seconds
     };
 
+    const onJustificationStarted = (data: any) => {
+      setJustificationData(data);
+      setJustTimer(null);
+      setPhase('JUSTIFICATION');
+    };
+
+    const onJustificationTimerStarted = (data: any) => {
+      setJustTimer(data);
+      setJustTimeRemaining(data.timeLimitSeconds);
+    };
+
+    const onPardoned = () => {
+      // العفو - سيُنتقل لليل عبر phase-changed
+      setPhase('DISCUSSION');
+    };
+
     socket.on('day:voting-started', onVotingStarted);
     socket.on('day:vote-update', onVoteUpdate);
     socket.on('day:elimination-pending', onPending);
@@ -177,9 +211,9 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
     socket.on('game:phase-changed', onPhaseChanged);
     socket.on('day:discussion-updated', onDiscussionUpdated);
     socket.on('day:show-silenced', onShowSilenced);
-
-    // Prompt server for current day state on mount?
-    // Not strictly necessary since we transition smoothly, but good practice.
+    socket.on('day:justification-started', onJustificationStarted);
+    socket.on('day:justification-timer-started', onJustificationTimerStarted);
+    socket.on('day:pardoned', onPardoned);
 
     return () => {
       socket.off('day:voting-started', onVotingStarted);
@@ -190,6 +224,9 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
       socket.off('game:phase-changed', onPhaseChanged);
       socket.off('day:discussion-updated', onDiscussionUpdated);
       socket.off('day:show-silenced', onShowSilenced);
+      socket.off('day:justification-started', onJustificationStarted);
+      socket.off('day:justification-timer-started', onJustificationTimerStarted);
+      socket.off('day:pardoned', onPardoned);
     };
   }, [roomId]);
 
@@ -408,6 +445,111 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
                 );
               })}
             </div>
+          </motion.div>
+        )}
+
+        {/* JUSTIFICATION PHASE - كلمة الدفاع الأخيرة */}
+        {phase === 'JUSTIFICATION' && justificationData && (
+          <motion.div
+            key="justification"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -30 }}
+            className="w-full text-center"
+          >
+            {/* Header */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.3 }}
+              className="mb-12"
+            >
+              <div className="text-8xl mb-6 opacity-80">⚖️</div>
+              <h1 className="text-6xl font-black text-white mb-4 uppercase tracking-widest" style={{ fontFamily: 'Amiri, serif' }}>
+                {justificationData.resultType === 'TIE' ? 'تعادل - كلمة الدفاع' : 'كلمة الدفاع الأخيرة'}
+              </h1>
+              <p className="text-[#808080] font-mono tracking-[0.4em] uppercase text-xl">
+                {justificationData.resultType === 'TIE' ? 'TIED DEFENDANTS HAVE THE FLOOR' : 'THE ACCUSED HAS THE FLOOR'}
+              </p>
+            </motion.div>
+
+            {/* Accused Cards */}
+            <div className="flex flex-wrap justify-center gap-8 mb-12">
+              {justificationData.accused.map((acc: any, i: number) => {
+                const p = players.find(pl => pl.physicalId === acc.targetPhysicalId);
+                const isFemale = p?.gender === 'FEMALE';
+                const isActiveJust = justTimer?.physicalId === acc.targetPhysicalId;
+                const borderC = isActiveJust ? 'border-[#C5A059] shadow-[0_0_40px_rgba(197,160,89,0.4)]' : (isFemale ? 'border-[#4C1D95]' : 'border-[#555]');
+
+                return (
+                  <motion.div
+                    key={acc.targetPhysicalId}
+                    initial={{ opacity: 0, scale: 0.7 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.5 + i * 0.3 }}
+                    className={`relative w-80 rounded-2xl border-2 overflow-hidden transition-all duration-500 ${borderC} ${isActiveJust ? 'bg-gradient-to-b from-[#C5A059]/10 to-black' : 'bg-[#0c0c0c]'}`}
+                  >
+                    {isActiveJust && (
+                      <div className="absolute inset-0 bg-gradient-to-tr from-[#C5A059]/5 to-transparent pointer-events-none" />
+                    )}
+                    <div className="p-10 relative z-10">
+                      <div className={`w-36 h-36 mx-auto mb-6 border-4 rounded-full flex items-center justify-center font-mono text-7xl font-black transition-all duration-500 ${isActiveJust ? 'border-[#C5A059] text-[#C5A059] bg-[#C5A059]/10' : (isFemale ? 'border-[#4C1D95] text-purple-300 bg-black/50' : 'border-[#555] text-white bg-black/50')}`}>
+                        {acc.targetPhysicalId}
+                      </div>
+                      <h2 className="text-4xl font-black text-white mb-2" style={{ fontFamily: 'Amiri, serif' }}>{p?.name || 'Unknown'}</h2>
+                      <p className="text-[#808080] text-sm font-mono tracking-[0.3em] uppercase">{justificationData.topVotes} VOTES AGAINST</p>
+                      {acc.type === 'DEAL' && (
+                        <p className="text-[#8A0303] text-xs font-mono mt-2 uppercase tracking-widest">DEAL CANDIDATE</p>
+                      )}
+                    </div>
+
+                    {/* Active Speaker Indicator */}
+                    {isActiveJust && (
+                      <div className="border-t border-[#C5A059]/40 p-6 bg-[#C5A059]/10">
+                        <p className="text-[#C5A059] text-sm font-mono tracking-[0.4em] uppercase animate-pulse">🎙 DEFENDING NOW</p>
+                      </div>
+                    )}
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            {/* Timer */}
+            {justTimer && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="w-full max-w-2xl mx-auto bg-[#111] p-6 border-b-4 border-[#2a2a2a] relative overflow-hidden"
+              >
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${((justTimer.timeLimitSeconds - justTimeRemaining) / justTimer.timeLimitSeconds) * 100}%` }}
+                  className="absolute top-0 left-0 h-full bg-[#C5A059]/10"
+                />
+                <div className="relative z-10 flex items-end justify-center gap-4">
+                  <span className={`text-8xl font-black font-mono transition-colors duration-300 ${justTimeRemaining <= 10 ? 'text-[#8A0303] animate-pulse' : 'text-white'}`}>
+                    {justTimeRemaining}
+                  </span>
+                  <span className="text-2xl text-[#808080] font-mono tracking-widest uppercase mb-3">SEC</span>
+                </div>
+              </motion.div>
+            )}
+
+            {!justTimer && (
+              <div className="mt-8 text-xl font-mono tracking-[0.3em] font-bold">
+                <span className="text-yellow-500 animate-pulse">AWAITING DIRECTOR TO START DEFENSE TIMER...</span>
+              </div>
+            )}
+
+            {justTimer && justTimeRemaining === 0 && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="mt-8 text-xl font-mono tracking-[0.3em] font-bold"
+              >
+                <span className="text-[#8A0303] animate-pulse">TIME EXPIRED. AWAITING VERDICT...</span>
+              </motion.div>
+            )}
           </motion.div>
         )}
 

@@ -94,7 +94,39 @@ export function isVotingComplete(state: GameState): boolean {
   return state.votingState.totalVotesCast >= aliveCount;
 }
 
-// ── حسم النتيجة ──────────────────────────────────
+// ── فرز نتائج التصويت (بدون إقصاء) ──────────────
+
+/**
+ * فرز النتائج فقط — بدون تغيير أي حالة أو إقصاء.
+ * تُستخدم لتحديد المتهم/المتعادلين لمرحلة التبرير.
+ */
+export interface VoteSortResult {
+  type: 'SINGLE_WINNER' | 'TIE';
+  topCandidates: Candidate[];     // المرشح الفائز أو المتعادلين
+  topVotes: number;
+}
+
+export async function getVoteResult(roomId: string): Promise<VoteSortResult> {
+  const state = await getGameState(roomId);
+  if (!state) throw new Error(`Room ${roomId} not found`);
+
+  const sorted = [...state.votingState.candidates].sort((a, b) => b.votes - a.votes);
+
+  if (sorted.length === 0) {
+    return { type: 'TIE', topCandidates: [], topVotes: 0 };
+  }
+
+  const topVotes = sorted[0].votes;
+  const tied = sorted.filter(c => c.votes === topVotes);
+
+  if (tied.length > 1) {
+    return { type: 'TIE', topCandidates: tied, topVotes };
+  }
+
+  return { type: 'SINGLE_WINNER', topCandidates: [sorted[0]], topVotes };
+}
+
+// ── حسم النتيجة (مع إقصاء فعلي) ──────────────────
 
 export interface VoteResolution {
   type: 'ELIMINATION' | 'DEAL_ELIMINATION' | 'TIE';

@@ -10,6 +10,7 @@ import {
   initVoting,
   castVote,
   isVotingComplete,
+  getVoteResult,
   resolveVoting,
   handleTieBreaker,
   TieBreakerAction,
@@ -105,19 +106,27 @@ export function registerDayEvents(io: Server, socket: Socket) {
 
       // فحص الإقفال الآلي
       if (isVotingComplete(state)) {
-        const result = await resolveVoting(data.roomId);
+        // فرز النتائج بدون إقصاء → الانتقال لمرحلة التبرير
+        const sortResult = await getVoteResult(data.roomId);
+        await setPhase(data.roomId, Phase.DAY_JUSTIFICATION);
 
-        if (result.type === 'TIE') {
-          await setPhase(data.roomId, Phase.DAY_TIEBREAKER);
-          io.to(data.roomId).emit('day:tie', {
-            tiedCandidates: result.tiedCandidates,
-          });
-        } else {
-          io.to(data.roomId).emit('day:elimination-pending', {
-            eliminated: result.eliminated,
-            type: result.type,
-          });
-        }
+        // إرسال بيانات التبرير (المتهمين)
+        const accusedPlayers = sortResult.topCandidates.map(c => {
+          const p = state.players.find(pl => pl.physicalId === c.targetPhysicalId);
+          return {
+            ...c,
+            name: p?.name,
+            role: p?.role,  // مكشوف لليدر فقط (الفرونت يفلترها)
+            gender: p?.gender,
+          };
+        });
+
+        io.to(data.roomId).emit('day:justification-started', {
+          resultType: sortResult.type, // 'SINGLE_WINNER' | 'TIE'
+          accused: accusedPlayers,
+          topVotes: sortResult.topVotes,
+          candidates: state.votingState.candidates,
+        });
 
         io.to(data.roomId).emit('day:voting-locked', {
           candidates: state.votingState.candidates,
@@ -130,31 +139,85 @@ export function registerDayEvents(io: Server, socket: Socket) {
     }
   });
 
-  // ── حسم النتيجة (إرسال النتيجة لليدر فقط أو كتم هويات مؤقتاً) ──
+  // ── حسم النتيجة (ليدر يضغط resolve يدوياً - Fallback) ──
   socket.on('day:resolve', async (data: { roomId: string }, callback) => {
     try {
       if (socket.data.role !== 'leader') {
         return callback({ success: false, error: 'Only leader' });
       }
+      // في حال ضغط الليدر resolve يدوياً (fallback)
+      const sortResult = await getVoteResult(data.roomId);
+      await setPhase(data.roomId, Phase.DAY_JUSTIFICATION);
+      const state = await getRoom(data.roomId);
+      const accusedPlayers = sortResult.topCandidates.map(c => {
+        const p = state?.players.find(pl => pl.physicalId === c.targetPhysicalId);
+        return { ...c, name: p?.name, role: p?.role, gender: p?.gender };
+      });
+      io.to(data.roomId).emit('day:justification-started', {
+        resultType: sortResult.type,
+        accused: accusedPlayers,
+        topVotes: sortResult.topVotes,
+        candidates: state?.votingState?.candidates || [],
+      });
+      callback({ success: true, result: sortResult });
+    } catch (err: any) {
+      callback({ success: false, error: err.message });
+    }
+  });
+
+  // ── بدء تايمر التبرير ──────────────────────────
+  socket.on('day:start-justification-timer', async (data: {
+    roomId: string;
+    physicalId: number;
+    timeLimitSeconds: number;
+  }, callback) => {
+    try {
+      if (socket.data.role !== 'leader') return callback({ success: false, error: 'Only leader' });
+
+      io.to(data.roomId).emit('day:justification-timer-started', {
+        physicalId: data.physicalId,
+        timeLimitSeconds: data.timeLimitSeconds,
+        startTime: Date.now(),
+      });
+
+      callback({ success: true });
+    } catch (err: any) {
+      callback({ success: false, error: err.message });
+    }
+  });
+
+  // ── تنفيذ الإقصاء (بعد التبرير) ──────────────────
+  socket.on('day:execute-elimination', async (data: { roomId: string }, callback) => {
+    try {
+      if (socket.data.role !== 'leader') return callback({ success: false, error: 'Only leader' });
 
       const result = await resolveVoting(data.roomId);
 
       if (result.type === 'TIE') {
+        // لا يُفترض الوصول هنا (يجب أن يكون SINGLE_WINNER)
         await setPhase(data.roomId, Phase.DAY_TIEBREAKER);
-        io.to(data.roomId).emit('day:tie', {
-          tiedCandidates: result.tiedCandidates,
-        });
+        io.to(data.roomId).emit('day:tie', { tiedCandidates: result.tiedCandidates });
       } else {
-        // نبعث للمشاهد رسالة أن النتيجة حُسمت وأن هناك مقصيين، لكن لا نكشف الأدوار!
         io.to(data.roomId).emit('day:elimination-pending', {
           eliminated: result.eliminated,
           type: result.type,
         });
-        
-        // نحتفظ بالنتيجة النهائية ليستخدمها الليدر فوراً
       }
 
       callback({ success: true, result });
+    } catch (err: any) {
+      callback({ success: false, error: err.message });
+    }
+  });
+
+  // ── العفو (بعد التبرير) ──────────────────────────
+  socket.on('day:pardon', async (data: { roomId: string }, callback) => {
+    try {
+      if (socket.data.role !== 'leader') return callback({ success: false, error: 'Only leader' });
+
+      // لا إقصاء → الانتقال لليل
+      io.to(data.roomId).emit('day:pardoned');
+      callback({ success: true });
     } catch (err: any) {
       callback({ success: false, error: err.message });
     }
@@ -205,7 +268,6 @@ export function registerDayEvents(io: Server, socket: Socket) {
       const state = await handleTieBreaker(data.roomId, data.action, data.tiedCandidates);
 
       if (data.action === TieBreakerAction.CANCEL) {
-        // الانتقال لليل بدون إقصاء
         io.to(data.roomId).emit('day:cancelled');
       } else if (data.action === TieBreakerAction.ELIMINATE_ALL) {
         io.to(data.roomId).emit('day:elimination', {
@@ -213,7 +275,6 @@ export function registerDayEvents(io: Server, socket: Socket) {
           type: 'ELIMINATE_ALL',
         });
       } else {
-        // إعادة التصويت أو حصر
         await setPhase(data.roomId, Phase.DAY_VOTING);
         io.to(data.roomId).emit('day:voting-started', {
           candidates: state.votingState.candidates,
