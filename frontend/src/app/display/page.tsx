@@ -49,6 +49,7 @@ export default function DisplayPage() {
   const [phase, setPhase] = useState<Phase>(Phase.LOBBY);
   const [winner, setWinner] = useState<string | null>(null);
   const [animation, setAnimation] = useState<any>(null);
+  const [discussionState, setDiscussionState] = useState<any>(null);
 
   // ── Socket Init ──
   useEffect(() => {
@@ -187,13 +188,17 @@ export default function DisplayPage() {
       setPlayerCount(data.playerCount || 0);
       setMaxPlayers(data.maxPlayers || 10);
 
-      // استخراج اللاعبين من state
-      if (data.state?.players) {
-        setPlayers(data.state.players.map((p: any) => ({
-          physicalId: p.physicalId,
-          name: p.name,
-          isAlive: p.isAlive,
-        })));
+      // استخراج حالة الغرفة
+      if (data.state) {
+        setPhase(data.state.phase || 'LOBBY');
+        setDiscussionState(data.state.discussionState || null);
+        if (data.state.players) {
+          setPlayers(data.state.players.map((p: any) => ({
+            physicalId: p.physicalId,
+            name: p.name,
+            isAlive: p.isAlive,
+          })));
+        }
       }
 
       setStep('lobby');
@@ -417,7 +422,7 @@ export default function DisplayPage() {
 
         {/* ═══ النهار ═══ */}
         {step === 'lobby' && phase.startsWith('DAY_') && (
-          <DisplayDayView key="day-view" roomId={currentRoomId} players={players} />
+          <DisplayDayView key="day-view" roomId={currentRoomId} players={players} initialDiscussionState={discussionState} />
         )}
 
         {/* ═══ الليل ═══ */}

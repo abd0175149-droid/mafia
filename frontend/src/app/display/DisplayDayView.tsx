@@ -7,9 +7,10 @@ import { getSocket } from '@/lib/socket';
 interface DisplayDayViewProps {
   roomId: string;
   players: any[]; // Roster to get names
+  initialDiscussionState?: any;
 }
 
-export default function DisplayDayView({ roomId, players }: DisplayDayViewProps) {
+export default function DisplayDayView({ roomId, players, initialDiscussionState }: DisplayDayViewProps) {
   const [phase, setPhase] = useState<'DISCUSSION' | 'VOTING' | 'PENDING' | 'REVEALED' | 'TIE'>('DISCUSSION');
   const [candidates, setCandidates] = useState<any[]>([]);
   const [totalVotesCast, setTotalVotesCast] = useState(0);
@@ -20,9 +21,9 @@ export default function DisplayDayView({ roomId, players }: DisplayDayViewProps)
   const [revealType, setRevealType] = useState<string>('');
 
   // Discussion UI States
-  const [discussionState, setDiscussionState] = useState<any>(null);
+  const [discussionState, setDiscussionState] = useState<any>(initialDiscussionState || null);
   const [silencedPlayerId, setSilencedPlayerId] = useState<number | null>(null);
-  const [localTimeRemaining, setLocalTimeRemaining] = useState<number>(0);
+  const [localTimeRemaining, setLocalTimeRemaining] = useState<number>(initialDiscussionState?.timeRemaining || 0);
 
   // Timer Tick Effect
   useEffect(() => {
