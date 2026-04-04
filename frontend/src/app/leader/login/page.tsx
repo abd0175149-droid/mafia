@@ -59,6 +59,7 @@ export default function LeaderLoginPage() {
             <label className="block text-xs font-mono text-[#808080] mb-2 tracking-widest uppercase">Admin ID</label>
             <input
               type="text"
+              autoComplete="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="DIRECTOR"
@@ -72,6 +73,7 @@ export default function LeaderLoginPage() {
             <label className="block text-xs font-mono text-[#808080] mb-2 tracking-widest uppercase">Clearance Code</label>
             <input
               type="password"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"

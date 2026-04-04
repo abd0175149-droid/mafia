@@ -240,20 +240,20 @@ export default function DisplayPage() {
             <h1 className="text-5xl font-black mb-4 text-white tracking-widest uppercase" style={{ fontFamily: 'Amiri, serif' }}>تصريح الدخول</h1>
             <p className="text-[#808080] mb-10 text-lg font-mono tracking-widest">ENTER ACCESS CODE</p>
 
-            <div className="mb-8">
+            <form onSubmit={(e) => { e.preventDefault(); handlePinSubmit(); }} className="mb-8">
               <input
                 type="password"
                 inputMode="numeric"
+                autoComplete="off"
                 value={pin}
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
                 placeholder="****"
                 className="w-full max-w-[300px] p-6 bg-[#050505] border border-[#2a2a2a] text-white text-center font-mono text-5xl tracking-[0.5em] focus:border-[#C5A059] focus:outline-none focus:ring-0 transition-all mx-auto block"
                 maxLength={6}
                 autoFocus
-                onKeyDown={(e) => e.key === 'Enter' && handlePinSubmit()}
               />
               <p className="text-[#555] font-mono mt-4 uppercase text-xs tracking-[0.4em]">{pin.length} / 4+ DIGITS</p>
-            </div>
+            </form>
 
             {pinError && (
               <motion.div
