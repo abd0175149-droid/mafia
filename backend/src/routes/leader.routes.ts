@@ -5,7 +5,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { createHash, randomBytes } from 'crypto';
 import { env } from '../config/env.js';
-import { updateRoom, addPlayer, updatePlayer } from '../game/state.js';
+import { updateRoom, addPlayer, updatePlayer, getRoom } from '../game/state.js';
 import { Phase } from '../game/state.js';
 import { activeRooms } from '../sockets/lobby.socket.js';
 
@@ -186,6 +186,23 @@ router.post('/force-add-player', requireLeader, async (req, res) => {
     return res.json({ success: true });
   } catch (err: any) {
     return res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// ── 8. جلب حالة الغرفة بالكامل لليدر ──
+router.get('/state/:roomId', requireLeader, async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const state = await getRoom(roomId);
+    
+    if (!state) {
+      return res.status(404).json({ success: false, error: 'Room not found' });
+    }
+
+    // Leader has full access to the state including roles, rolesPool, and everything else
+    return res.json({ success: true, state });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, error: err.message });
   }
 });
 

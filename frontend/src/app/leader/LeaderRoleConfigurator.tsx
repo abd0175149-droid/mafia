@@ -89,10 +89,13 @@ export default function LeaderRoleConfigurator({ gameState, emit, setError }: Le
                   <select 
                     value={r} 
                     onChange={(e) => handleRoleChange(i, e.target.value as Role)}
-                    className="bg-transparent text-[#808080] focus:text-white font-mono text-sm w-full outline-none"
+                    className="bg-[#050505] text-[#C5A059] focus:text-white font-mono text-sm w-full outline-none p-1 appearance-none border border-[#8A0303]/30 cursor-pointer"
+                    style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
                   >
                     {allRolesList.map(role => (
-                       <option key={role} value={role}>{ROLE_NAMES[role]} ({role})</option>
+                       <option key={role} value={role} className="bg-[#111] text-[#C5A059] font-mono py-2">
+                         {ROLE_NAMES[role]} ({role})
+                       </option>
                     ))}
                   </select>
                 </div>
@@ -116,10 +119,13 @@ export default function LeaderRoleConfigurator({ gameState, emit, setError }: Le
                   <select 
                     value={r} 
                     onChange={(e) => handleRoleChange(i, e.target.value as Role)}
-                    className="bg-transparent text-[#808080] focus:text-white font-mono text-sm w-full outline-none"
+                    className="bg-[#050505] text-[#C5A059] focus:text-white font-mono text-sm w-full outline-none p-1 appearance-none border border-[#2a2a2a] cursor-pointer"
+                    style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
                   >
                     {allRolesList.map(role => (
-                       <option key={role} value={role}>{ROLE_NAMES[role]} ({role})</option>
+                       <option key={role} value={role} className="bg-[#111] text-[#C5A059] font-mono py-2">
+                         {ROLE_NAMES[role]} ({role})
+                       </option>
                     ))}
                   </select>
                 </div>

@@ -141,8 +141,22 @@ export default function LeaderPage() {
     });
 
     // Phase changed
-    const offPhaseChanged = on('game:phase-changed', (data: any) => {
-      setGameState(prev => prev ? { ...prev, phase: data.phase } : prev);
+    const offPhaseChanged = on('game:phase-changed', async (data: any) => {
+      // Refresh the entire state from the backend to guarantee we get new fields (like rolesPool)
+      try {
+        const res = await fetch(`/api/leader/state/${gameState.roomId}`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('leader_token') || ''}` }
+        });
+        const resData = await res.json();
+        if (resData.success) {
+          setGameState(resData.state);
+        } else {
+          // Fallback to inline phase update if fetch fails
+          setGameState(prev => prev ? { ...prev, phase: data.phase } : prev);
+        }
+      } catch (err) {
+        setGameState(prev => prev ? { ...prev, phase: data.phase } : prev);
+      }
     });
 
     // Player kicked
@@ -285,7 +299,9 @@ export default function LeaderPage() {
   // ── Rejoin existing game ──
   const handleRejoinGame = async (game: ActiveGame) => {
     try {
-      const res = await fetch(`/api/game/state/${game.roomId}`);
+      const res = await fetch(`/api/leader/state/${game.roomId}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('leader_token') || ''}` }
+      });
       const data = await res.json();
 
       if (data.success) {
