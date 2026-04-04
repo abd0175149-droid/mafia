@@ -242,6 +242,17 @@ export default function LeaderPage() {
       });
     });
 
+    // Discussion Update
+    const offDiscussionUpdate = on('day:discussion-updated', (data: any) => {
+      setGameState(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          discussionState: data.discussionState,
+        } as any;
+      });
+    });
+
     const offGameClosed = on('game:closed', () => {
       setGameState(null);
     });
@@ -256,6 +267,7 @@ export default function LeaderPage() {
       offVotingStarted();
       offVoteUpdate();
       offEliminationPending();
+      offDiscussionUpdate();
       offGameClosed();
     };
   }, [on, emit, gameState?.roomId]);
