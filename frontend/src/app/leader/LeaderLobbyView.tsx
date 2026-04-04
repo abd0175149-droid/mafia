@@ -27,10 +27,12 @@ export default function LeaderLobbyView({ gameState, emit, setError }: LeaderLob
     
     setLocalError('');
     try {
-      // نستخدم REST API بدلاً من WebSocket لتجنب مشاكل انقطاع الاتصال المفاجئ من متصفح الليدر
       const result = await fetch('/api/leader/force-add-player', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('leader_token') || ''}`
+        },
         body: JSON.stringify({
           roomId: gameState.roomId,
           physicalId: Number(addForm.physicalId),
