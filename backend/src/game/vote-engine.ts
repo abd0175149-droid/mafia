@@ -77,6 +77,14 @@ export async function castVote(
     throw new Error('Cannot have negative votes');
   }
 
+  // منع تجاوز الحد الأقصى للأصوات
+  if (delta === 1) {
+    const maxVotes = getAlivePlayers(state).filter(p => !p.isSilenced).length;
+    if (state.votingState.totalVotesCast >= maxVotes) {
+      throw new Error('Maximum votes reached');
+    }
+  }
+
   candidate.votes += delta;
   state.votingState.totalVotesCast += delta;
 

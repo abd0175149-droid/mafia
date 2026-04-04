@@ -18,7 +18,7 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
   const [discussionTimeLimit, setDiscussionTimeLimit] = useState<number>(30);
   const [localTimeRemaining, setLocalTimeRemaining] = useState<number>(0);
   const [showDealsUI, setShowDealsUI] = useState(false);
-  const [votingBusy, setVotingBusy] = useState(false);
+
   const localVoteTotalRef = useRef(0);
 
   // Timer Tick Effect for Leader
@@ -75,6 +75,7 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
 
   const handleStartVoting = async () => {
     if (!confirm('هل أنت متأكد من بدء التصويت؟ لن تتمكن من تعديل الاتفاقيات.')) return;
+    localVoteTotalRef.current = 0; // تصفير العداد المحلي عند بدء تصويت جديد
     try {
       await emit('day:start-voting', { roomId: gameState.roomId });
     } catch (err: any) {
@@ -83,25 +84,17 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
   };
 
   // ── 2. Live Voting ──
-  // تحديث العداد المحلي عند كل تحديث من السيرفر
-  useEffect(() => {
-    const serverTotal = candidates.reduce((sum: number, c: any) => sum + c.votes, 0);
-    localVoteTotalRef.current = serverTotal;
-  }, [candidates]);
-
   const handleVote = async (candidateIndex: number, delta: 1 | -1) => {
-    if (votingBusy) return; // منع الضغط المتكرر أثناء الانتظار
     const candidate = candidates[candidateIndex];
     if (candidate.votes + delta < 0) return;
 
     const maxVotes = alivePlayers.filter((p: any) => !p.isSilenced).length;
 
-    // فحص العداد المحلي المتزامن (ليس من state)
+    // فحص العداد المحلي المتزامن — يتحدث فوراً بدون انتظار السيرفر
     if (delta === 1 && localVoteTotalRef.current >= maxVotes) return;
 
-    // تحديث العداد فوراً قبل الإرسال
+    // تحديث العداد فوراً قبل الإرسال (synchronous)
     localVoteTotalRef.current += delta;
-    setVotingBusy(true);
 
     try {
       await emit('day:cast-vote', { roomId: gameState.roomId, candidateIndex, delta });
@@ -109,8 +102,6 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
       // إرجاع العداد عند الفشل
       localVoteTotalRef.current -= delta;
       setError(err.message);
-    } finally {
-      setVotingBusy(false);
     }
   };
 
