@@ -7,11 +7,38 @@ import { Server, Socket } from 'socket.io';
 import { createRoom, addPlayer, updatePlayer, updateRoom, getRoom, getRoomByCode, bindRole, setPhase, Phase } from '../game/state.js';
 import { generateRoles, validateRoleDistribution, Role } from '../game/roles.js';
 
-// ── قائمة الغرف النشطة (in-memory tracker) ──
 export const activeRooms: Map<string, { roomId: string; roomCode: string; gameName: string; playerCount: number; maxPlayers: number; displayPin: string }> = new Map();
 
 export function getActiveRooms() {
   return Array.from(activeRooms.values());
+}
+
+export async function seedDummyGame() {
+  try {
+    console.log('🌱 Seeding Dummy Game for quick testing from lobby.socket.ts...');
+    const state = await createRoom('لعبة تجريبية (Auto Seeded)', 10, 2, '2026');
+    
+    const names = ['أحمد', 'محمد', 'علي', 'خالد', 'عمر', 'سارة', 'فاطمة', 'تسنيم', 'ريم', 'نور'];
+    const genders: ('MALE'|'FEMALE')[] = ['MALE', 'MALE', 'MALE', 'MALE', 'MALE', 'FEMALE', 'FEMALE', 'FEMALE', 'FEMALE', 'FEMALE'];
+    
+    for (let i = 0; i < 10; i++) {
+      await addPlayer(state.roomId, i + 1, names[i], `070000000${i}`, null);
+      await updatePlayer(state.roomId, i + 1, { gender: genders[i], dob: '1995-01-01' });
+    }
+
+    activeRooms.set(state.roomId, {
+      roomId: state.roomId,
+      roomCode: state.roomCode,
+      gameName: state.config.gameName,
+      playerCount: 10,
+      maxPlayers: state.config.maxPlayers,
+      displayPin: state.config.displayPin,
+    });
+
+    console.log(`✅ Dummy Game seeded successfully. RoomId: ${state.roomId}`);
+  } catch (e) {
+    console.error('❌ Failed to seed dummy game:', e);
+  }
 }
 
 export function registerLobbyEvents(io: Server, socket: Socket) {
