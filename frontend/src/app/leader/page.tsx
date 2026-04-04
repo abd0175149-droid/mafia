@@ -154,17 +154,28 @@ export default function LeaderPage() {
 
     // Phase changed
     const offPhaseChanged = on('game:phase-changed', async (data: any) => {
-      // Refresh the entire state from the backend to guarantee we get new fields (like rolesPool)
+      // للمراحل الليلية: لا نجلب من API — Socket يتكفل بالبيانات
+      if (data.phase === 'NIGHT' || data.phase === 'MORNING_RECAP') {
+        setGameState(prev => prev ? {
+          ...prev,
+          phase: data.phase,
+          // تنظيف بيانات النهار القديمة عند دخول الليل
+          justificationData: undefined,
+          pendingResolution: undefined,
+          revealedData: undefined,
+        } : prev);
+        return;
+      }
+
+      // باقي المراحل: جلب State كامل من API
       try {
         const res = await fetch(`/api/leader/state/${gameState.roomId}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('leader_token') || ''}` }
         });
         const resData = await res.json();
         if (resData.success) {
-          // دمج بيانات الـ API مع الحالة الحالية (بدون مسح البيانات من Socket مثل justificationData)
           setGameState(prev => prev ? { ...prev, ...resData.state } : resData.state);
         } else {
-          // Fallback to inline phase update if fetch fails
           setGameState(prev => prev ? { ...prev, phase: data.phase } : prev);
         }
       } catch (err) {
