@@ -5,11 +5,20 @@ import { useSocket } from './useSocket';
 import type { Player, Candidate, MorningEvent } from '@/lib/constants';
 import { Phase } from '@/lib/constants';
 
+export interface GameConfig {
+  gameName: string;
+  maxPlayers: number;
+  maxJustifications: number;
+  currentJustification: number;
+  displayPin: string;
+}
+
 export interface GameState {
   roomId: string;
   roomCode: string;
   phase: Phase;
   round: number;
+  config: GameConfig;
   players: Player[];
   votingState: {
     totalVotesCast: number;
@@ -43,7 +52,8 @@ export function useGameState() {
             players: [...prev.players, {
               physicalId: data.physicalId,
               name: data.name,
-              googleId: null,
+              phone: null,
+              playerId: null,
               role: null,
               isAlive: true,
               isSilenced: false,
@@ -98,16 +108,33 @@ export function useGameState() {
   }, [on]);
 
   // ── إنشاء غرفة ──────────────────────────────
-  const createRoom = useCallback(async (maxJustifications: number = 2, playerCount: number = 10) => {
+  const createRoom = useCallback(async (
+    gameName: string,
+    maxPlayers: number = 10,
+    maxJustifications: number = 2,
+    displayPin?: string,
+  ) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await emit('room:create', { maxJustifications, playerCount });
+      const response = await emit('room:create', {
+        gameName,
+        maxPlayers,
+        maxJustifications,
+        displayPin,
+      });
       setGameState({
         roomId: response.roomId,
         roomCode: response.roomCode,
         phase: Phase.LOBBY,
         round: 0,
+        config: {
+          gameName: response.gameName || gameName,
+          maxPlayers,
+          maxJustifications,
+          currentJustification: 0,
+          displayPin: response.displayPin || '',
+        },
         players: [],
         votingState: { totalVotesCast: 0, candidates: [], hiddenPlayersFromVoting: [], tieBreakerLevel: 0 },
         morningEvents: [],
@@ -123,11 +150,17 @@ export function useGameState() {
   }, [emit]);
 
   // ── الانضمام لغرفة ──────────────────────────
-  const joinRoom = useCallback(async (roomId: string, physicalId: number, name: string) => {
+  const joinRoom = useCallback(async (
+    roomId: string,
+    physicalId: number,
+    name: string,
+    phone?: string,
+    playerId?: number,
+  ) => {
     setLoading(true);
     setError(null);
     try {
-      await emit('room:join', { roomId, physicalId, name });
+      await emit('room:join', { roomId, physicalId, name, phone, playerId });
     } catch (err: any) {
       setError(err.message);
       throw err;

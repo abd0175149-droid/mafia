@@ -24,7 +24,8 @@ export enum Phase {
 export interface Player {
   physicalId: number;
   name: string;
-  googleId: string | null;
+  phone: string | null;
+  playerId: number | null;
   role: Role | null;
   isAlive: boolean;
   isSilenced: boolean;
@@ -54,18 +55,18 @@ export interface VotingState {
   totalVotesCast: number;
   candidates: Candidate[];
   hiddenPlayersFromVoting: number[];
-  tieBreakerLevel: number; // 0 = عادي, 1 = إعادة, 2 = حصر
+  tieBreakerLevel: number;
 }
 
 export interface NightActions {
   godfatherTarget: number | null;
   silencerTarget: number | null;
   sheriffTarget: number | null;
-  sheriffResult: string | null;  // 'CITIZEN' | 'MAFIA' | null
+  sheriffResult: string | null;
   doctorTarget: number | null;
-  sniperTarget: number | null;    // null = تخطي
-  nurseTarget: number | null;     // null = غير مفعلة
-  lastProtectedTarget: number | null; // قيد الطبيب: الهدف المحمي الليلة الماضية
+  sniperTarget: number | null;
+  nurseTarget: number | null;
+  lastProtectedTarget: number | null;
 }
 
 export interface MorningEvent {
@@ -73,12 +74,15 @@ export interface MorningEvent {
   targetPhysicalId: number;
   targetName: string;
   extra?: Record<string, unknown>;
-  revealed: boolean; // هل عُرض على شاشة العرض؟
+  revealed: boolean;
 }
 
 export interface GameConfig {
   maxJustifications: number;
   currentJustification: number;
+  gameName: string;
+  maxPlayers: number;
+  displayPin: string;
 }
 
 export interface GameState {
@@ -95,13 +99,26 @@ export interface GameState {
   createdAt: string;
 }
 
-// ── إنشاء غرفة جديدة ─────────────────────────────
+// ── إنشاء كود غرفة 6 أرقام ──────────────────────
 
 function generateRoomCode(): string {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
+  return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-export async function createRoom(playerCount: number, maxJustifications: number = 2): Promise<GameState> {
+// ── إنشاء PIN لشاشة العرض ────────────────────────
+
+function generateDisplayPin(): string {
+  return Math.floor(1000 + Math.random() * 9000).toString();
+}
+
+// ── إنشاء غرفة جديدة ─────────────────────────────
+
+export async function createRoom(
+  gameName: string,
+  maxPlayers: number = 10,
+  maxJustifications: number = 2,
+  displayPin?: string,
+): Promise<GameState> {
   const roomId = uuidv4().substring(0, 8);
   const roomCode = generateRoomCode();
 
@@ -113,6 +130,9 @@ export async function createRoom(playerCount: number, maxJustifications: number 
     config: {
       maxJustifications,
       currentJustification: 0,
+      gameName,
+      maxPlayers: Math.min(Math.max(maxPlayers, 6), 27),
+      displayPin: displayPin || generateDisplayPin(),
     },
     players: [],
     votingState: {
@@ -137,7 +157,19 @@ export async function createRoom(playerCount: number, maxJustifications: number 
   };
 
   await setGameState(roomId, state);
+
+  // حفظ mapping roomCode → roomId
+  await setGameState(`code:${roomCode}`, { roomId } as any);
+
   return state;
+}
+
+// ── البحث بكود الغرفة ─────────────────────────────
+
+export async function getRoomByCode(roomCode: string): Promise<GameState | null> {
+  const mapping = await getGameState(`code:${roomCode}`) as any;
+  if (!mapping?.roomId) return null;
+  return await getGameState(mapping.roomId);
 }
 
 // ── قراءة الغرفة ──────────────────────────────────
@@ -163,20 +195,27 @@ export async function addPlayer(
   roomId: string,
   physicalId: number,
   name: string,
-  googleId: string | null = null
+  phone: string | null = null,
+  playerId: number | null = null,
 ): Promise<GameState> {
   const state = await getGameState(roomId);
   if (!state) throw new Error(`Room ${roomId} not found`);
 
+  // التحقق من الحد الأقصى
+  if (state.players.length >= state.config.maxPlayers) {
+    throw new Error(`الغرفة ممتلئة (${state.config.maxPlayers} لاعب كحد أقصى)`);
+  }
+
   // التحقق من عدم تكرار الرقم الفيزيائي
   if (state.players.some(p => p.physicalId === physicalId)) {
-    throw new Error(`Physical ID ${physicalId} already registered`);
+    throw new Error(`الرقم ${physicalId} مسجل مسبقاً`);
   }
 
   const player: Player = {
     physicalId,
     name,
-    googleId,
+    phone,
+    playerId,
     role: null,
     isAlive: true,
     isSilenced: false,
@@ -243,7 +282,18 @@ export async function setPhase(roomId: string, phase: Phase): Promise<GameState>
 // ── حذف الغرفة ──────────────────────────────────
 
 export async function deleteRoom(roomId: string): Promise<void> {
+  const state = await getGameState(roomId);
+  if (state?.roomCode) {
+    await deleteGameState(`code:${state.roomCode}`);
+  }
   await deleteGameState(roomId);
+}
+
+// ── قائمة الغرف النشطة ──────────────────────────
+
+export async function listActiveRooms(): Promise<GameState[]> {
+  // ملاحظة: هذا يحتاج scan في Redis. حالياً نستخدم قائمة محلية
+  return [];
 }
 
 // ── مُساعدات ────────────────────────────────────

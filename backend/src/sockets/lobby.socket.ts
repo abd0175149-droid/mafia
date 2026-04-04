@@ -4,22 +4,121 @@
 // ══════════════════════════════════════════════════════
 
 import { Server, Socket } from 'socket.io';
-import { createRoom, addPlayer, updatePlayer, getRoom, bindRole, setPhase, Phase } from '../game/state.js';
+import { createRoom, addPlayer, updatePlayer, getRoom, getRoomByCode, bindRole, setPhase, Phase } from '../game/state.js';
 import { generateRoles, validateRoleDistribution, Role } from '../game/roles.js';
+
+// ── قائمة الغرف النشطة (in-memory tracker) ──
+const activeRooms: Map<string, { roomId: string; roomCode: string; gameName: string; playerCount: number; maxPlayers: number; displayPin: string }> = new Map();
+
+export function getActiveRooms() {
+  return Array.from(activeRooms.values());
+}
 
 export function registerLobbyEvents(io: Server, socket: Socket) {
 
   // ── إنشاء غرفة جديدة ──────────────────────────
-  socket.on('room:create', async (data: { maxJustifications?: number }, callback) => {
+  socket.on('room:create', async (data: {
+    gameName: string;
+    maxPlayers?: number;
+    maxJustifications?: number;
+    displayPin?: string;
+  }, callback) => {
     try {
-      const state = await createRoom(0, data.maxJustifications || 2);
+      const gameName = data.gameName || 'لعبة مافيا';
+      const maxPlayers = Math.min(Math.max(data.maxPlayers || 10, 6), 27);
+
+      const state = await createRoom(
+        gameName,
+        maxPlayers,
+        data.maxJustifications || 2,
+        data.displayPin,
+      );
+
       socket.join(state.roomId);
-      // وسم السوكت كليدر
       socket.data.role = 'leader';
       socket.data.roomId = state.roomId;
 
-      callback({ success: true, roomId: state.roomId, roomCode: state.roomCode });
-      console.log(`🏠 Room created: ${state.roomId} (code: ${state.roomCode})`);
+      // تتبع الغرفة النشطة
+      activeRooms.set(state.roomId, {
+        roomId: state.roomId,
+        roomCode: state.roomCode,
+        gameName,
+        playerCount: 0,
+        maxPlayers,
+        displayPin: state.config.displayPin,
+      });
+
+      callback({
+        success: true,
+        roomId: state.roomId,
+        roomCode: state.roomCode,
+        displayPin: state.config.displayPin,
+        gameName,
+      });
+      console.log(`🏠 Room created: ${state.roomId} (code: ${state.roomCode}, name: ${gameName})`);
+    } catch (err: any) {
+      callback({ success: false, error: err.message });
+    }
+  });
+
+  // ── قائمة الألعاب النشطة ──────────────────────
+  socket.on('room:list-active', (data: any, callback) => {
+    const rooms = getActiveRooms().map(r => ({
+      roomId: r.roomId,
+      roomCode: r.roomCode,
+      gameName: r.gameName,
+      playerCount: r.playerCount,
+      maxPlayers: r.maxPlayers,
+    }));
+    callback({ success: true, rooms });
+  });
+
+  // ── التحقق من PIN شاشة العرض ──────────────────
+  socket.on('room:verify-display-pin', async (data: { roomId: string; pin: string }, callback) => {
+    try {
+      const room = activeRooms.get(data.roomId);
+      if (!room) {
+        return callback({ success: false, error: 'اللعبة غير موجودة' });
+      }
+
+      if (room.displayPin !== data.pin) {
+        return callback({ success: false, error: 'الرقم السري غير صحيح' });
+      }
+
+      socket.join(data.roomId);
+      socket.data.role = 'display';
+      socket.data.roomId = data.roomId;
+
+      const state = await getRoom(data.roomId);
+      callback({
+        success: true,
+        gameName: room.gameName,
+        roomCode: room.roomCode,
+        playerCount: room.playerCount,
+        maxPlayers: room.maxPlayers,
+        state,
+      });
+    } catch (err: any) {
+      callback({ success: false, error: err.message });
+    }
+  });
+
+  // ── البحث عن غرفة بالكود ──────────────────────
+  socket.on('room:find-by-code', async (data: { roomCode: string }, callback) => {
+    try {
+      const state = await getRoomByCode(data.roomCode);
+      if (!state) {
+        return callback({ success: false, error: 'لم يتم العثور على لعبة بهذا الكود' });
+      }
+
+      callback({
+        success: true,
+        roomId: state.roomId,
+        roomCode: state.roomCode,
+        gameName: state.config.gameName,
+        playerCount: state.players.length,
+        maxPlayers: state.config.maxPlayers,
+      });
     } catch (err: any) {
       callback({ success: false, error: err.message });
     }
@@ -30,20 +129,34 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
     roomId: string;
     physicalId: number;
     name: string;
-    googleId?: string;
+    phone?: string;
+    playerId?: number;
   }, callback) => {
     try {
-      const state = await addPlayer(data.roomId, data.physicalId, data.name, data.googleId || null);
+      const state = await addPlayer(
+        data.roomId,
+        data.physicalId,
+        data.name,
+        data.phone || null,
+        data.playerId || null,
+      );
       socket.join(data.roomId);
       socket.data.role = 'player';
       socket.data.roomId = data.roomId;
       socket.data.physicalId = data.physicalId;
+
+      // تحديث العداد
+      const room = activeRooms.get(data.roomId);
+      if (room) {
+        room.playerCount = state.players.length;
+      }
 
       // بث للجميع في الغرفة
       io.to(data.roomId).emit('room:player-joined', {
         physicalId: data.physicalId,
         name: data.name,
         totalPlayers: state.players.length,
+        maxPlayers: state.config.maxPlayers,
       });
 
       callback({ success: true });
@@ -102,7 +215,6 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
       const generated = generateRoles(playerCount);
       await setPhase(data.roomId, Phase.ROLE_GENERATION);
 
-      // إرسال القائمة لليدر للتعديل
       socket.emit('setup:roles-generated', {
         mafiaRoles: generated.mafiaRoles,
         citizenRoles: generated.citizenRoles,
@@ -137,7 +249,6 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
 
       await setPhase(data.roomId, Phase.ROLE_BINDING);
 
-      // إرسال واجهة Drag & Drop لليدر
       socket.emit('setup:binding-start', {
         players: state.players.map(p => ({ physicalId: p.physicalId, name: p.name })),
         roles: data.roles,
@@ -178,7 +289,6 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
       const state = await getRoom(data.roomId);
       if (!state) return callback({ success: false, error: 'Room not found' });
 
-      // التحقق أن جميع اللاعبين لديهم أدوار
       const unbound = state.players.filter(p => !p.role);
       if (unbound.length > 0) {
         return callback({
@@ -189,7 +299,6 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
 
       await setPhase(data.roomId, Phase.DAY_DISCUSSION);
 
-      // إشعار الجميع ببدء اللعبة
       io.to(data.roomId).emit('game:started', {
         round: 1,
         phase: Phase.DAY_DISCUSSION,
@@ -200,6 +309,14 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
       console.log(`🎮 Game started in room ${data.roomId}!`);
     } catch (err: any) {
       callback({ success: false, error: err.message });
+    }
+  });
+
+  // ── تنظيف عند قطع الاتصال ─────────────────────
+  socket.on('disconnect', () => {
+    // إذا كان ليدر وانقطع، نبقي الغرفة نشطة (ممكن يرجع)
+    if (socket.data.role === 'leader' && socket.data.roomId) {
+      console.log(`⚠️ Leader disconnected from room ${socket.data.roomId}`);
     }
   });
 }

@@ -87,7 +87,8 @@ export enum CandidateType {
 export interface Player {
   physicalId: number;
   name: string;
-  googleId: string | null;
+  phone: string | null;
+  playerId: number | null;
   role: Role | null;
   isAlive: boolean;
   isSilenced: boolean;

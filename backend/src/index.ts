@@ -6,14 +6,12 @@ import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
-import session from 'express-session';
-import passport from 'passport';
-import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 
 import { env } from './config/env.js';
 import { connectRedis, isUsingInMemory } from './config/redis.js';
 import { connectDB, type Database } from './config/db.js';
-import authRoutes from './routes/auth.routes.js';
+import leaderRoutes from './routes/leader.routes.js';
+import playerRoutes from './routes/player.routes.js';
 import statsRoutes from './routes/stats.routes.js';
 import { registerLobbyEvents } from './sockets/lobby.socket.js';
 import { registerDayEvents } from './sockets/day.socket.js';
@@ -31,53 +29,7 @@ async function main() {
   }));
   app.use(express.json());
 
-  // ── 2. Session Setup ──────────────────────────
-  app.use(session({
-    secret: env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: env.NODE_ENV === 'production',
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    },
-  }));
-
-  // ── 3. Passport (Google OAuth) ────────────────
-  app.use(passport.initialize());
-  app.use(passport.session());
-
-  if (env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET) {
-    passport.use(new GoogleStrategy({
-      clientID: env.GOOGLE_CLIENT_ID,
-      clientSecret: env.GOOGLE_CLIENT_SECRET,
-      callbackURL: '/api/auth/google/callback',
-    }, async (_accessToken, _refreshToken, profile, done) => {
-      try {
-        // TODO: حفظ/تحديث المستخدم في PostgreSQL
-        const user = {
-          googleId: profile.id,
-          email: profile.emails?.[0]?.value || '',
-          displayName: profile.displayName,
-          avatarUrl: profile.photos?.[0]?.value || '',
-        };
-        done(null, user);
-      } catch (err) {
-        done(err as Error);
-      }
-    }));
-
-    passport.serializeUser((user: any, done) => {
-      done(null, user);
-    });
-
-    passport.deserializeUser((user: any, done) => {
-      done(null, user);
-    });
-  } else {
-    console.warn('⚠️ Google OAuth not configured. Auth routes will be disabled.');
-  }
-
-  // ── 4. Connect Services ──────────────────────
+  // ── 2. Connect Services ──────────────────────
   console.log('🔄 Connecting to Redis...');
   await connectRedis();
 
@@ -89,8 +41,9 @@ async function main() {
     console.warn('⚠️ PostgreSQL connection failed. Stats will be disabled.', err);
   }
 
-  // ── 5. REST Routes ────────────────────────────
-  app.use('/api/auth', authRoutes);
+  // ── 3. REST Routes ────────────────────────────
+  app.use('/api/leader', leaderRoutes);
+  app.use('/api/player', playerRoutes);
   app.use('/api/stats', statsRoutes);
 
   // Health check
@@ -105,7 +58,7 @@ async function main() {
     });
   });
 
-  // ── 6. Socket.IO Setup ────────────────────────
+  // ── 4. Socket.IO Setup ────────────────────────
   const io = new Server(httpServer, {
     cors: {
       origin: env.FRONTEND_URL,
@@ -118,18 +71,17 @@ async function main() {
   io.on('connection', (socket) => {
     console.log(`🔌 Socket connected: ${socket.id}`);
 
-    // تسجيل جميع أحداث السوكت
     registerLobbyEvents(io, socket);
     registerDayEvents(io, socket);
     registerNightEvents(io, socket);
     registerGameEvents(io, socket);
   });
 
-  // ── 7. Start Server ───────────────────────────
+  // ── 5. Start Server ───────────────────────────
   httpServer.listen(env.PORT, () => {
     console.log(`
 ╔══════════════════════════════════════════════╗
-║  🎭 Phygital Mafia Engine                   ║
+║  🎭 Phygital Mafia Engine v2                ║
 ║  Server running on port ${env.PORT}              ║
 ║  Environment: ${env.NODE_ENV.padEnd(30)}║
 ║  Frontend URL: ${env.FRONTEND_URL.padEnd(29)}║
