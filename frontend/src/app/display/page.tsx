@@ -562,26 +562,25 @@ function NightAnim({ data }: { data: any }) {
     INVESTIGATION: { icon: '👁️', text: 'تحقيق جارٍ', color: 'text-[#C5A059]' },
     PROTECTION: { icon: '💉', text: 'حماية طبية', color: 'text-[#2E5C31]' },
     SNIPE: { icon: '🎯', text: 'تصويب القناص', color: 'text-[#8A0303]' },
-    // أنيميشن ملخص الصباح (مع أسماء)
+    // أنيميشن ملخص الصباح
     ASSASSINATION: { icon: '🩸', text: 'تم الاغتيال', color: 'text-[#8A0303]' },
     ASSASSINATION_BLOCKED: { icon: '🛡️', text: 'نجاة بالحماية', color: 'text-[#2E5C31]' },
-    SNIPE_MAFIA: { icon: '🎯', text: 'قنص ناجح — مافيا', color: 'text-[#C5A059]' },
-    SNIPE_CITIZEN: { icon: '💀', text: 'قنص خاطئ', color: 'text-[#8A0303]' },
+    SNIPE_MAFIA: { icon: '🎯', text: 'القناص نجح', color: 'text-[#C5A059]' },
+    SNIPE_CITIZEN: { icon: '💀', text: 'القناص فشل', color: 'text-[#8A0303]' },
   };
   const a = map[data.type] || { icon: '❓', text: data.type, color: 'text-[#808080]' };
-  const isMorningEvent = ['ASSASSINATION', 'ASSASSINATION_BLOCKED', 'SNIPE_MAFIA', 'SNIPE_CITIZEN'].includes(data.type);
 
   return (
     <div className="text-center py-8">
-      <motion.div 
-        className="text-8xl mb-6" 
-        animate={{ scale: [0.8, 1.2, 1] }} 
+      <motion.div
+        className="text-8xl mb-6"
+        animate={{ scale: [0.8, 1.2, 1] }}
         transition={{ duration: 0.8, ease: "easeOut" }}
       >
         {a.icon}
       </motion.div>
-      <motion.p 
-        className={`text-4xl font-black tracking-widest mb-3 ${a.color}`} 
+      <motion.p
+        className={`text-4xl font-black tracking-widest mb-3 ${a.color}`}
         style={{ fontFamily: 'Amiri, serif' }}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -589,30 +588,33 @@ function NightAnim({ data }: { data: any }) {
       >
         {a.text}
       </motion.p>
-      {/* اسم الضحية — للأحداث الصباحية فقط */}
-      {isMorningEvent && data.targetName && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-        >
-          <p className="text-white text-2xl font-black mt-4" style={{ fontFamily: 'Amiri, serif' }}>
-            {data.targetName}
-          </p>
-          <p className="text-[#555] font-mono text-sm mt-1">
-            #{data.targetPhysicalId}
-          </p>
+
+      {/* الاغتيال — يعرض اسم الضحية */}
+      {data.type === 'ASSASSINATION' && data.targetName && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
+          <p className="text-white text-2xl font-black mt-4" style={{ fontFamily: 'Amiri, serif' }}>{data.targetName}</p>
+          <p className="text-[#555] font-mono text-sm mt-1">#{data.targetPhysicalId}</p>
         </motion.div>
       )}
-      {/* تفاصيل خاصة: قنص مواطن → القناص يموت أيضاً */}
-      {data.type === 'SNIPE_CITIZEN' && data.extra?.sniperName && (
-        <motion.p 
-          className="text-[#8A0303] font-mono text-sm mt-4 tracking-widest"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.5 }}
-        >
-          القناص {data.extra.sniperName} سقط أيضاً
+
+      {/* الحماية — رسالة عامة بدون اسم */}
+      {data.type === 'ASSASSINATION_BLOCKED' && (
+        <motion.p className="text-[#2E5C31] text-lg font-mono mt-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
+          تم إنقاذ أحد اللاعبين من الاغتيال
+        </motion.p>
+      )}
+
+      {/* قنص ناجح — خرج المافيا فقط */}
+      {data.type === 'SNIPE_MAFIA' && (
+        <motion.p className="text-[#C5A059] text-lg font-mono mt-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
+          خرج عضو مافيا من اللعبة
+        </motion.p>
+      )}
+
+      {/* قنص فاشل — خرج لاعبان */}
+      {data.type === 'SNIPE_CITIZEN' && (
+        <motion.p className="text-[#8A0303] text-lg font-mono mt-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
+          خرج لاعبان من اللعبة
         </motion.p>
       )}
     </div>

@@ -315,6 +315,14 @@ export function registerNightEvents(io: Server, socket: Socket) {
         return callback({ success: false, error: 'Only leader' });
       }
 
+      // تصفير حالة النقاش والتصويت من الجولة السابقة
+      const state = await getGameState(data.roomId);
+      if (state) {
+        (state as any).discussionState = null;
+        (state as any).votingState = null;
+        await setGameState(data.roomId, state);
+      }
+
       await setPhase(data.roomId, Phase.DAY_DISCUSSION);
       io.to(data.roomId).emit('game:phase-changed', { phase: Phase.DAY_DISCUSSION });
 

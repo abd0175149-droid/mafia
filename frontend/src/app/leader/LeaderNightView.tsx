@@ -21,17 +21,19 @@ const ACTION_META: Record<string, { icon: string; color: string; bgGlow: string 
 
 // أيقونة أحداث الصباح
 const EVENT_META: Record<string, { icon: string; title: string; color: string; displayable: boolean }> = {
-  ASSASSINATION:        { icon: '🩸', title: 'اغتيال ناجح',     color: 'text-[#8A0303]', displayable: true },
-  ASSASSINATION_BLOCKED:{ icon: '🛡️', title: 'حماية ناجحة',     color: 'text-[#2E5C31]', displayable: true },
-  SNIPE_MAFIA:          { icon: '🎯', title: 'قنص مافيا',       color: 'text-[#C5A059]', displayable: true },
-  SNIPE_CITIZEN:        { icon: '💀', title: 'قنص مواطن',       color: 'text-[#8A0303]', displayable: true },
-  SHERIFF_RESULT:       { icon: '🔍', title: 'نتيجة التحقيق',   color: 'text-[#C5A059]', displayable: false }, // لليدر فقط
+  ASSASSINATION:        { icon: '🩸', title: 'اغتيال ناجح',       color: 'text-[#8A0303]', displayable: true },
+  ASSASSINATION_BLOCKED:{ icon: '🛡️', title: 'حماية ناجحة',       color: 'text-[#2E5C31]', displayable: true },
+  SNIPE_MAFIA:          { icon: '🎯', title: 'القناص نجح',        color: 'text-[#C5A059]', displayable: true },
+  SNIPE_CITIZEN:        { icon: '💀', title: 'القناص فشل',        color: 'text-[#8A0303]', displayable: true },
+  SHERIFF_RESULT:       { icon: '🔍', title: 'نتيجة التحقيق',     color: 'text-[#C5A059]', displayable: false },
 };
 
 export default function LeaderNightView({ gameState, emit, setError }: LeaderNightViewProps) {
   const [loading, setLoading] = useState(false);
   const [selectedTarget, setSelectedTarget] = useState<number | null>(null);
   const [revealedEvents, setRevealedEvents] = useState<Set<number>>(new Set());
+  // Overlay مستقل لنتيجة الشريف — يبقى حتى يُغلق يدوياً
+  const [sheriffOverlay, setSheriffOverlay] = useState<any>(null);
 
   // تصفير الاختيار عند تغير الخطوة
   useEffect(() => {
@@ -42,14 +44,24 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
   useEffect(() => {
     if (gameState.phase === 'MORNING_RECAP') {
       setRevealedEvents(new Set());
+      setSheriffOverlay(null);
     }
   }, [gameState.phase]);
+
+  // عند وصول نتيجة الشريف → فتح الـ overlay الكبير
+  useEffect(() => {
+    if (gameState.sheriffResult) {
+      setSheriffOverlay(gameState.sheriffResult);
+    }
+  }, [gameState.sheriffResult]);
 
   const nightStep = gameState.nightStep;
   const nightComplete = gameState.nightComplete;
   const morningEvents = gameState.morningEvents || [];
-  const sheriffResult = gameState.sheriffResult;
   const meta = nightStep ? (ACTION_META[nightStep.role] || ACTION_META.GODFATHER) : null;
+
+  // اللاعبين الأحياء
+  const alivePlayers = (gameState.players || []).filter((p: any) => p.isAlive);
 
   // ── تأكيد الاختيار ──
   const handleSubmitAction = async () => {
@@ -132,26 +144,90 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
   };
 
   // ══════════════════════════════════════════════════
+  // OVERLAY: نتيجة الشريف — كارد كبير مستقل
+  // ══════════════════════════════════════════════════
+  const renderSheriffOverlay = () => {
+    if (!sheriffOverlay) return null;
+    const isMafia = sheriffOverlay.result === 'MAFIA';
+    const targetPlayer = gameState.players?.find((p: any) => p.physicalId === sheriffOverlay.targetPhysicalId);
+
+    return (
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          onClick={() => setSheriffOverlay(null)}
+        >
+          <motion.div
+            initial={{ scale: 0.7, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.7, opacity: 0 }}
+            transition={{ type: 'spring', damping: 20 }}
+            className={`p-10 border-2 max-w-sm w-full mx-4 text-center bg-[#0a0a0a] ${
+              isMafia ? 'border-[#ff4444]/60' : 'border-[#44ff44]/60'
+            }`}
+            onClick={e => e.stopPropagation()}
+          >
+            <p className="text-[10px] font-mono text-[#555] mb-4 tracking-widest">🔒 LEADER EYES ONLY — INVESTIGATION RESULT</p>
+
+            {/* كرت اللاعب */}
+            <div className={`border-2 p-6 mb-6 ${isMafia ? 'border-[#ff4444]/40 bg-[#ff4444]/5' : 'border-[#44ff44]/40 bg-[#44ff44]/5'}`}>
+              <div className={`w-16 h-16 mx-auto border-2 rounded-full flex items-center justify-center font-mono text-2xl font-black mb-3 ${
+                isMafia ? 'border-[#ff4444] text-[#ff4444]' : 'border-[#44ff44] text-[#44ff44]'
+              }`}>
+                {sheriffOverlay.targetPhysicalId}
+              </div>
+              <p className="text-white text-lg font-bold mb-1" style={{ fontFamily: 'Amiri, serif' }}>
+                {targetPlayer?.name || sheriffOverlay.targetName || 'Unknown'}
+              </p>
+            </div>
+
+            {/* النتيجة الكبيرة */}
+            <motion.div
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className={`text-5xl font-black mb-4 ${isMafia ? 'text-[#ff4444]' : 'text-[#44ff44]'}`}
+              style={{ fontFamily: 'Amiri, serif' }}
+            >
+              {isMafia ? '🎭 مافيا' : '🏛 مواطن'}
+            </motion.div>
+
+            <button
+              onClick={() => setSheriffOverlay(null)}
+              className="mt-4 px-8 py-3 border border-[#555] text-[#808080] font-mono text-xs uppercase tracking-widest hover:text-white hover:border-white transition-all"
+            >
+              ✓ فهمت
+            </button>
+          </motion.div>
+        </motion.div>
+      </AnimatePresence>
+    );
+  };
+
+  // ══════════════════════════════════════════════════
   // RENDER: MORNING_RECAP — ملخص الصباح المرحلي
   // ══════════════════════════════════════════════════
   if (gameState.phase === 'MORNING_RECAP') {
     const displayableEvents = morningEvents.filter((_: any, i: number) => {
       const e = morningEvents[i];
-      const meta = EVENT_META[e.type];
-      return meta?.displayable !== false;
+      const m = EVENT_META[e.type];
+      return m?.displayable !== false;
     });
 
     const allRevealed = displayableEvents.every((_: any, i: number) => {
-      // Find original index for this displayable event
       const originalIndex = morningEvents.findIndex((e: any) => e === displayableEvents[i]);
       return revealedEvents.has(originalIndex);
     });
 
     return (
       <div className="p-6">
+        {renderSheriffOverlay()}
+
         {/* Header */}
         <div className="text-center mb-8 border-b border-[#2a2a2a] pb-6">
-          <motion.div 
+          <motion.div
             className="text-6xl mb-3 grayscale opacity-70"
             animate={{ opacity: [0.5, 0.8, 0.5] }}
             transition={{ duration: 3, repeat: Infinity }}
@@ -170,9 +246,10 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
         ) : (
           <div className="space-y-4 max-w-xl mx-auto mb-8">
             {morningEvents.map((event: any, index: number) => {
-              const meta = EVENT_META[event.type] || { icon: '❓', title: event.type, color: 'text-[#808080]', displayable: true };
+              const evMeta = EVENT_META[event.type] || { icon: '❓', title: event.type, color: 'text-[#808080]', displayable: true };
               const isRevealed = revealedEvents.has(index);
               const isSheriff = event.type === 'SHERIFF_RESULT';
+              const isBlocked = event.type === 'ASSASSINATION_BLOCKED';
 
               return (
                 <motion.div
@@ -181,37 +258,44 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.15 }}
                   className={`border p-5 bg-black/60 relative overflow-hidden ${
-                    isRevealed ? 'border-[#333] opacity-60' : 
+                    isRevealed ? 'border-[#333] opacity-60' :
                     isSheriff ? 'border-[#C5A059]/40' : 'border-[#2a2a2a]'
                   }`}
                 >
-                  {/* شريط جانبي ملون */}
-                  <div className={`absolute top-0 left-0 w-1 h-full ${
-                    meta.color.replace('text-', 'bg-')
-                  }`} />
+                  <div className={`absolute top-0 left-0 w-1 h-full ${evMeta.color.replace('text-', 'bg-')}`} />
 
                   <div className="flex items-center gap-4 pl-3">
-                    <div className="text-3xl shrink-0">{meta.icon}</div>
+                    <div className="text-3xl shrink-0">{evMeta.icon}</div>
                     <div className="flex-1">
-                      <h3 className={`font-bold text-sm ${meta.color}`} style={{ fontFamily: 'Amiri, serif' }}>
-                        {meta.title}
+                      <h3 className={`font-bold text-sm ${evMeta.color}`} style={{ fontFamily: 'Amiri, serif' }}>
+                        {evMeta.title}
                       </h3>
-                      <p className="text-white text-xs font-mono mt-1">
-                        #{event.targetPhysicalId} — {event.targetName}
-                      </p>
 
-                      {/* تفاصيل إضافية */}
-                      {event.type === 'SNIPE_CITIZEN' && event.extra && (
-                        <p className="text-[#8A0303] text-[10px] font-mono mt-1">
-                          + القناص #{event.extra.sniperPhysicalId} {event.extra.sniperName} مات أيضاً
-                        </p>
+                      {/* الاغتيال + القنص — يعرض الاسم */}
+                      {event.type === 'ASSASSINATION' && (
+                        <p className="text-white text-xs font-mono mt-1">#{event.targetPhysicalId} — {event.targetName}</p>
                       )}
 
-                      {/* نتيجة الشريف — كبيرة وسرية */}
+                      {/* الحماية الناجحة — لا يعرض اسم المحمي */}
+                      {isBlocked && (
+                        <p className="text-[#2E5C31] text-xs font-mono mt-1">تم إنقاذ أحد اللاعبين من الاغتيال</p>
+                      )}
+
+                      {/* قنص مافيا — نجح */}
+                      {event.type === 'SNIPE_MAFIA' && (
+                        <p className="text-[#C5A059] text-xs font-mono mt-1">خرج عضو مافيا من اللعبة</p>
+                      )}
+
+                      {/* قنص مواطن — فشل */}
+                      {event.type === 'SNIPE_CITIZEN' && (
+                        <p className="text-[#8A0303] text-xs font-mono mt-1">خرج لاعبان من اللعبة (القناص + الهدف)</p>
+                      )}
+
+                      {/* نتيجة الشريف */}
                       {isSheriff && event.extra && (
                         <div className={`mt-3 p-3 border rounded text-center ${
-                          event.extra.result === 'MAFIA' 
-                            ? 'border-[#ff4444]/50 bg-[#ff4444]/10' 
+                          event.extra.result === 'MAFIA'
+                            ? 'border-[#ff4444]/50 bg-[#ff4444]/10'
                             : 'border-[#44ff44]/50 bg-[#44ff44]/10'
                         }`}>
                           <p className="text-[10px] font-mono text-[#555] mb-1 tracking-widest">🔒 LEADER EYES ONLY</p>
@@ -220,17 +304,20 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
                           }`} style={{ fontFamily: 'Amiri, serif' }}>
                             {event.extra.result === 'MAFIA' ? '🎭 مافيا' : '🏛 مواطن'}
                           </p>
+                          <p className="text-[#808080] text-[10px] font-mono mt-1">
+                            #{event.targetPhysicalId} — {event.targetName}
+                          </p>
                         </div>
                       )}
                     </div>
 
-                    {/* زر العرض — فقط للأحداث القابلة للعرض */}
-                    {meta.displayable && (
+                    {/* زر العرض */}
+                    {evMeta.displayable && (
                       <button
                         onClick={() => handleDisplayEvent(index)}
                         disabled={isRevealed}
                         className={`shrink-0 px-4 py-2 border font-mono text-xs uppercase tracking-widest transition-all ${
-                          isRevealed 
+                          isRevealed
                             ? 'border-[#333] text-[#333] cursor-not-allowed'
                             : 'border-[#C5A059]/50 text-[#C5A059] hover:bg-[#C5A059]/10 hover:border-[#C5A059]'
                         }`}
@@ -239,7 +326,6 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
                       </button>
                     )}
 
-                    {/* شارة سرية للشريف */}
                     {isSheriff && (
                       <div className="shrink-0 px-3 py-2 border border-[#C5A059]/30 text-[#C5A059] font-mono text-[9px] tracking-widest">
                         سري
@@ -252,14 +338,31 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
           </div>
         )}
 
+        {/* كروت اللاعبين الأحياء بعد أحداث الليل */}
+        <div className="max-w-xl mx-auto mb-8 border-t border-[#2a2a2a] pt-6">
+          <p className="text-[#555] font-mono text-[10px] tracking-widest uppercase mb-3 text-center">
+            SURVIVING AGENTS — {alivePlayers.length} REMAINING
+          </p>
+          <div className="grid grid-cols-5 gap-2">
+            {alivePlayers.map((p: any) => (
+              <div key={p.physicalId} className="border border-[#2a2a2a] p-2 text-center bg-black/40">
+                <div className="w-8 h-8 mx-auto border border-[#555] flex items-center justify-center font-mono text-sm text-white mb-1">
+                  {p.physicalId}
+                </div>
+                <p className="text-[#808080] text-[9px] font-mono truncate">{p.name}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* زر بدء النهار */}
         <div className="text-center mt-8">
           <button
             onClick={handleStartDay}
             disabled={loading || (!allRevealed && displayableEvents.length > 0)}
             className={`btn-premium px-12 py-5 !text-lg group ${
-              allRevealed || displayableEvents.length === 0 
-                ? '!border-[#C5A059]' 
+              allRevealed || displayableEvents.length === 0
+                ? '!border-[#C5A059]'
                 : '!border-[#2a2a2a] grayscale opacity-50'
             }`}
           >
@@ -279,14 +382,14 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
   // RENDER: NIGHT — Queue Complete — انتهى الطابور
   // ══════════════════════════════════════════════════
   if (nightComplete) {
-    // فحص: هل الطبيب ميت والممرضة حية؟
     const doctor = gameState.players?.find((p: any) => p.role === 'DOCTOR');
     const nurse = gameState.players?.find((p: any) => p.role === 'NURSE' && p.isAlive);
     const showNurseButton = doctor && !doctor.isAlive && nurse;
 
     return (
       <div className="flex flex-col items-center justify-center p-12 text-center">
-        <motion.div 
+        {renderSheriffOverlay()}
+        <motion.div
           className="text-7xl mb-6 grayscale opacity-60"
           animate={{ rotate: [0, 5, -5, 0] }}
           transition={{ duration: 4, repeat: Infinity }}
@@ -300,12 +403,8 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
           ALL NIGHT ACTIONS REGISTERED • READY FOR RESOLUTION
         </p>
 
-        {/* زر تفعيل الممرضة */}
         {showNurseButton && (
-          <button
-            onClick={handleActivateNurse}
-            className="btn-premium px-8 py-4 !border-[#2E5C31]/50 mb-6"
-          >
+          <button onClick={handleActivateNurse} className="btn-premium px-8 py-4 !border-[#2E5C31]/50 mb-6">
             <span className="text-[#2E5C31]">⚕️ تفعيل الممرضة (بدل الطبيب)</span>
           </button>
         )}
@@ -327,9 +426,11 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
   if (nightStep && meta) {
     return (
       <div className="p-6">
+        {renderSheriffOverlay()}
+
         {/* Night Header */}
         <div className="text-center mb-8 border-b border-[#2a2a2a] pb-6">
-          <motion.div 
+          <motion.div
             className="text-5xl mb-3 grayscale opacity-60"
             animate={{ opacity: [0.3, 0.7, 0.3] }}
             transition={{ duration: 3, repeat: Infinity }}
@@ -350,7 +451,7 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
           className={`noir-card p-8 max-w-md mx-auto ${meta.bgGlow}`}
         >
           <div className="text-center mb-6">
-            <motion.div 
+            <motion.div
               className="text-6xl mb-3"
               animate={{ scale: [1, 1.1, 1] }}
               transition={{ duration: 2, repeat: Infinity }}
@@ -395,32 +496,6 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
             </div>
           </div>
 
-          {/* نتيجة الشريف — تظهر فوراً بعد الاختيار */}
-          <AnimatePresence>
-            {nightStep.role === 'SHERIFF' && sheriffResult && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                className={`mb-6 p-4 border rounded text-center ${
-                  sheriffResult.result === 'MAFIA'
-                    ? 'border-[#ff4444]/50 bg-[#ff4444]/10'
-                    : 'border-[#44ff44]/50 bg-[#44ff44]/10'
-                }`}
-              >
-                <p className="text-[9px] font-mono text-[#555] mb-1 tracking-widest">INVESTIGATION RESULT</p>
-                <p className={`text-3xl font-black ${
-                  sheriffResult.result === 'MAFIA' ? 'text-[#ff4444]' : 'text-[#44ff44]'
-                }`} style={{ fontFamily: 'Amiri, serif' }}>
-                  {sheriffResult.result === 'MAFIA' ? '🎭 مافيا' : '🏛 مواطن'}
-                </p>
-                <p className="text-[#808080] text-[10px] font-mono mt-1">
-                  #{sheriffResult.targetPhysicalId} — {sheriffResult.targetName}
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
           {/* أزرار الإجراء */}
           <div className={`grid ${nightStep.canSkip ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
             <button
@@ -451,7 +526,7 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
         <div className="flex items-center justify-center gap-3 mt-8">
           {['GODFATHER', 'SILENCER', 'SHERIFF', 'DOCTOR', 'SNIPER'].map((role) => {
             const isCurrent = nightStep.role === role;
-            const isPast = ['GODFATHER', 'SILENCER', 'SHERIFF', 'DOCTOR', 'SNIPER'].indexOf(role) < 
+            const isPast = ['GODFATHER', 'SILENCER', 'SHERIFF', 'DOCTOR', 'SNIPER'].indexOf(role) <
                            ['GODFATHER', 'SILENCER', 'SHERIFF', 'DOCTOR', 'SNIPER'].indexOf(nightStep.role);
             return (
               <div key={role} className="flex flex-col items-center gap-1">
@@ -462,9 +537,9 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
                 <span className={`text-[8px] font-mono tracking-widest ${
                   isCurrent ? 'text-[#C5A059]' : 'text-[#333]'
                 }`}>
-                  {role === 'GODFATHER' ? 'اغتيال' : 
-                   role === 'SILENCER' ? 'إسكات' : 
-                   role === 'SHERIFF' ? 'تحقيق' : 
+                  {role === 'GODFATHER' ? 'اغتيال' :
+                   role === 'SILENCER' ? 'إسكات' :
+                   role === 'SHERIFF' ? 'تحقيق' :
                    role === 'DOCTOR' ? 'حماية' : 'قنص'}
                 </span>
               </div>
@@ -480,7 +555,8 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
   // ══════════════════════════════════════════════════
   return (
     <div className="flex flex-col items-center justify-center p-12 text-center">
-      <motion.div 
+      {renderSheriffOverlay()}
+      <motion.div
         className="text-7xl mb-6 grayscale opacity-40"
         animate={{ opacity: [0.2, 0.5, 0.2] }}
         transition={{ duration: 3, repeat: Infinity }}
