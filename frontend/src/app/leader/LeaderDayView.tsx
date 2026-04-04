@@ -84,6 +84,14 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
   const handleVote = async (candidateIndex: number, delta: 1 | -1) => {
     const candidate = candidates[candidateIndex];
     if (candidate.votes + delta < 0) return;
+
+    // حساب مجموع الأصوات الحالي من كل الكروت
+    const currentTotal = candidates.reduce((sum: number, c: any) => sum + c.votes, 0);
+    const maxVotes = alivePlayers.filter((p: any) => !p.isSilenced).length;
+
+    // منع زيادة الأصوات إذا وصلنا للحد الأقصى
+    if (delta === 1 && currentTotal >= maxVotes) return;
+
     try {
       await emit('day:cast-vote', { roomId: gameState.roomId, candidateIndex, delta });
     } catch (err: any) {
@@ -631,7 +639,8 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
   // RENDER DAY_VOTING (Live Vote Collection)
   // ==========================================
   if (gameState.phase === 'DAY_VOTING') {
-    const totalVotes = gameState.votingState?.totalVotesCast || 0;
+    // حساب مجموع الأصوات من كل الكروت مباشرةً (ليس من totalVotesCast)
+    const totalVotes = candidates.reduce((sum: number, c: any) => sum + c.votes, 0);
     const votingAliveCount = alivePlayers.filter((p: any) => !p.isSilenced).length;
     const isComplete = totalVotes >= votingAliveCount;
 
@@ -642,7 +651,7 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
           <div className="text-right">
             <p className="text-[#808080] text-xs font-mono uppercase">VOTES CAST</p>
             <p className={`text-2xl font-black font-mono ${isComplete ? 'text-[#C5A059]' : 'text-white'}`}>
-              {totalVotes} / {alivePlayers.length}
+              {totalVotes} / {votingAliveCount}
             </p>
           </div>
         </div>
