@@ -18,6 +18,7 @@ import { registerLobbyEvents } from './sockets/lobby.socket.js';
 import { registerDayEvents } from './sockets/day.socket.js';
 import { registerNightEvents } from './sockets/night.socket.js';
 import { registerGameEvents } from './sockets/game.socket.js';
+import { createRoom, addPlayer, updatePlayer } from './game/state.js';
 
 async function main() {
   // ── 1. Express Setup ──────────────────────────
@@ -91,6 +92,25 @@ async function main() {
 ║  Frontend URL: ${env.FRONTEND_URL.padEnd(29)}║
 ╚══════════════════════════════════════════════╝
     `);
+
+    // ── 6. Auto-Seed Test Game ────────────────────
+    try {
+      console.log('🌱 Seeding Dummy Game for quick testing...');
+      const state = await createRoom('لعبة تجريبية (Auto Seeded)', 10, 2, '2026');
+      
+      const names = ['أحمد', 'محمد', 'علي', 'خالد', 'عمر', 'سارة', 'فاطمة', 'تسنيم', 'ريم', 'نور'];
+      const genders: ('MALE'|'FEMALE')[] = ['MALE', 'MALE', 'MALE', 'MALE', 'MALE', 'FEMALE', 'FEMALE', 'FEMALE', 'FEMALE', 'FEMALE'];
+      
+      for (let i = 0; i < 10; i++) {
+        await addPlayer(state.roomId, i + 1, names[i], `070000000${i}`, null);
+        await updatePlayer(state.roomId, i + 1, { gender: genders[i], dob: '1995-01-01' });
+      }
+      console.log(`✅ Dummy Game seeded successfully!`);
+      console.log(`   PIN (الشاشة الرئيسية): 2026`);
+      console.log(`   Room Code (رمز الغرفة): ${state.roomCode}`);
+    } catch (e) {
+      console.error('❌ Failed to seed dummy game:', e);
+    }
   });
 }
 
