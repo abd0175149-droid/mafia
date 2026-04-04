@@ -149,7 +149,8 @@ export default function LeaderPage() {
         });
         const resData = await res.json();
         if (resData.success) {
-          setGameState(resData.state);
+          // دمج بيانات الـ API مع الحالة الحالية (بدون مسح البيانات من Socket مثل justificationData)
+          setGameState(prev => prev ? { ...prev, ...resData.state } : resData.state);
         } else {
           // Fallback to inline phase update if fetch fails
           setGameState(prev => prev ? { ...prev, phase: data.phase } : prev);
@@ -230,6 +231,29 @@ export default function LeaderPage() {
       });
     });
 
+    // Justification Started
+    const offJustificationStarted = on('day:justification-started', (data: any) => {
+      setGameState(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          phase: 'DAY_JUSTIFICATION',
+          justificationData: data,
+        } as any;
+      });
+    });
+
+    // Justification Timer Started
+    const offJustTimerStarted = on('day:justification-timer-started', (data: any) => {
+      setGameState(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          justificationTimer: data,
+        } as any;
+      });
+    });
+
     // Elimination Pending
     const offEliminationPending = on('day:elimination-pending', (data: any) => {
       setGameState(prev => {
@@ -266,6 +290,8 @@ export default function LeaderPage() {
       offDealRemoved();
       offVotingStarted();
       offVoteUpdate();
+      offJustificationStarted();
+      offJustTimerStarted();
       offEliminationPending();
       offDiscussionUpdate();
       offGameClosed();
