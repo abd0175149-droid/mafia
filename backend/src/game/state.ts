@@ -211,22 +211,26 @@ export async function addPlayer(
   phone: string | null = null,
   playerId: number | null = null,
 ): Promise<GameState> {
+  console.log(`[State] addPlayer ➡️ Start for physicalId ${physicalId}, phone: ${phone}`);
   const state = await getGameState(roomId);
   if (!state) throw new Error(`Room ${roomId} not found`);
 
   // التحقق من الحد الأقصى
   if (state.players.length >= state.config.maxPlayers) {
+    console.error(`[State] addPlayer ❌ Room full!`);
     throw new Error(`الغرفة ممتلئة (${state.config.maxPlayers} لاعب كحد أقصى)`);
   }
 
   // التحقق من عدم تكرار الرقم الفيزيائي
   if (state.players.some(p => p.physicalId === physicalId)) {
+    console.error(`[State] addPlayer ❌ Physical ID ${physicalId} already exists!`);
     throw new Error(`الرقم ${physicalId} مسجل مسبقاً`);
   }
 
   // التحقق من عدم تكرار رقم الهاتف (يُستثنى 0700000000)
   if (phone && phone !== '0700000000') {
     if (state.players.some(p => p.phone === phone)) {
+      console.error(`[State] addPlayer ❌ Phone ${phone} already exists!`);
       throw new Error(`رقم الهاتف ${phone} مسجل مسبقاً في هذه الغرفة`);
     }
   }
@@ -246,6 +250,7 @@ export async function addPlayer(
   state.players.push(player);
   state.players.sort((a, b) => a.physicalId - b.physicalId);
   await setGameState(roomId, state);
+  console.log(`[State] addPlayer ✅ Player #${physicalId} added successfully to Redis`);
   return state;
 }
 
@@ -256,14 +261,19 @@ export async function updatePlayer(
   physicalId: number,
   updates: Partial<Pick<Player, 'name' | 'physicalId' | 'dob' | 'gender'>>
 ): Promise<GameState> {
+  console.log(`[State] updatePlayer ➡️ Start for physicalId ${physicalId} with updates:`, updates);
   const state = await getGameState(roomId);
   if (!state) throw new Error(`Room ${roomId} not found`);
 
   const player = state.players.find(p => p.physicalId === physicalId);
-  if (!player) throw new Error(`Player #${physicalId} not found`);
+  if (!player) {
+    console.error(`[State] updatePlayer ❌ Player #${physicalId} not found`);
+    throw new Error(`Player #${physicalId} not found`);
+  }
 
   Object.assign(player, updates);
   await setGameState(roomId, state);
+  console.log(`[State] updatePlayer ✅ Player #${physicalId} updated successfully in Redis`);
   return state;
 }
 

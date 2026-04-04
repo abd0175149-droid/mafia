@@ -207,13 +207,17 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
     gender: string;
   }, callback) => {
     try {
+      console.log(`[Backend-Socket] room:force-add-player 📥 Received request from leader for room ${data.roomId}`, data);
+      
       if (socket.data.role !== 'leader') {
+        console.warn(`[Backend-Socket] ❌ Failure: role is ${socket.data.role}, expected 'leader'`);
         return callback({ success: false, error: 'Only leader can override' });
       }
 
+      console.log(`[Backend-Socket] ➡️ Calling addPlayer(${data.roomId}, ${data.physicalId}, ${data.name}, ${data.phone})`);
       const state = await addPlayer(data.roomId, data.physicalId, data.name, data.phone);
       
-      // Update with dob and gender natively
+      console.log(`[Backend-Socket] ➡️ Calling updatePlayer for dob/gender: ${data.dob}, ${data.gender}`);
       await updatePlayer(data.roomId, data.physicalId, { dob: data.dob, gender: data.gender });
 
       const room = activeRooms.get(data.roomId);
@@ -221,6 +225,7 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
         room.playerCount = state.players.length;
       }
 
+      console.log(`[Backend-Socket] 📢 Emitting room:player-joined to room ${data.roomId}`);
       io.to(data.roomId).emit('room:player-joined', {
         physicalId: data.physicalId,
         name: data.name,
@@ -228,9 +233,10 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
         maxPlayers: state.config.maxPlayers,
       });
 
+      console.log(`[Backend-Socket] ✅ Done adding player #${data.physicalId}`);
       callback({ success: true });
-      console.log(`👑 Leader force-added player: #${data.physicalId} - ${data.name}`);
     } catch (err: any) {
+      console.error(`[Backend-Socket] ❌ Exception in room:force-add-player:`, err.message);
       callback({ success: false, error: err.message });
     }
   });

@@ -17,13 +17,18 @@ export default function LeaderLobbyView({ gameState, emit, setError }: LeaderLob
 
   const handleForceAdd = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('[Frontend] handleForceAdd: 🔘 Clicked submit button. Data:', addForm);
+    
     if (!addForm.physicalId || !addForm.name) {
+      console.log('[Frontend] handleForceAdd: ❌ Validation failed. Empty physicalId or name.');
       setLocalError("الرجاء إدخال المعرف واسم اللاعب بالكامل!");
       return;
     }
+    
     setLocalError('');
     try {
-      await emit('room:force-add-player', {
+      console.log('[Frontend] handleForceAdd: 🚀 Emitting room:force-add-player...');
+      const response = await emit('room:force-add-player', {
         roomId: gameState.roomId,
         physicalId: Number(addForm.physicalId),
         name: addForm.name,
@@ -31,9 +36,11 @@ export default function LeaderLobbyView({ gameState, emit, setError }: LeaderLob
         dob: addForm.dob,
         gender: addForm.gender,
       });
+      console.log('[Frontend] handleForceAdd: ✅ Backend returned success:', response);
       setShowAddForm(false);
       setAddForm({ name: '', physicalId: '', phone: '', dob: '', gender: 'MALE' });
     } catch (err: any) {
+      console.error('[Frontend] handleForceAdd: ❌ Backend returned error:', err);
       setLocalError(err.message);
     }
   };
