@@ -8,6 +8,7 @@ import LeaderDayView from './LeaderDayView';
 import LeaderLobbyView from './LeaderLobbyView';
 import LeaderRoleConfigurator from './LeaderRoleConfigurator';
 import LeaderRoleBinding from './LeaderRoleBinding';
+import LeaderNightView from './LeaderNightView';
 
 interface ActiveGame {
   roomId: string;
@@ -294,6 +295,63 @@ export default function LeaderPage() {
       setGameState(null);
     });
 
+    // ── Night Listeners ──
+    const offNightStep = on('night:queue-step', (data: any) => {
+      setGameState(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          phase: 'NIGHT',
+          nightStep: data,
+          nightComplete: false,
+        } as any;
+      });
+    });
+
+    const offNightComplete = on('night:queue-complete', () => {
+      setGameState(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          nightStep: null,
+          nightComplete: true,
+        } as any;
+      });
+    });
+
+    const offMorningRecap = on('night:morning-recap', (data: any) => {
+      setGameState(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          phase: 'MORNING_RECAP',
+          morningEvents: data.events,
+        } as any;
+      });
+    });
+
+    const offSheriffResult = on('night:sheriff-result', (data: any) => {
+      setGameState(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          sheriffResult: data,
+        } as any;
+      });
+    });
+
+    const offGameOver = on('game:over', (data: any) => {
+      setGameState(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          phase: 'GAME_OVER',
+          winner: data.winner,
+          players: data.players || prev.players,
+        } as any;
+      });
+    });
+
     return () => {
       offConnect();
       offPlayerJoined();
@@ -309,6 +367,11 @@ export default function LeaderPage() {
       offEliminationRevealed();
       offDiscussionUpdate();
       offGameClosed();
+      offNightStep();
+      offNightComplete();
+      offMorningRecap();
+      offSheriffResult();
+      offGameOver();
     };
   }, [on, emit, gameState?.roomId]);
 
@@ -462,6 +525,22 @@ export default function LeaderPage() {
 
         {(gameState.phase.startsWith('DAY_')) && (
           <LeaderDayView gameState={gameState} emit={emit} setError={setError} />
+        )}
+
+        {(gameState.phase === 'NIGHT' || gameState.phase === 'MORNING_RECAP') && (
+          <LeaderNightView gameState={gameState} emit={emit} setError={setError} />
+        )}
+
+        {gameState.phase === 'GAME_OVER' && (
+          <div className="flex flex-col items-center justify-center p-12 text-center">
+            <div className="text-8xl mb-6 grayscale">{gameState.winner === 'MAFIA' ? '🩸' : '⚖️'}</div>
+            <h2 className="text-4xl font-black text-white mb-4" style={{ fontFamily: 'Amiri, serif' }}>
+              {gameState.winner === 'MAFIA' ? 'انتصار المافيا' : 'تطهير المدينة'}
+            </h2>
+            <p className="text-[#808080] font-mono tracking-widest uppercase text-sm">
+              {gameState.winner === 'MAFIA' ? 'ALL CITIZENS ELIMINATED' : 'THREAT NEUTRALIZED'}
+            </p>
+          </div>
         )}
 
 

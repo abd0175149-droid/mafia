@@ -101,16 +101,12 @@ export async function resolveNight(roomId: string): Promise<NightResolution> {
   }
 
   // ── 3. معالجة الإسكات ──────────────────────────
+  // يُسجل isSilenced لكن لا يُضاف لأحداث الصباح
+  // الإسكات يُكشف أثناء النقاش عندما يأتي دور اللاعب المسكت
   if (nightActions.silencerTarget !== null) {
     const silenced = state.players.find(p => p.physicalId === nightActions.silencerTarget);
     if (silenced && silenced.isAlive) {
       silenced.isSilenced = true;
-      events.push({
-        type: 'SILENCED',
-        targetPhysicalId: silenced.physicalId,
-        targetName: silenced.name,
-        revealed: false,
-      });
     }
   }
 

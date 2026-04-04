@@ -131,10 +131,22 @@ export default function DisplayPage() {
       setPlayerCount(data.totalPlayers);
     };
 
+    const onMorningEvent = (data: any) => {
+      setAnimation(data);
+      // أحداث الصباح تبقى أطول على الشاشة
+      setTimeout(() => setAnimation(null), 7000);
+    };
+
+    const onNightStarted = () => {
+      setAnimation(null); // تنظيف أي أنيميشن سابقة
+    };
+
     socket.on('room:player-joined', onPlayerJoined);
     socket.on('room:player-updated', onPlayerUpdated);
     socket.on('game:phase-changed', onPhaseChanged);
     socket.on('night:animation', onNightAnimation);
+    socket.on('display:morning-event', onMorningEvent);
+    socket.on('display:night-started', onNightStarted);
     socket.on('game:over', onGameOver);
     socket.on('game:started', (data: any) => {
       setPhase(data.phase);
@@ -145,6 +157,8 @@ export default function DisplayPage() {
       socket.off('room:player-updated', onPlayerUpdated);
       socket.off('game:phase-changed', onPhaseChanged);
       socket.off('night:animation', onNightAnimation);
+      socket.off('display:morning-event', onMorningEvent);
+      socket.off('display:night-started', onNightStarted);
       socket.off('game:over', onGameOver);
       socket.off('game:started');
     };
@@ -469,6 +483,34 @@ export default function DisplayPage() {
           </motion.div>
         )}
 
+        {/* ═══ ملخص الصباح ═══ */}
+        {step === 'lobby' && phase === Phase.MORNING_RECAP && (
+          <motion.div key="morning" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-center relative z-10 w-full">
+            <motion.div 
+              className="text-9xl mb-8 opacity-60" 
+              animate={{ opacity: [0.4, 0.8, 0.4], rotate: [0, 5, -5, 0] }} 
+              transition={{ duration: 5, repeat: Infinity }}
+            >
+              ☀️
+            </motion.div>
+            <h2 className="text-5xl font-black text-white mb-4 tracking-widest uppercase" style={{ fontFamily: 'Amiri, serif' }}>صباح جديد</h2>
+            <p className="text-[#808080] text-lg font-mono tracking-[0.3em]">MORNING INTELLIGENCE REPORT</p>
+            <AnimatePresence>
+              {animation && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.8, y: 30 }} 
+                  animate={{ opacity: 1, scale: 1, y: 0 }} 
+                  exit={{ opacity: 0, scale: 0.8, y: -30 }} 
+                  transition={{ duration: 0.6 }}
+                  className="noir-card p-10 mt-12 max-w-xl mx-auto border-[#C5A059]/30"
+                >
+                  <NightAnim data={animation} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        )}
+
         {/* ═══ نهاية اللعبة ═══ */}
         {step === 'lobby' && phase === Phase.GAME_OVER && winner && (
           <motion.div key="gameover" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center relative z-10 w-full max-w-3xl noir-card p-20 border-[#C5A059]/40">
@@ -514,18 +556,65 @@ function QRDisplay({ url }: { url: string }) {
 // ══════════════════════════════════════════════════════
 function NightAnim({ data }: { data: any }) {
   const map: Record<string, { icon: string; text: string; color: string }> = {
-    ASSASSINATION: { icon: '🩸', text: 'تم التصفية', color: 'text-[#8A0303]' },
-    ASSASSINATION_BLOCKED: { icon: '⚕️', text: 'نجت الضحية', color: 'text-white' },
-    SILENCE: { icon: '🤐', text: 'ممنوع من الكلام', color: 'text-[#555555]' },
-    INVESTIGATION: { icon: '👁️', text: 'كشف الهوية', color: 'text-[#C5A059]' },
-    PROTECTION: { icon: '💉', text: 'رعاية طبية', color: 'text-[#555555]' },
-    SNIPE: { icon: '🎯', text: 'قنص قاتل', color: 'text-[#8A0303]' },
+    // أنيميشن الطابور الليلي (بدون أسماء)
+    ASSASSINATION_ATTEMPT: { icon: '🔪', text: 'عملية اغتيال جارية', color: 'text-[#8A0303]' },
+    SILENCE: { icon: '🤐', text: 'عملية إسكات', color: 'text-[#555555]' },
+    INVESTIGATION: { icon: '👁️', text: 'تحقيق جارٍ', color: 'text-[#C5A059]' },
+    PROTECTION: { icon: '💉', text: 'حماية طبية', color: 'text-[#2E5C31]' },
+    SNIPE: { icon: '🎯', text: 'تصويب القناص', color: 'text-[#8A0303]' },
+    // أنيميشن ملخص الصباح (مع أسماء)
+    ASSASSINATION: { icon: '🩸', text: 'تم الاغتيال', color: 'text-[#8A0303]' },
+    ASSASSINATION_BLOCKED: { icon: '🛡️', text: 'نجاة بالحماية', color: 'text-[#2E5C31]' },
+    SNIPE_MAFIA: { icon: '🎯', text: 'قنص ناجح — مافيا', color: 'text-[#C5A059]' },
+    SNIPE_CITIZEN: { icon: '💀', text: 'قنص خاطئ', color: 'text-[#8A0303]' },
   };
   const a = map[data.type] || { icon: '❓', text: data.type, color: 'text-[#808080]' };
+  const isMorningEvent = ['ASSASSINATION', 'ASSASSINATION_BLOCKED', 'SNIPE_MAFIA', 'SNIPE_CITIZEN'].includes(data.type);
+
   return (
-    <div className="text-center border-t border-b border-[#2a2a2a] py-8">
-      <motion.div className="text-7xl mb-4 grayscale" animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 1, repeat: 2 }}>{a.icon}</motion.div>
-      <p className={`text-3xl font-black tracking-widest ${a.color}`} style={{ fontFamily: 'Amiri, serif' }}>{a.text}</p>
+    <div className="text-center py-8">
+      <motion.div 
+        className="text-8xl mb-6" 
+        animate={{ scale: [0.8, 1.2, 1] }} 
+        transition={{ duration: 0.8, ease: "easeOut" }}
+      >
+        {a.icon}
+      </motion.div>
+      <motion.p 
+        className={`text-4xl font-black tracking-widest mb-3 ${a.color}`} 
+        style={{ fontFamily: 'Amiri, serif' }}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        {a.text}
+      </motion.p>
+      {/* اسم الضحية — للأحداث الصباحية فقط */}
+      {isMorningEvent && data.targetName && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8 }}
+        >
+          <p className="text-white text-2xl font-black mt-4" style={{ fontFamily: 'Amiri, serif' }}>
+            {data.targetName}
+          </p>
+          <p className="text-[#555] font-mono text-sm mt-1">
+            #{data.targetPhysicalId}
+          </p>
+        </motion.div>
+      )}
+      {/* تفاصيل خاصة: قنص مواطن → القناص يموت أيضاً */}
+      {data.type === 'SNIPE_CITIZEN' && data.extra?.sniperName && (
+        <motion.p 
+          className="text-[#8A0303] font-mono text-sm mt-4 tracking-widest"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+        >
+          القناص {data.extra.sniperName} سقط أيضاً
+        </motion.p>
+      )}
     </div>
   );
 }
