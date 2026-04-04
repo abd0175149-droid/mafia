@@ -17,6 +17,7 @@ export async function seedDummyGame() {
   try {
     console.log('🌱 Seeding Dummy Game for quick testing from lobby.socket.ts...');
     const state = await createRoom('لعبة تجريبية (Auto Seeded)', 10, 2, '2026');
+    console.log('🌱 Room created in Redis:', state.roomId);
     
     const names = ['أحمد', 'محمد', 'علي', 'خالد', 'عمر', 'سارة', 'فاطمة', 'تسنيم', 'ريم', 'نور'];
     const genders: ('MALE'|'FEMALE')[] = ['MALE', 'MALE', 'MALE', 'MALE', 'MALE', 'FEMALE', 'FEMALE', 'FEMALE', 'FEMALE', 'FEMALE'];
@@ -25,6 +26,7 @@ export async function seedDummyGame() {
       await addPlayer(state.roomId, i + 1, names[i], `070000000${i}`, null);
       await updatePlayer(state.roomId, i + 1, { gender: genders[i], dob: '1995-01-01' });
     }
+    console.log('🌱 Players inserted successfully!');
 
     activeRooms.set(state.roomId, {
       roomId: state.roomId,
@@ -32,10 +34,11 @@ export async function seedDummyGame() {
       gameName: state.config.gameName,
       playerCount: 10,
       maxPlayers: state.config.maxPlayers,
-      displayPin: state.config.displayPin,
+      displayPin: state.config.displayPin || '2026',
     });
 
     console.log(`✅ Dummy Game seeded successfully. RoomId: ${state.roomId}`);
+    console.log(`🎮 Current Active Rooms size now: ${activeRooms.size}`);
   } catch (e) {
     console.error('❌ Failed to seed dummy game:', e);
   }

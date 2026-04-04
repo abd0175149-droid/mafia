@@ -105,6 +105,20 @@ export function registerDayEvents(io: Server, socket: Socket) {
 
       // فحص الإقفال الآلي
       if (isVotingComplete(state)) {
+        const result = await resolveVoting(data.roomId);
+
+        if (result.type === 'TIE') {
+          await setPhase(data.roomId, Phase.DAY_TIEBREAKER);
+          io.to(data.roomId).emit('day:tie', {
+            tiedCandidates: result.tiedCandidates,
+          });
+        } else {
+          io.to(data.roomId).emit('day:elimination-pending', {
+            eliminated: result.eliminated,
+            type: result.type,
+          });
+        }
+
         io.to(data.roomId).emit('day:voting-locked', {
           candidates: state.votingState.candidates,
         });

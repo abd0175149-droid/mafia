@@ -14,7 +14,7 @@ const playAudioBeep = (type: 'tick' | 'buzzer') => {
     
     if (type === 'tick') {
       oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // High pitch A5
+      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); 
       gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
       gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
       oscillator.connect(gainNode);
@@ -23,7 +23,6 @@ const playAudioBeep = (type: 'tick' | 'buzzer') => {
       oscillator.stop(audioCtx.currentTime + 0.1);
     } else {
       oscillator.type = 'sawtooth';
-      // Discordant buzzer sound
       oscillator.frequency.setValueAtTime(150, audioCtx.currentTime); 
       oscillator.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.8);
       gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
@@ -33,10 +32,47 @@ const playAudioBeep = (type: 'tick' | 'buzzer') => {
       oscillator.start();
       oscillator.stop(audioCtx.currentTime + 0.8);
     }
-  } catch(e) {
-    // Ignore audio play errors (e.g., policy restrictions)
-  }
+  } catch(e) {}
 };
+
+const playVoteSound = () => {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const audioCtx = new AudioContextClass();
+    const osc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+    gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.1);
+  } catch(e) {}
+};
+
+const playShiftSound = () => {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const audioCtx = new AudioContextClass();
+    const osc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.3);
+    gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.3);
+  } catch(e) {}
+};
+
 
 interface DisplayDayViewProps {
   roomId: string;
@@ -159,6 +195,27 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
 
   const aliveCount = players.filter((p: any) => p.isAlive).length;
 
+  const prevVotesRef = useRef(totalVotesCast);
+  const sortedCandidates = [...candidates].sort((a,b) => b.votes - a.votes);
+  const currentOrderStr = sortedCandidates.map(c => c.targetPhysicalId).join(',');
+  const prevOrderRef = useRef(currentOrderStr);
+
+  useEffect(() => {
+    if (phase === 'VOTING') {
+      if (totalVotesCast > prevVotesRef.current) {
+        playVoteSound();
+      }
+      prevVotesRef.current = totalVotesCast;
+
+      if (currentOrderStr !== prevOrderRef.current) {
+        if (prevOrderRef.current) {
+           playShiftSound();
+        }
+        prevOrderRef.current = currentOrderStr;
+      }
+    }
+  }, [totalVotesCast, currentOrderStr, phase]);
+
   return (
     <div className="w-full max-w-7xl mx-auto flex flex-col items-center justify-center p-8">
       <AnimatePresence mode="wait">
@@ -278,11 +335,21 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
             </div>
 
             <div className="flex flex-wrap justify-center gap-6">
-              {/* Sort candidates by votes internally */}
-              {[...candidates].sort((a,b) => b.votes - a.votes).map((candidate, idx) => {
+              {sortedCandidates.map((candidate, idx) => {
                 const isDeal = candidate.type === 'DEAL';
-                const targetName = players.find(p => p.physicalId === candidate.targetPhysicalId)?.name;
+                const targetPlayer = players.find(p => p.physicalId === candidate.targetPhysicalId);
+                const targetName = targetPlayer?.name;
+                const targetGender = targetPlayer?.gender;
                 const initiatorName = isDeal ? players.find(p => p.physicalId === candidate.initiatorPhysicalId)?.name : null;
+
+                const isFemale = targetGender === 'FEMALE';
+                const baseBg = isFemale ? 'bg-[#1a0b36]' : 'bg-[#111]';
+                const borderColor = isFemale ? 'border-[#4C1D95]' : 'border-[#C5A059]';
+                const textColor = isFemale ? 'text-purple-300' : 'text-[#C5A059]';
+                const shadow = isFemale ? 'shadow-[0_0_20px_rgba(76,29,149,0.3)]' : 'shadow-[0_0_20px_rgba(197,160,89,0.15)]';
+                const rankColor = idx === 0 && candidate.votes > 0 ? (isFemale ? 'bg-[#4C1D95] text-white' : 'bg-[#C5A059] text-black') : 'bg-[#050505] text-[#808080] border border-[#2a2a2a]';
+                const fillBarColor = isDeal ? 'bg-[#8A0303]' : (isFemale ? 'bg-[#4C1D95]' : 'bg-[#C5A059]');
+                const voteNumberColor = isDeal ? '#ff0000' : (isFemale ? '#e9d5ff' : '#C5A059');
 
                 return (
                   <motion.div
@@ -290,23 +357,52 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
                     key={isDeal ? `deal-${candidate.id}` : `player-${candidate.targetPhysicalId}`}
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className={`relative w-64 p-6 border ${isDeal ? 'bg-[#0f0505] border-[#8A0303]/60 shadow-[0_0_20px_rgba(138,3,3,0.2)]' : 'bg-[#0c0c0c] border-[#555]'}`}
+                    className={`relative w-72 overflow-hidden rounded-xl border ${isDeal ? 'border-[#8A0303] shadow-[0_0_30px_rgba(138,3,3,0.4)] bg-[#0f0505]' : `${borderColor} ${shadow} ${baseBg}`}`}
                   >
+                     <div className="absolute inset-0 bg-gradient-to-tr from-transparent to-white/5 pointer-events-none" />
+                     
+                     <div className={`absolute top-0 right-0 px-4 py-2 text-xl font-black font-mono rounded-bl-xl z-20 transition-all duration-300 ${rankColor}`}>
+                        #{idx + 1}
+                     </div>
+
                     {isDeal && (
-                      <div className="absolute top-0 right-0 bg-[#8A0303] text-white text-xs font-mono px-3 py-1 font-bold tracking-widest">
+                      <div className="absolute top-0 left-0 bg-[#8A0303] text-white text-[10px] font-mono px-3 py-1 font-bold tracking-widest rounded-br-lg z-10">
                         DEAL
                       </div>
                     )}
-                    <div className="text-center">
-                      <div className={`w-20 h-20 mx-auto mb-4 border flex items-center justify-center font-mono text-4xl ${isDeal ? 'border-[#8A0303] text-[#8A0303]' : 'border-[#C5A059] text-white'}`}>
+
+                    <div className="p-8 relative z-10 mt-2">
+                      <div className={`w-28 h-28 mx-auto mb-6 border-4 rounded-full flex items-center justify-center font-mono text-6xl font-black transition-all duration-300 ${isDeal ? 'border-[#8A0303] text-[#8A0303] bg-[#8A0303]/10' : `${borderColor} ${textColor} bg-black/50`}`}>
                         {candidate.targetPhysicalId}
                       </div>
-                      <h3 className="text-xl font-bold text-white mb-2 truncate">{targetName}</h3>
-                      {isDeal && <p className="text-[#8A0303] text-xs font-mono mb-4">By #{candidate.initiatorPhysicalId} {initiatorName}</p>}
+                      
+                      <h3 className="text-2xl font-bold text-white mb-2 truncate text-center leading-tight" style={{ fontFamily: 'Amiri, serif' }}>{targetName}</h3>
+                      <p className={`text-[10px] font-mono tracking-[0.3em] text-center uppercase opacity-70 ${textColor}`}>{isFemale ? 'FEMALE AGENT' : 'MALE AGENT'}</p>
+
+                      {isDeal && <p className="text-[#ffccd5] text-[10px] font-mono text-center mt-3 bg-[#8A0303]/20 py-2 px-1 rounded border border-[#8A0303]/30 tracking-widest uppercase">By #{candidate.initiatorPhysicalId} {initiatorName}</p>}
                     </div>
-                    <div className="mt-6 pt-4 border-t border-[#2a2a2a] text-center bg-black py-3">
-                      <p className="text-[#808080] text-xs font-mono tracking-widest mb-1">AGREEMENT</p>
-                      <p className="text-4xl font-black font-mono text-[#C5A059]">{candidate.votes}</p>
+
+                    <div className={`mt-auto border-t relative overflow-hidden flex flex-col items-center justify-center p-6 min-h-[110px] ${isDeal ? 'border-[#8A0303]/40 bg-[#8A0303]/10' : `${borderColor} border-opacity-30 bg-black/40`}`}>
+                      {candidate.votes > 0 && (
+                        <motion.div 
+                          initial={{ width: 0 }} 
+                          animate={{ width: `${(candidate.votes / Math.max(1, totalVotesCast)) * 100}%` }} 
+                          className={`absolute bottom-0 left-0 h-1 ${fillBarColor}`} 
+                        />
+                      )}
+                      {candidate.votes > 0 && (
+                         <div className={`absolute -top-10 left-1/2 -translate-x-1/2 w-48 h-48 opacity-20 blur-3xl rounded-full ${fillBarColor}`} />
+                      )}
+                      
+                      <p className="text-[#808080] text-[11px] font-mono tracking-[0.4em] uppercase mb-1 z-10">ACQUIRED VOTES</p>
+                      <motion.p 
+                         key={candidate.votes}
+                         initial={{ scale: 1.5, color: '#fff' }}
+                         animate={{ scale: 1, color: voteNumberColor }}
+                         className="text-6xl font-black font-mono leading-none z-10"
+                      >
+                         {candidate.votes}
+                      </motion.p>
                     </div>
                   </motion.div>
                 );

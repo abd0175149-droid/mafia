@@ -82,8 +82,12 @@ export default function DisplayPage() {
       setPlayerCount(data.totalPlayers);
       setPlayers(prev => {
         if (prev.some(p => p.physicalId === data.physicalId)) return prev;
-        return [...prev, { physicalId: data.physicalId, name: data.name, isAlive: true }]
-          .sort((a, b) => a.physicalId - b.physicalId);
+        return [...prev, {
+          physicalId: data.physicalId,
+          name: data.name,
+          isAlive: true,
+          gender: data.gender,
+        }].sort((a: any, b: any) => a.physicalId - b.physicalId);
       });
     };
 
@@ -197,6 +201,7 @@ export default function DisplayPage() {
             physicalId: p.physicalId,
             name: p.name,
             isAlive: p.isAlive,
+            gender: p.gender,
           })));
         }
       }
