@@ -194,12 +194,13 @@ export function registerDayEvents(io: Server, socket: Socket) {
       const result = await resolveVoting(data.roomId);
 
       if (result.type === 'TIE') {
-        // لا يُفترض الوصول هنا (يجب أن يكون SINGLE_WINNER)
         await setPhase(data.roomId, Phase.DAY_TIEBREAKER);
         io.to(data.roomId).emit('day:tie', { tiedCandidates: result.tiedCandidates });
       } else {
         io.to(data.roomId).emit('day:elimination-pending', {
           eliminated: result.eliminated,
+          revealedRoles: result.revealedRoles,
+          winResult: result.winResult,
           type: result.type,
         });
       }
