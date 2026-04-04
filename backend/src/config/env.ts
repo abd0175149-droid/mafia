@@ -12,14 +12,18 @@ export const env = {
   FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
 } as const;
 
-// Validation
-const requiredInProduction: (keyof typeof env)[] = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'SESSION_SECRET'];
+// Validation - فقط SESSION_SECRET مطلوب. Google OAuth اختياري.
+const requiredInProduction: (keyof typeof env)[] = ['SESSION_SECRET'];
 
 if (env.NODE_ENV === 'production') {
   for (const key of requiredInProduction) {
-    if (!env[key] || env[key] === '') {
+    if (!env[key] || env[key] === '' || env[key] === 'mafia-dev-secret-change-in-production') {
       console.error(`❌ Missing required environment variable: ${key}`);
       process.exit(1);
     }
+  }
+
+  if (!env.GOOGLE_CLIENT_ID) {
+    console.warn('⚠️ GOOGLE_CLIENT_ID not set. Google OAuth will be disabled.');
   }
 }
