@@ -126,7 +126,16 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
   // ── 4. Tie-Breaker ──
   const handleTieBreaker = async (action: string) => {
     try {
-      await emit('day:tie-action', { roomId: gameState.roomId, action, tiedCandidates });
+      // استخراج المتعادلين من بيانات التبرير (accused يحتوي على الكائنات الكاملة)
+      const tiedCands = gameState.justificationData?.accused || gameState.justificationData?.candidates || [];
+      
+      // تصفير حالة التبرير عند إعادة التصويت
+      setJustCurrentIdx(0);
+      setJustTimerStarted(false);
+      setJustAllDone(false);
+      localVoteTotalRef.current = 0;
+
+      await emit('day:tie-action', { roomId: gameState.roomId, action, tiedCandidates: tiedCands });
     } catch (err: any) {
       setError(err.message);
     }
@@ -650,7 +659,21 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
     return (
       <div>
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-lg font-mono text-[#555] uppercase tracking-widest">Live Voting Arena</h2>
+          <div>
+            {gameState.votingState?.tieBreakerLevel >= 2 ? (
+              <div className="flex items-center gap-3">
+                <span className="px-3 py-1 bg-[#8A0303]/20 border border-[#8A0303] text-[#ff4444] text-[10px] font-mono tracking-widest uppercase animate-pulse">NARROWED</span>
+                <h2 className="text-lg font-mono text-[#8A0303] uppercase tracking-widest">تصويت الحسم</h2>
+              </div>
+            ) : gameState.votingState?.tieBreakerLevel === 1 ? (
+              <div className="flex items-center gap-3">
+                <span className="px-3 py-1 bg-[#C5A059]/10 border border-[#C5A059]/50 text-[#C5A059] text-[10px] font-mono tracking-widest uppercase">REVOTE</span>
+                <h2 className="text-lg font-mono text-[#C5A059] uppercase tracking-widest">إعادة التصويت</h2>
+              </div>
+            ) : (
+              <h2 className="text-lg font-mono text-[#555] uppercase tracking-widest">Live Voting Arena</h2>
+            )}
+          </div>
           <div className="text-right">
             <p className="text-[#808080] text-xs font-mono uppercase">VOTES CAST</p>
             <p className={`text-2xl font-black font-mono ${isComplete ? 'text-[#C5A059]' : 'text-white'}`}>

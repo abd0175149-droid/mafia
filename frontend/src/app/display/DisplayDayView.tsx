@@ -84,6 +84,7 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
   const [phase, setPhase] = useState<'DISCUSSION' | 'VOTING' | 'JUSTIFICATION' | 'PENDING' | 'REVEALED' | 'TIE'>('DISCUSSION');
   const [candidates, setCandidates] = useState<any[]>([]);
   const [totalVotesCast, setTotalVotesCast] = useState(0);
+  const [tieBreakerLevel, setTieBreakerLevel] = useState(0);
 
   // Resolution UI States
   const [eliminatedIds, setEliminatedIds] = useState<number[]>([]);
@@ -143,6 +144,7 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
     const onVotingStarted = (data: any) => {
       setCandidates(data.candidates);
       setTotalVotesCast(0);
+      setTieBreakerLevel(data.tieBreakerLevel || 0);
       setPhase('VOTING');
     };
 
@@ -367,7 +369,23 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
             className="w-full"
           >
             <div className="text-center mb-12 border-b border-[#2a2a2a] pb-8">
-              <h1 className="text-5xl font-black text-[#C5A059] mb-4" style={{ fontFamily: 'Amiri, serif' }}>التصويت اللحظي</h1>
+              {tieBreakerLevel >= 2 ? (
+                <>
+                  <div className="inline-block px-6 py-2 bg-[#8A0303]/20 border border-[#8A0303] mb-4">
+                    <span className="text-[#ff4444] font-mono text-sm tracking-[0.4em] uppercase animate-pulse">⚡ NARROWED VOTE — TIED CANDIDATES ONLY ⚡</span>
+                  </div>
+                  <h1 className="text-5xl font-black text-[#8A0303] mb-4" style={{ fontFamily: 'Amiri, serif' }}>تصويت الحسم</h1>
+                </>
+              ) : tieBreakerLevel === 1 ? (
+                <>
+                  <div className="inline-block px-6 py-2 bg-[#C5A059]/10 border border-[#C5A059]/50 mb-4">
+                    <span className="text-[#C5A059] font-mono text-sm tracking-[0.4em] uppercase">🔁 REVOTE — ALL CANDIDATES</span>
+                  </div>
+                  <h1 className="text-5xl font-black text-[#C5A059] mb-4" style={{ fontFamily: 'Amiri, serif' }}>إعادة التصويت</h1>
+                </>
+              ) : (
+                <h1 className="text-5xl font-black text-[#C5A059] mb-4" style={{ fontFamily: 'Amiri, serif' }}>التصويت اللحظي</h1>
+              )}
               <p className="text-white font-mono text-xl tracking-[0.3em] uppercase">VOTES: <span className="text-[#C5A059]">{totalVotesCast}</span> / {aliveCount}</p>
             </div>
 

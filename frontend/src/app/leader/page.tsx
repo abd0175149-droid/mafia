@@ -211,6 +211,7 @@ export default function LeaderPage() {
             candidates: data.candidates,
             hiddenPlayersFromVoting: data.hiddenPlayers,
             totalVotesCast: 0,
+            tieBreakerLevel: data.tieBreakerLevel || 0,
           } as VotingState,
         };
       });
