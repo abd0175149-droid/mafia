@@ -13,6 +13,9 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
   const [loading, setLoading] = useState(false);
   const [dealInitiator, setDealInitiator] = useState<number | ''>('');
   const [dealTarget, setDealTarget] = useState<number | ''>('');
+  
+  const [startSpeakerId, setStartSpeakerId] = useState<number | ''>('');
+  const [discussionTimeLimit, setDiscussionTimeLimit] = useState<number>(30);
 
   const alivePlayers = gameState.players.filter((p: any) => p.isAlive);
   const deals = gameState.votingState?.deals || [];
@@ -137,15 +140,153 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
   const [showDealsUI, setShowDealsUI] = useState(false);
 
   // ==========================================
-  // RENDER DAY_DISCUSSION (Deals Proposition)
+  // RENDER DAY_DISCUSSION
   // ==========================================
   if (gameState.phase === 'DAY_DISCUSSION') {
+    const ds = gameState.discussionState;
+
+    if (!ds) {
+      // ── START NEW DISCUSSION ──
+      return (
+        <div className="flex flex-col items-center justify-center p-8">
+          <h2 className="text-3xl font-black text-white mb-6" style={{ fontFamily: 'Amiri, serif' }}>بدء جولة النقاش</h2>
+          
+          <div className="w-full max-w-md space-y-6 noir-card p-6 border-[#2a2a2a]">
+            <div>
+              <label className="block text-xs font-mono text-[#808080] mb-2 uppercase">Who starts? (نقطة البداية)</label>
+              <select
+                value={startSpeakerId}
+                onChange={(e) => setStartSpeakerId(e.target.value ? Number(e.target.value) : '')}
+                className="w-full p-3 bg-[#050505] border border-[#2a2a2a] text-white focus:border-[#C5A059] outline-none"
+              >
+                <option value="">-- اختر لاعب للبدء منه --</option>
+                {alivePlayers.map((p: any) => (
+                  <option key={p.physicalId} value={p.physicalId}>#{p.physicalId} {p.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-mono text-[#808080] mb-2 uppercase">Time per player (الوقت)</label>
+              <select
+                value={discussionTimeLimit}
+                onChange={(e) => setDiscussionTimeLimit(Number(e.target.value))}
+                className="w-full p-3 bg-[#050505] border border-[#2a2a2a] text-white focus:border-[#C5A059] outline-none"
+              >
+                <option value="15">15 ثانية (للتجربة)</option>
+                <option value="30">30 ثانية</option>
+                <option value="45">45 ثانية</option>
+                <option value="60">دقيقة كاملة</option>
+                <option value="90">دقيقة ونصف</option>
+              </select>
+            </div>
+
+            <button
+              onClick={async () => {
+                if (!startSpeakerId) return setError('يجب اختيار اللاعب الذي سيبدأ.');
+                setLoading(true);
+                try {
+                  await emit('day:start-discussion', {
+                    roomId: gameState.roomId,
+                    startPhysicalId: startSpeakerId,
+                    timeLimitSeconds: discussionTimeLimit,
+                  });
+                } catch (err: any) {
+                  setError(err.message);
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              disabled={loading}
+              className="w-full btn-premium py-4"
+            >
+              <span className="text-white uppercase tracking-widest">{loading ? 'INITIALIZING...' : 'COMMENCE ROTATION'}</span>
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    if (!ds.isFinished) {
+      // ── ACTIVE DISCUSSION CONTROL PANEL ──
+      const activePlayer = alivePlayers.find((p: any) => p.physicalId === ds.currentSpeakerId);
+      
+      return (
+        <div className="flex flex-col h-full bg-[#050505]">
+          <div className="text-center pb-6 border-b border-[#2a2a2a] mb-6">
+            <h2 className="text-2xl font-black text-white" style={{ fontFamily: 'Amiri, serif' }}>وحدة تحكم النقاش</h2>
+            <div className="flex justify-center gap-4 mt-2 font-mono text-xs text-[#555]">
+              <span>REMAINING IN QUEUE: {ds.speakingQueue.length}</span>
+              <span>ALREADY SPOKEN: {ds.hasSpoken.length}</span>
+            </div>
+          </div>
+          
+          <div className="flex-1 flex flex-col items-center justify-center max-w-lg mx-auto w-full px-4">
+            {/* Warning for next player if silenced */}
+            {ds.upcomingSilencedId && (
+              <div className="w-full mb-4 bg-[#8A0303]/20 border border-[#8A0303] text-[#ffccd5] p-3 text-center text-sm font-bold uppercase tracking-widest animate-pulse">
+                ⚠️ التنبيه القادم: اللاعب #{ds.upcomingSilencedId} مُسكَت!
+              </div>
+            )}
+
+            {/* Current Player Status */}
+            <div className={`w-full noir-card p-8 flex flex-col items-center gap-4 transition-all duration-300 ${ds.status === 'SPEAKING' ? 'border-[#C5A059] bg-[#C5A059]/5' : ds.status === 'PAUSED' ? 'border-[#8A0303] bg-[#8A0303]/5' : 'border-[#2a2a2a]'}`}>
+              <div className="w-20 h-20 bg-[#111] border border-[#555] rounded-full flex items-center justify-center text-4xl text-white font-mono">
+                {ds.currentSpeakerId}
+              </div>
+              <p className="text-2xl text-white font-bold">{activePlayer?.name || 'مجهول'}</p>
+              
+              <div className="text-center mt-4">
+                <p className="font-mono text-xs text-[#808080] tracking-widest uppercase mb-1">Status</p>
+                <div className="text-lg font-mono font-bold">
+                  {ds.status === 'WAITING' && <span className="text-yellow-500">AWAITING START</span>}
+                  {ds.status === 'SPEAKING' && <span className="text-green-500">LIVE (MIC OPEN)</span>}
+                  {ds.status === 'PAUSED' && <span className="text-[#8A0303]">PAUSED (MIC MUTED)</span>}
+                </div>
+              </div>
+            </div>
+
+            {/* Controls */}
+            <div className="grid grid-cols-2 gap-4 w-full mt-8">
+              {ds.status !== 'SPEAKING' ? (
+                <button
+                  onClick={async () => await emit('day:timer-action', { roomId: gameState.roomId, action: ds.status === 'WAITING' ? 'START' : 'RESUME' })}
+                  className="bg-green-900 border border-green-500 text-white p-4 font-mono uppercase tracking-widest hover:bg-green-800 transition-colors"
+                >
+                  ▶ {ds.status === 'WAITING' ? 'START' : 'RESUME'} TIME
+                </button>
+              ) : (
+                <button
+                  onClick={async () => await emit('day:timer-action', { roomId: gameState.roomId, action: 'PAUSE' })}
+                  className="bg-[#8A0303]/20 border border-[#8A0303] text-[#8A0303] p-4 font-mono uppercase tracking-widest hover:bg-[#8A0303]/40 transition-colors"
+                >
+                  ⏸ PAUSE TIME
+                </button>
+              )}
+
+              <button
+                onClick={async () => {
+                  try {
+                    await emit('day:next-speaker', { roomId: gameState.roomId });
+                  } catch (e: any) {
+                    setError(e.message);
+                  }
+                }}
+                className="bg-[#111] border border-[#555] text-white p-4 font-mono uppercase tracking-widest hover:border-white transition-colors"
+              >
+                ⏭ NEXT & SKIP
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     if (!showDealsUI) {
       return (
         <div className="flex flex-col items-center justify-center p-12 text-center h-[50vh]">
           <h2 className="text-3xl font-black text-white mb-6" style={{ fontFamily: 'Amiri, serif' }}>انتهت جولة النقاش</h2>
           <p className="text-[#808080] font-mono uppercase tracking-widest text-sm mb-12">
-            ANY DEALS ESTABLISHED DURING DISCUSSION?
+            ALL ROTATIONS COMPLETE. ANY DEALS ESTABLISHED?
           </p>
           <div className="flex gap-6">
             <button

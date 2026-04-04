@@ -213,4 +213,154 @@ export function registerDayEvents(io: Server, socket: Socket) {
       callback({ success: false, error: err.message });
     }
   });
+
+  // ── 🗣️ بدء دورة النقاش ──────────────────────────
+  socket.on('day:start-discussion', async (data: {
+    roomId: string;
+    startPhysicalId: number;
+    timeLimitSeconds: number;
+  }, callback) => {
+    try {
+      if (socket.data.role !== 'leader') return callback({ success: false, error: 'Only leader' });
+
+      // @ts-ignore
+      const { getRoom, updateRoom, SpeakerStatus } = await import('../game/state.js');
+      const state = await getRoom(data.roomId);
+      if (!state) return callback({ success: false, error: 'Room not found' });
+
+      // تحديد اللاعبين المؤهلين للتحدث (أحياء، وغير مسكتين، وغيرهم من الموتى)
+      // Wait, speaking queue should have ALL alive players. We will handle 'silenced' on the fly or just keep them in queue to trigger the SILENCED animation!
+      // So queue should be all players where isAlive = true.
+      const alivePlayers = state.players.filter(p => p.isAlive).sort((a, b) => a.physicalId - b.physicalId);
+      if (alivePlayers.length === 0) return callback({ success: false, error: 'No alive players' });
+
+      // Re-arrange the queue starting from startPhysicalId
+      const startIndex = alivePlayers.findIndex(p => p.physicalId === data.startPhysicalId);
+      if (startIndex === -1) return callback({ success: false, error: 'Invalid start id' });
+
+      const speakingQueue: number[] = [];
+      for (let i = startIndex; i < alivePlayers.length; i++) speakingQueue.push(alivePlayers[i].physicalId);
+      for (let i = 0; i < startIndex; i++) speakingQueue.push(alivePlayers[i].physicalId);
+
+      const currentSpeakerId = speakingQueue.shift() || null;
+      
+      const upcomingSilencedId = speakingQueue.length > 0 
+        ? (state.players.find(p => p.physicalId === speakingQueue[0])?.isSilenced ? speakingQueue[0] : null)
+        : null;
+
+      const discussionState = {
+        currentSpeakerId,
+        timeLimitSeconds: data.timeLimitSeconds,
+        timeRemaining: data.timeLimitSeconds,
+        startTime: null,
+        status: SpeakerStatus.WAITING,
+        speakingQueue,
+        hasSpoken: [],
+        isFinished: false,
+        upcomingSilencedId,
+      };
+
+      await updateRoom(data.roomId, { discussionState });
+      io.to(data.roomId).emit('day:discussion-updated', { discussionState });
+
+      callback({ success: true });
+    } catch (err: any) {
+      callback({ success: false, error: err.message });
+    }
+  });
+
+  // ── ⏳ أفعال التوقيت (Start, Pause, Resume) ────────
+  socket.on('day:timer-action', async (data: {
+    roomId: string;
+    action: 'START' | 'PAUSE' | 'RESUME';
+  }, callback) => {
+    try {
+      if (socket.data.role !== 'leader') return callback({ success: false, error: 'Only leader' });
+
+      // @ts-ignore
+      const { getRoom, updateRoom, SpeakerStatus } = await import('../game/state.js');
+      const state = await getRoom(data.roomId);
+      if (!state || !state.discussionState) return callback({ success: false, error: 'No active discussion' });
+
+      const ds = state.discussionState;
+      if (ds.isFinished) return callback({ success: false, error: 'Discussion is finished' });
+
+      if (data.action === 'START' || data.action === 'RESUME') {
+        ds.status = SpeakerStatus.SPEAKING;
+        ds.startTime = Date.now();
+      } else if (data.action === 'PAUSE') {
+        // Calculate elapsed
+        if (ds.startTime) {
+          const elapsed = Math.floor((Date.now() - ds.startTime) / 1000);
+          ds.timeRemaining = Math.max(0, ds.timeRemaining - elapsed);
+        }
+        ds.status = SpeakerStatus.PAUSED;
+        ds.startTime = null;
+      }
+
+      await updateRoom(data.roomId, { discussionState: ds });
+      io.to(data.roomId).emit('day:discussion-updated', { discussionState: ds });
+
+      callback({ success: true });
+    } catch (err: any) {
+      callback({ success: false, error: err.message });
+    }
+  });
+
+  // ── ⏭️ المتحدث التالي ───────────────────────────
+  socket.on('day:next-speaker', async (data: { roomId: string }, callback) => {
+    try {
+      if (socket.data.role !== 'leader') return callback({ success: false, error: 'Only leader' });
+
+      // @ts-ignore
+      const { getRoom, updateRoom, SpeakerStatus } = await import('../game/state.js');
+      const state = await getRoom(data.roomId);
+      if (!state || !state.discussionState) return callback({ success: false, error: 'No active discussion' });
+
+      const ds = state.discussionState;
+      if (ds.currentSpeakerId) ds.hasSpoken.push(ds.currentSpeakerId);
+
+      // Function to recursively find the next valid speaker (skipping silenced ones and emitting animation)
+      const popNextValidSpeaker = (): number | null => {
+        while (ds.speakingQueue.length > 0) {
+          const nextId = ds.speakingQueue.shift()!;
+          const player = state.players.find(p => p.physicalId === nextId);
+          if (player?.isSilenced) {
+            // Signal to clients to play animation for this specific silenced player
+            io.to(data.roomId).emit('day:show-silenced', { physicalId: nextId });
+            ds.hasSpoken.push(nextId);
+            continue;
+          }
+          return nextId;
+        }
+        return null;
+      };
+
+      const nextSpeakerId = popNextValidSpeaker();
+
+      if (nextSpeakerId !== null) {
+        ds.currentSpeakerId = nextSpeakerId;
+        ds.timeRemaining = ds.timeLimitSeconds;
+        ds.startTime = null;
+        ds.status = SpeakerStatus.WAITING;
+        
+        // Find if the one after this is silenced
+        ds.upcomingSilencedId = ds.speakingQueue.length > 0 
+          ? (state.players.find(p => p.physicalId === ds.speakingQueue[0])?.isSilenced ? ds.speakingQueue[0] : null)
+          : null;
+      } else {
+        ds.currentSpeakerId = null;
+        ds.isFinished = true;
+        ds.startTime = null;
+        ds.status = SpeakerStatus.WAITING;
+      }
+
+      await updateRoom(data.roomId, { discussionState: ds });
+      io.to(data.roomId).emit('day:discussion-updated', { discussionState: ds });
+
+      callback({ success: true });
+    } catch (err: any) {
+      callback({ success: false, error: err.message });
+    }
+  });
 }

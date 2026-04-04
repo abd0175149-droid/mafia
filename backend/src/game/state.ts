@@ -58,6 +58,24 @@ export interface DealCandidate {
   votes: number;
 }
 
+export enum SpeakerStatus {
+  WAITING = 'WAITING',   // الدور عند اللاعب لكن الوقت لم يبدأ (ينتظر إذن الليدر)
+  SPEAKING = 'SPEAKING', // الوقت قيد الاحتساب
+  PAUSED = 'PAUSED',     // الليدر قام بإيقاف الوقت مؤقتاً
+}
+
+export interface DiscussionState {
+  currentSpeakerId: number | null; // رقم اللاعب المتحدث حالياً (أو المسكت)
+  timeLimitSeconds: number;        // سقف الوقت الأصلي
+  timeRemaining: number;           // الوقت المتبقي (يُستخدم لحفظ التوقيت عند الإيقاف المؤقت)
+  startTime: number | null;        // لتزامن العدادات عبر الشبكة (Unix Timestamp)
+  status: SpeakerStatus;
+  speakingQueue: number[];         // مصفوفة من اللاعبين المتبقين للتحدث (بما فيهم المسكتون)
+  hasSpoken: number[];             // مصفوفة من اللاعبين الذين انتهوا
+  isFinished: boolean;             // يعلن انتهاء مرحلة النقاش
+  upcomingSilencedId: number | null; // للتنبيه إذا كان القادم مسكتاً
+}
+
 export type Candidate = PlayerCandidate | DealCandidate;
 
 export interface VotingState {
@@ -102,11 +120,17 @@ export interface GameState {
   round: number;
   config: GameConfig;
   players: Player[];
-  rolesPool: Role[];
+  rolesPool?: Role[];
+  discussionState: DiscussionState | null;
   votingState: VotingState;
   nightActions: NightActions;
   morningEvents: MorningEvent[];
-  winner: 'MAFIA' | 'CITIZEN' | null;
+  pendingResolution?: {
+    candidate: Candidate;
+    type: 'ELIMINATE' | 'ACCEPT_DEAL' | 'REJECT_DEAL' | 'NONE';
+  } | null;
+  tiedCandidates?: Candidate[]; // In case of tie
+  winner: 'MAFIA' | 'CITIZENS' | null;
   createdAt: string;
 }
 
@@ -147,6 +171,7 @@ export async function createRoom(
     },
     players: [],
     rolesPool: [],
+    discussionState: null,
     votingState: {
       totalVotesCast: 0,
       deals: [],

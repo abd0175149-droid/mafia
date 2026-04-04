@@ -19,6 +19,24 @@ export default function DisplayDayView({ roomId, players }: DisplayDayViewProps)
   const [revealedRoles, setRevealedRoles] = useState<any[]>([]);
   const [revealType, setRevealType] = useState<string>('');
 
+  // Discussion UI States
+  const [discussionState, setDiscussionState] = useState<any>(null);
+  const [silencedPlayerId, setSilencedPlayerId] = useState<number | null>(null);
+  const [localTimeRemaining, setLocalTimeRemaining] = useState<number>(0);
+
+  // Timer Tick Effect
+  useEffect(() => {
+    if (!discussionState || discussionState.status !== 'SPEAKING' || discussionState.startTime === null) {
+      return;
+    }
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - discussionState.startTime) / 1000);
+      const remaining = Math.max(0, discussionState.timeRemaining - elapsed);
+      setLocalTimeRemaining(remaining);
+    }, 100); // 100ms for smoother updates if needed, though seconds suffice
+    return () => clearInterval(interval);
+  }, [discussionState]);
+
   useEffect(() => {
     const socket = getSocket();
     if (!socket || !roomId) return;
@@ -58,12 +76,26 @@ export default function DisplayDayView({ roomId, players }: DisplayDayViewProps)
       }
     };
 
+    const onDiscussionUpdated = (data: { discussionState: any }) => {
+      setDiscussionState(data.discussionState);
+      setLocalTimeRemaining(data.discussionState.timeRemaining);
+    };
+
+    const onShowSilenced = (data: { physicalId: number }) => {
+      setSilencedPlayerId(data.physicalId);
+      setTimeout(() => {
+        setSilencedPlayerId(null);
+      }, 4000); // Show animation for 4 seconds
+    };
+
     socket.on('day:voting-started', onVotingStarted);
     socket.on('day:vote-update', onVoteUpdate);
     socket.on('day:elimination-pending', onPending);
     socket.on('day:elimination-revealed', onRevealed);
     socket.on('day:tie', onTie);
     socket.on('game:phase-changed', onPhaseChanged);
+    socket.on('day:discussion-updated', onDiscussionUpdated);
+    socket.on('day:show-silenced', onShowSilenced);
 
     // Prompt server for current day state on mount?
     // Not strictly necessary since we transition smoothly, but good practice.
@@ -75,6 +107,8 @@ export default function DisplayDayView({ roomId, players }: DisplayDayViewProps)
       socket.off('day:elimination-revealed', onRevealed);
       socket.off('day:tie', onTie);
       socket.off('game:phase-changed', onPhaseChanged);
+      socket.off('day:discussion-updated', onDiscussionUpdated);
+      socket.off('day:show-silenced', onShowSilenced);
     };
   }, [roomId]);
 
@@ -91,11 +125,96 @@ export default function DisplayDayView({ roomId, players }: DisplayDayViewProps)
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 1.1 }}
-            className="text-center"
+            className="text-center w-full"
           >
-            <div className="text-8xl mb-8 grayscale opacity-70">⚖️</div>
-            <h1 className="text-6xl font-black text-white mb-6 uppercase tracking-widest" style={{ fontFamily: 'Amiri, serif' }}>ساحة النقاش</h1>
-            <p className="text-[#808080] font-mono tracking-[0.4em] uppercase text-xl">AWAITING DIRECTOR DEALS...</p>
+            {/* Silenced Animation Block */}
+            <AnimatePresence>
+              {silencedPlayerId && (
+                <motion.div
+                  initial={{ opacity: 0, y: 50 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  className="absolute inset-0 flex flex-col items-center justify-center z-50 bg-[#050505]/90 backdrop-blur-sm"
+                >
+                  <motion.div 
+                    animate={{ rotate: [-2, 2, -2, 2, 0] }}
+                    transition={{ duration: 0.4, repeat: Infinity }}
+                    className="w-48 h-48 bg-[#111] border-4 border-[#8A0303] text-[#8A0303] rounded-full flex flex-col items-center justify-center shadow-[0_0_50px_rgba(138,3,3,0.5)] mb-8"
+                  >
+                    <span className="text-6xl mb-2">🔇</span>
+                    <span className="text-4xl font-black font-mono">{silencedPlayerId}</span>
+                  </motion.div>
+                  <h2 className="text-5xl font-black text-[#8A0303] uppercase tracking-[0.2em] bg-black px-8 py-3 border-y-2 border-[#8A0303]">
+                    SILENCED BY SYNDICATE
+                  </h2>
+                  <p className="mt-6 text-[#ffccd5] font-mono text-xl tracking-widest uppercase">
+                    {players.find(p => p.physicalId === silencedPlayerId)?.name || 'UNKNOWN'} IS MUZZLED
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {!silencedPlayerId && (
+              <>
+                {!discussionState || discussionState.isFinished ? (
+                  <>
+                    <div className="text-8xl mb-8 grayscale opacity-70">⚖️</div>
+                    <h1 className="text-6xl font-black text-white mb-6 uppercase tracking-widest" style={{ fontFamily: 'Amiri, serif' }}>ساحة النقاش</h1>
+                    <p className="text-[#808080] font-mono tracking-[0.4em] uppercase text-xl">
+                      {!discussionState ? 'AWAITING DIRECTOR INITIALIZATION...' : 'ALL REGULAR DISCUSSIONS COMPLETE. AWAITING DEALS...'}
+                    </p>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center">
+                    <h2 className="text-3xl font-mono text-[#555] uppercase tracking-widest mb-12">ACTIVE SPEAKER</h2>
+                    
+                    <div className={`relative flex items-center justify-center rounded-full p-2 mb-12 transition-all duration-1000 ${
+                      discussionState.status === 'SPEAKING' 
+                        ? 'bg-gradient-to-tr from-[#C5A059] to-transparent shadow-[0_0_100px_rgba(197,160,89,0.2)]' 
+                        : discussionState.status === 'PAUSED' 
+                        ? 'bg-gradient-to-tr from-[#8A0303] to-transparent shadow-[0_0_50px_rgba(138,3,3,0.3)]'
+                        : 'bg-[#2a2a2a]'
+                    }`}>
+                      <div className="bg-[#050505] rounded-full w-[400px] h-[400px] flex flex-col items-center justify-center p-8 z-10 border border-[#111]">
+                        <span className="text-[120px] font-black text-white font-mono leading-none">{discussionState.currentSpeakerId}</span>
+                        <span className="text-3xl text-[#C5A059] uppercase tracking-widest mt-4 truncate max-w-[300px]">
+                          {players.find(p => p.physicalId === discussionState.currentSpeakerId)?.name}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="w-full max-w-2xl bg-[#111] p-6 border-b-4 border-[#2a2a2a] relative overflow-hidden">
+                      {discussionState.status === 'SPEAKING' && (
+                        <motion.div 
+                           initial={{ width: 0 }}
+                           animate={{ width: `${((discussionState.timeLimitSeconds - localTimeRemaining) / discussionState.timeLimitSeconds) * 100}%` }}
+                           transition={{ ease: "linear" }}
+                           className="absolute top-0 left-0 h-full bg-[#C5A059]/10"
+                        />
+                      )}
+                      {discussionState.status === 'PAUSED' && (
+                        <div className="absolute inset-0 bg-[#8A0303]/20 animate-pulse" />
+                      )}
+                      
+                      <div className="relative z-10 flex items-end justify-center gap-4">
+                        <span className={`text-8xl font-black font-mono transition-colors duration-300 ${
+                          localTimeRemaining <= 10 && discussionState.status === 'SPEAKING' ? 'text-[#8A0303] animate-pulse' : 'text-white'
+                        }`}>
+                          {localTimeRemaining}
+                        </span>
+                        <span className="text-2xl text-[#808080] font-mono tracking-widest uppercase mb-3">SEC</span>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-8 text-xl font-mono tracking-[0.3em] font-bold">
+                      {discussionState.status === 'WAITING' && <span className="text-yellow-500 animate-pulse">AWAITING COMMENCEMENT...</span>}
+                      {discussionState.status === 'SPEAKING' && <span className="text-[#C5A059]">FLOOR IS OPEN</span>}
+                      {discussionState.status === 'PAUSED' && <span className="text-[#8A0303] animate-pulse">FLOOR SUSPENDED</span>}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
           </motion.div>
         )}
 
