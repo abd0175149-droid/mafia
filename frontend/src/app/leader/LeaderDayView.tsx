@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 
 interface LeaderDayViewProps {
@@ -18,6 +18,8 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
   const [discussionTimeLimit, setDiscussionTimeLimit] = useState<number>(30);
   const [localTimeRemaining, setLocalTimeRemaining] = useState<number>(0);
   const [showDealsUI, setShowDealsUI] = useState(false);
+  const [votingBusy, setVotingBusy] = useState(false);
+  const localVoteTotalRef = useRef(0);
 
   // Timer Tick Effect for Leader
   useEffect(() => {
@@ -81,21 +83,34 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
   };
 
   // ── 2. Live Voting ──
+  // تحديث العداد المحلي عند كل تحديث من السيرفر
+  useEffect(() => {
+    const serverTotal = candidates.reduce((sum: number, c: any) => sum + c.votes, 0);
+    localVoteTotalRef.current = serverTotal;
+  }, [candidates]);
+
   const handleVote = async (candidateIndex: number, delta: 1 | -1) => {
+    if (votingBusy) return; // منع الضغط المتكرر أثناء الانتظار
     const candidate = candidates[candidateIndex];
     if (candidate.votes + delta < 0) return;
 
-    // حساب مجموع الأصوات الحالي من كل الكروت
-    const currentTotal = candidates.reduce((sum: number, c: any) => sum + c.votes, 0);
     const maxVotes = alivePlayers.filter((p: any) => !p.isSilenced).length;
 
-    // منع زيادة الأصوات إذا وصلنا للحد الأقصى
-    if (delta === 1 && currentTotal >= maxVotes) return;
+    // فحص العداد المحلي المتزامن (ليس من state)
+    if (delta === 1 && localVoteTotalRef.current >= maxVotes) return;
+
+    // تحديث العداد فوراً قبل الإرسال
+    localVoteTotalRef.current += delta;
+    setVotingBusy(true);
 
     try {
       await emit('day:cast-vote', { roomId: gameState.roomId, candidateIndex, delta });
     } catch (err: any) {
+      // إرجاع العداد عند الفشل
+      localVoteTotalRef.current -= delta;
       setError(err.message);
+    } finally {
+      setVotingBusy(false);
     }
   };
 
