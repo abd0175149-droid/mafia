@@ -39,6 +39,17 @@ interface GameState {
   players: any[];
   rolesPool?: string[];
   votingState?: VotingState;
+  // Night phase
+  nightStep?: any;
+  nightComplete?: boolean;
+  morningEvents?: any[];
+  sheriffResult?: any;
+  winner?: string;
+  round?: number;
+  // Day phase
+  justificationData?: any;
+  pendingResolution?: any;
+  discussionState?: any;
 }
 
 export default function LeaderPage() {
