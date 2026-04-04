@@ -148,7 +148,10 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
   const [justAllDone, setJustAllDone] = useState(false);
 
   const accused = gameState.justificationData?.accused || [];
+  const canJustifyList = gameState.justificationData?.canJustifyList || [];
+  const allExhausted = gameState.justificationData?.allExhausted || false;
   const justResultType = gameState.justificationData?.resultType;
+  const maxJustifications = gameState.justificationData?.maxJustifications || 2;
 
   const handleStartJustificationTimer = async (physicalId: number) => {
     setLoading(true);
@@ -166,8 +169,25 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
     }
   };
 
-  const handleNextAccused = () => {
-    if (justCurrentIdx < accused.length - 1) {
+  const handleResetJustificationTimer = async (physicalId: number) => {
+    try {
+      await emit('day:start-justification-timer', {
+        roomId: gameState.roomId,
+        physicalId,
+        timeLimitSeconds: justTimerDuration,
+      });
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleNextAccused = async () => {
+    // إيقاف التايمر في شاشة العرض
+    try {
+      await emit('day:stop-justification-timer', { roomId: gameState.roomId });
+    } catch (_) {}
+
+    if (justCurrentIdx < canJustifyList.length - 1) {
       setJustCurrentIdx(justCurrentIdx + 1);
       setJustTimerStarted(false);
     } else {
@@ -186,96 +206,112 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
     }
   };
 
-  const handlePardon = async () => {
-    setLoading(true);
-    try {
-      await emit('day:pardon', { roomId: gameState.roomId });
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // ==========================================
   // RENDER DAY_JUSTIFICATION
   // ==========================================
   if (gameState.phase === 'DAY_JUSTIFICATION') {
-    const currentAccused = accused[justCurrentIdx];
     const isTie = justResultType === 'TIE';
 
-    // مرحلة التيمر والدفاع
-    if (!justAllDone && currentAccused) {
-      return (
-        <div className="p-6">
-          <div className="text-center mb-6 border-b border-[#2a2a2a] pb-4">
-            <h2 className="text-2xl font-black text-[#C5A059] mb-2" style={{ fontFamily: 'Amiri, serif' }}>مرحلة التبرير</h2>
-            <p className="text-[#808080] font-mono uppercase text-xs tracking-widest">
-              {isTie ? `TIED: ${accused.length} DEFENDANTS • CURRENT: ${justCurrentIdx + 1}/${accused.length}` : 'SINGLE ACCUSED • DEFENSE HEARING'}
-            </p>
-          </div>
+    // إذا كل المتهمين استنفدوا فرصهم → مباشرة للقرار
+    // أو إذا انتهت كل التبريرات
+    const showDecision = allExhausted || justAllDone;
 
-          {/* Accused Info + Role (visible to leader only) */}
-          <div className="noir-card p-6 border-[#C5A059]/40 mb-6">
-            <div className="flex items-center gap-6">
-              <div className="w-20 h-20 bg-[#111] border-2 border-[#C5A059] rounded-full flex items-center justify-center text-4xl text-[#C5A059] font-mono font-black">
-                {currentAccused.targetPhysicalId}
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-white" style={{ fontFamily: 'Amiri, serif' }}>{currentAccused.name || 'Unknown'}</h3>
-                <p className="text-[#808080] text-xs font-mono tracking-widest uppercase">VOTES: {gameState.justificationData?.topVotes}</p>
-                {currentAccused.role && (
-                  <p className="mt-2 text-sm font-mono font-bold px-3 py-1 inline-block border rounded" style={{
-                    color: currentAccused.role?.includes('MAFIA') || currentAccused.role === 'GODFATHER' || currentAccused.role === 'SILENCER' || currentAccused.role === 'CHAMELEON' ? '#ff4444' : '#44ff44',
-                    borderColor: currentAccused.role?.includes('MAFIA') || currentAccused.role === 'GODFATHER' || currentAccused.role === 'SILENCER' || currentAccused.role === 'CHAMELEON' ? '#ff4444' : '#44ff44',
-                  }}>
-                    🔒 {currentAccused.role}
+    // مرحلة التيمر والدفاع (فقط لمن يقدر يبرر)
+    if (!showDecision && canJustifyList.length > 0) {
+      const currentAccused = canJustifyList[justCurrentIdx];
+      if (!currentAccused) {
+        setJustAllDone(true);
+      } else {
+        const isMafiaRole = currentAccused.role?.includes('MAFIA') || currentAccused.role === 'GODFATHER' || currentAccused.role === 'SILENCER' || currentAccused.role === 'CHAMELEON';
+        return (
+          <div className="p-6">
+            <div className="text-center mb-6 border-b border-[#2a2a2a] pb-4">
+              <h2 className="text-2xl font-black text-[#C5A059] mb-2" style={{ fontFamily: 'Amiri, serif' }}>مرحلة التبرير</h2>
+              <p className="text-[#808080] font-mono uppercase text-xs tracking-widest">
+                {canJustifyList.length > 1
+                  ? `DEFENDANTS: ${canJustifyList.length} • CURRENT: ${justCurrentIdx + 1}/${canJustifyList.length}`
+                  : 'SINGLE ACCUSED • DEFENSE HEARING'}
+              </p>
+              {/* عرض المستنفدين إن وجدوا */}
+              {accused.some((a: any) => !a.canJustify) && (
+                <p className="text-[#8A0303] font-mono text-[10px] mt-2 tracking-widest">
+                  ⚠ {accused.filter((a: any) => !a.canJustify).length} EXHAUSTED ({maxJustifications}/{maxJustifications} USED)
+                </p>
+              )}
+            </div>
+
+            {/* Accused Info */}
+            <div className="noir-card p-6 border-[#C5A059]/40 mb-6">
+              <div className="flex items-center gap-6">
+                <div className="w-20 h-20 bg-[#111] border-2 border-[#C5A059] rounded-full flex items-center justify-center text-4xl text-[#C5A059] font-mono font-black">
+                  {currentAccused.targetPhysicalId}
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold text-white" style={{ fontFamily: 'Amiri, serif' }}>{currentAccused.name || 'Unknown'}</h3>
+                  <p className="text-[#808080] text-xs font-mono tracking-widest uppercase">
+                    VOTES: {gameState.justificationData?.topVotes} • DEFENSE {currentAccused.justificationCount + 1}/{maxJustifications}
                   </p>
-                )}
+                  {currentAccused.role && (
+                    <p className="mt-2 text-sm font-mono font-bold px-3 py-1 inline-block border rounded" style={{
+                      color: isMafiaRole ? '#ff4444' : '#44ff44',
+                      borderColor: isMafiaRole ? '#ff4444' : '#44ff44',
+                    }}>
+                      🔒 {currentAccused.role}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Timer Controls */}
-          {!justTimerStarted ? (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-mono text-[#808080] mb-2 uppercase">Defense Time (وقت التبرير)</label>
-                <select
-                  value={justTimerDuration}
-                  onChange={e => setJustTimerDuration(Number(e.target.value))}
-                  className="w-full p-3 bg-[#050505] border border-[#2a2a2a] text-white focus:border-[#C5A059] outline-none"
+            {/* Timer Controls */}
+            {!justTimerStarted ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-mono text-[#808080] mb-2 uppercase">Defense Time (وقت التبرير)</label>
+                  <select
+                    value={justTimerDuration}
+                    onChange={e => setJustTimerDuration(Number(e.target.value))}
+                    className="w-full p-3 bg-[#050505] border border-[#2a2a2a] text-white focus:border-[#C5A059] outline-none"
+                  >
+                    <option value={15}>15 ثانية</option>
+                    <option value={30}>30 ثانية</option>
+                    <option value={45}>45 ثانية</option>
+                    <option value={60}>دقيقة كاملة</option>
+                  </select>
+                </div>
+                <button
+                  onClick={() => handleStartJustificationTimer(currentAccused.targetPhysicalId)}
+                  disabled={loading}
+                  className="w-full btn-premium py-4"
                 >
-                  <option value={15}>15 ثانية</option>
-                  <option value={30}>30 ثانية</option>
-                  <option value={45}>45 ثانية</option>
-                  <option value={60}>دقيقة كاملة</option>
-                </select>
+                  <span className="text-white uppercase tracking-widest">▶ ابدأ تايمر التبرير</span>
+                </button>
               </div>
-              <button
-                onClick={() => handleStartJustificationTimer(currentAccused.targetPhysicalId)}
-                disabled={loading}
-                className="w-full btn-premium py-4"
-              >
-                <span className="text-white uppercase tracking-widest">▶ ابدأ تايمر التبرير</span>
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="noir-card p-6 border-[#2a2a2a] text-center">
-                <p className="text-[#C5A059] font-mono text-sm uppercase tracking-widest mb-2">DEFENSE ACTIVE</p>
-                <p className="text-[#808080] font-mono text-xs">Timer running on display screen</p>
+            ) : (
+              <div className="space-y-4">
+                <div className="noir-card p-6 border-[#2a2a2a] text-center">
+                  <p className="text-[#C5A059] font-mono text-sm uppercase tracking-widest mb-2">DEFENSE ACTIVE</p>
+                  <p className="text-[#808080] font-mono text-xs">Timer running on display screen</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => handleResetJustificationTimer(currentAccused.targetPhysicalId)}
+                    className="bg-[#111] border border-[#555] text-white py-4 hover:border-[#C5A059] font-mono tracking-widest uppercase text-sm"
+                  >
+                    🔄 إعادة التايمر
+                  </button>
+                  <button
+                    onClick={handleNextAccused}
+                    className="bg-[#111] border border-[#C5A059]/50 text-[#C5A059] py-4 hover:bg-[#C5A059]/10 font-mono tracking-widest uppercase text-sm"
+                  >
+                    {justCurrentIdx < canJustifyList.length - 1 ? `⏭ التالي (${justCurrentIdx + 2}/${canJustifyList.length})` : '✅ إنهاء التبريرات'}
+                  </button>
+                </div>
               </div>
-              <button
-                onClick={handleNextAccused}
-                className="w-full bg-[#111] border border-[#C5A059]/50 text-[#C5A059] py-4 hover:bg-[#C5A059]/10 font-mono tracking-widest uppercase"
-              >
-                {justCurrentIdx < accused.length - 1 ? `⏭ المتهم التالي (${justCurrentIdx + 2}/${accused.length})` : '✅ انتهت جميع التبريرات'}
-              </button>
-            </div>
-          )}
-        </div>
-      );
+            )}
+          </div>
+        );
+      }
     }
 
     // مرحلة القرار (بعد انتهاء كل التبريرات)
@@ -494,22 +530,29 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
             </div>
 
             {/* Controls */}
-            <div className="grid grid-cols-2 gap-4 w-full mt-8">
+            <div className="grid grid-cols-3 gap-3 w-full mt-8">
               {ds.status !== 'SPEAKING' ? (
                 <button
                   onClick={async () => await emit('day:timer-action', { roomId: gameState.roomId, action: ds.status === 'WAITING' ? 'START' : 'RESUME' })}
-                  className="bg-green-900 border border-green-500 text-white p-4 font-mono uppercase tracking-widest hover:bg-green-800 transition-colors"
+                  className="bg-green-900 border border-green-500 text-white p-4 font-mono uppercase tracking-widest hover:bg-green-800 transition-colors text-sm"
                 >
-                  ▶ {ds.status === 'WAITING' ? 'START' : 'RESUME'} TIME
+                  ▶ {ds.status === 'WAITING' ? 'START' : 'RESUME'}
                 </button>
               ) : (
                 <button
                   onClick={async () => await emit('day:timer-action', { roomId: gameState.roomId, action: 'PAUSE' })}
-                  className="bg-[#8A0303]/20 border border-[#8A0303] text-[#8A0303] p-4 font-mono uppercase tracking-widest hover:bg-[#8A0303]/40 transition-colors"
+                  className="bg-[#8A0303]/20 border border-[#8A0303] text-[#8A0303] p-4 font-mono uppercase tracking-widest hover:bg-[#8A0303]/40 transition-colors text-sm"
                 >
-                  ⏸ PAUSE TIME
+                  ⏸ PAUSE
                 </button>
               )}
+
+              <button
+                onClick={async () => await emit('day:timer-action', { roomId: gameState.roomId, action: 'RESET' })}
+                className="bg-[#111] border border-[#555] text-white p-4 font-mono uppercase tracking-widest hover:border-[#C5A059] transition-colors text-sm"
+              >
+                🔄 RESET
+              </button>
 
               <button
                 onClick={async () => {
@@ -519,13 +562,13 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
                     setError(e.message);
                   }
                 }}
-                className={`p-4 font-mono uppercase tracking-widest transition-colors border ${
+                className={`p-4 font-mono uppercase tracking-widest transition-colors border text-sm ${
                   localTimeRemaining <= 0 && ds.status !== 'WAITING'
                     ? 'bg-[#8A0303] text-white border-[#ffccd5] animate-pulse shadow-[0_0_20px_rgba(138,3,3,0.8)]'
                     : 'bg-[#111] border-[#555] text-white hover:border-white'
                 }`}
               >
-                ⏭ NEXT & SKIP
+                ⏭ NEXT
               </button>
             </div>
           </div>
@@ -680,6 +723,19 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
               {totalVotes} / {votingAliveCount}
             </p>
           </div>
+        </div>
+
+        {/* عداد المواطنين والمافيا */}
+        <div className="flex justify-center gap-6 mb-4 py-2 border-b border-[#2a2a2a]">
+          <span className="font-mono text-xs tracking-widest">
+            <span className="text-[#44ff44]">🏛</span> مواطنون:{' '}
+            <span className="text-[#44ff44] font-bold">{alivePlayers.filter((p: any) => !['GODFATHER','SILENCER','CHAMELEON','MAFIA_REGULAR'].includes(p.role)).length}</span>
+          </span>
+          <span className="text-[#2a2a2a]">|</span>
+          <span className="font-mono text-xs tracking-widest">
+            <span className="text-[#ff4444]">🎭</span> مافيا:{' '}
+            <span className="text-[#ff4444] font-bold">{alivePlayers.filter((p: any) => ['GODFATHER','SILENCER','CHAMELEON','MAFIA_REGULAR'].includes(p.role)).length}</span>
+          </span>
         </div>
 
         {/* CSS Grid for Candidates */}

@@ -41,6 +41,8 @@ export function registerNightEvents(io: Server, socket: Socket) {
       }
 
       state.round += 1;
+      // تصفير عدد مرات التبرير لكل لاعب حي — جولة جديدة
+      state.players.forEach((p: any) => { if (p.isAlive) p.justificationCount = 0; });
       await setGameState(data.roomId, state);
 
       callback({ success: true, round: state.round });

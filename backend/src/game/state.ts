@@ -32,6 +32,7 @@ export interface Player {
   role: Role | null;
   isAlive: boolean;
   isSilenced: boolean;
+  justificationCount: number; // عدد مرات التبرير في الجولة الحالية
 }
 
 export enum CandidateType {
@@ -271,6 +272,7 @@ export async function addPlayer(
     role: null,
     isAlive: true,
     isSilenced: false,
+    justificationCount: 0,
   };
 
   state.players.push(player);

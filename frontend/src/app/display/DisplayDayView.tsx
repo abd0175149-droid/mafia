@@ -200,6 +200,11 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
       setJustTimeRemaining(data.timeLimitSeconds);
     };
 
+    const onJustificationTimerStopped = () => {
+      setJustTimer(null);
+      setJustTimeRemaining(0);
+    };
+
     const onPardoned = () => {
       // العفو - سيُنتقل لليل عبر phase-changed
       setPhase('DISCUSSION');
@@ -215,6 +220,7 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
     socket.on('day:show-silenced', onShowSilenced);
     socket.on('day:justification-started', onJustificationStarted);
     socket.on('day:justification-timer-started', onJustificationTimerStarted);
+    socket.on('day:justification-timer-stopped', onJustificationTimerStopped);
     socket.on('day:pardoned', onPardoned);
 
     return () => {
@@ -228,6 +234,7 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
       socket.off('day:show-silenced', onShowSilenced);
       socket.off('day:justification-started', onJustificationStarted);
       socket.off('day:justification-timer-started', onJustificationTimerStarted);
+      socket.off('day:justification-timer-stopped', onJustificationTimerStopped);
       socket.off('day:pardoned', onPardoned);
     };
   }, [roomId]);
@@ -387,9 +394,20 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
                 <h1 className="text-5xl font-black text-[#C5A059] mb-4" style={{ fontFamily: 'Amiri, serif' }}>التصويت اللحظي</h1>
               )}
               <p className="text-white font-mono text-xl tracking-[0.3em] uppercase">VOTES: <span className="text-[#C5A059]">{totalVotesCast}</span> / {aliveCount}</p>
+              <div className="flex justify-center gap-8 mt-3">
+                <span className="font-mono text-sm tracking-widest">
+                  <span className="text-[#44ff44]">🏛</span> <span className="text-white">مواطنون:</span>{' '}
+                  <span className="text-[#44ff44] font-bold">{players.filter((p: any) => p.isAlive && !['GODFATHER','SILENCER','CHAMELEON','MAFIA_REGULAR'].includes(p.role)).length}</span>
+                </span>
+                <span className="text-[#2a2a2a]">|</span>
+                <span className="font-mono text-sm tracking-widest">
+                  <span className="text-[#ff4444]">🎭</span> <span className="text-white">مافيا:</span>{' '}
+                  <span className="text-[#ff4444] font-bold">{players.filter((p: any) => p.isAlive && ['GODFATHER','SILENCER','CHAMELEON','MAFIA_REGULAR'].includes(p.role)).length}</span>
+                </span>
+              </div>
             </div>
 
-            <div className="flex flex-wrap justify-center gap-6">
+            <div className="grid grid-cols-5 gap-3 w-full">
               {sortedCandidates.map((candidate, idx) => {
                 const isDeal = candidate.type === 'DEAL';
                 const targetPlayer = players.find(p => p.physicalId === candidate.targetPhysicalId);
@@ -401,7 +419,7 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
                 const baseBg = isFemale ? 'bg-[#1a0b36]' : 'bg-[#111]';
                 const borderColor = isFemale ? 'border-[#4C1D95]' : 'border-[#C5A059]';
                 const textColor = isFemale ? 'text-purple-300' : 'text-[#C5A059]';
-                const shadow = isFemale ? 'shadow-[0_0_20px_rgba(76,29,149,0.3)]' : 'shadow-[0_0_20px_rgba(197,160,89,0.15)]';
+                const shadow = isFemale ? 'shadow-[0_0_10px_rgba(76,29,149,0.3)]' : 'shadow-[0_0_10px_rgba(197,160,89,0.15)]';
                 const rankColor = idx === 0 && candidate.votes > 0 ? (isFemale ? 'bg-[#4C1D95] text-white' : 'bg-[#C5A059] text-black') : 'bg-[#050505] text-[#808080] border border-[#2a2a2a]';
                 const fillBarColor = isDeal ? 'bg-[#8A0303]' : (isFemale ? 'bg-[#4C1D95]' : 'bg-[#C5A059]');
                 const voteNumberColor = isDeal ? '#ff0000' : (isFemale ? '#e9d5ff' : '#C5A059');
@@ -412,32 +430,32 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
                     key={isDeal ? `deal-${candidate.id}` : `player-${candidate.targetPhysicalId}`}
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className={`relative w-72 overflow-hidden rounded-xl border ${isDeal ? 'border-[#8A0303] shadow-[0_0_30px_rgba(138,3,3,0.4)] bg-[#0f0505]' : `${borderColor} ${shadow} ${baseBg}`}`}
+                    className={`relative overflow-hidden rounded-lg border flex flex-col ${isDeal ? 'border-[#8A0303] shadow-[0_0_20px_rgba(138,3,3,0.4)] bg-[#0f0505]' : `${borderColor} ${shadow} ${baseBg}`}`}
                   >
                      <div className="absolute inset-0 bg-gradient-to-tr from-transparent to-white/5 pointer-events-none" />
                      
-                     <div className={`absolute top-0 right-0 px-4 py-2 text-xl font-black font-mono rounded-bl-xl z-20 transition-all duration-300 ${rankColor}`}>
+                     <div className={`absolute top-0 right-0 px-2 py-1 text-xs font-black font-mono rounded-bl-lg z-20 transition-all duration-300 ${rankColor}`}>
                         #{idx + 1}
                      </div>
 
                     {isDeal && (
-                      <div className="absolute top-0 left-0 bg-[#8A0303] text-white text-[10px] font-mono px-3 py-1 font-bold tracking-widest rounded-br-lg z-10">
+                      <div className="absolute top-0 left-0 bg-[#8A0303] text-white text-[8px] font-mono px-2 py-0.5 font-bold tracking-widest rounded-br-lg z-10">
                         DEAL
                       </div>
                     )}
 
-                    <div className="p-8 relative z-10 mt-2">
-                      <div className={`w-28 h-28 mx-auto mb-6 border-4 rounded-full flex items-center justify-center font-mono text-6xl font-black transition-all duration-300 ${isDeal ? 'border-[#8A0303] text-[#8A0303] bg-[#8A0303]/10' : `${borderColor} ${textColor} bg-black/50`}`}>
+                    <div className="p-3 relative z-10 mt-1 flex flex-col items-center">
+                      <div className={`w-14 h-14 mx-auto mb-2 border-2 rounded-full flex items-center justify-center font-mono text-2xl font-black transition-all duration-300 ${isDeal ? 'border-[#8A0303] text-[#8A0303] bg-[#8A0303]/10' : `${borderColor} ${textColor} bg-black/50`}`}>
                         {candidate.targetPhysicalId}
                       </div>
                       
-                      <h3 className="text-2xl font-bold text-white mb-2 truncate text-center leading-tight" style={{ fontFamily: 'Amiri, serif' }}>{targetName}</h3>
-                      <p className={`text-[10px] font-mono tracking-[0.3em] text-center uppercase opacity-70 ${textColor}`}>{isFemale ? 'FEMALE AGENT' : 'MALE AGENT'}</p>
+                      <h3 className="text-sm font-bold text-white mb-0.5 truncate text-center leading-tight w-full" style={{ fontFamily: 'Amiri, serif' }}>{targetName}</h3>
+                      <p className={`text-[8px] font-mono tracking-[0.2em] text-center uppercase opacity-70 ${textColor}`}>{isFemale ? 'FEMALE' : 'MALE'}</p>
 
-                      {isDeal && <p className="text-[#ffccd5] text-[10px] font-mono text-center mt-3 bg-[#8A0303]/20 py-2 px-1 rounded border border-[#8A0303]/30 tracking-widest uppercase">By #{candidate.initiatorPhysicalId} {initiatorName}</p>}
+                      {isDeal && <p className="text-[#ffccd5] text-[8px] font-mono text-center mt-1 bg-[#8A0303]/20 py-1 px-1 rounded border border-[#8A0303]/30 tracking-widest uppercase w-full truncate">By #{candidate.initiatorPhysicalId}</p>}
                     </div>
 
-                    <div className={`mt-auto border-t relative overflow-hidden flex flex-col items-center justify-center p-6 min-h-[110px] ${isDeal ? 'border-[#8A0303]/40 bg-[#8A0303]/10' : `${borderColor} border-opacity-30 bg-black/40`}`}>
+                    <div className={`mt-auto border-t relative overflow-hidden flex flex-col items-center justify-center p-3 min-h-[60px] ${isDeal ? 'border-[#8A0303]/40 bg-[#8A0303]/10' : `${borderColor} border-opacity-30 bg-black/40`}`}>
                       {candidate.votes > 0 && (
                         <motion.div 
                           initial={{ width: 0 }} 
@@ -446,15 +464,15 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
                         />
                       )}
                       {candidate.votes > 0 && (
-                         <div className={`absolute -top-10 left-1/2 -translate-x-1/2 w-48 h-48 opacity-20 blur-3xl rounded-full ${fillBarColor}`} />
+                         <div className={`absolute -top-6 left-1/2 -translate-x-1/2 w-24 h-24 opacity-20 blur-2xl rounded-full ${fillBarColor}`} />
                       )}
                       
-                      <p className="text-[#808080] text-[11px] font-mono tracking-[0.4em] uppercase mb-1 z-10">ACQUIRED VOTES</p>
+                      <p className="text-[#808080] text-[8px] font-mono tracking-[0.3em] uppercase mb-0.5 z-10">VOTES</p>
                       <motion.p 
                          key={candidate.votes}
                          initial={{ scale: 1.5, color: '#fff' }}
                          animate={{ scale: 1, color: voteNumberColor }}
-                         className="text-6xl font-black font-mono leading-none z-10"
+                         className="text-3xl font-black font-mono leading-none z-10"
                       >
                          {candidate.votes}
                       </motion.p>

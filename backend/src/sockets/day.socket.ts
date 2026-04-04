@@ -145,19 +145,38 @@ export function registerDayEvents(io: Server, socket: Socket) {
       if (socket.data.role !== 'leader') {
         return callback({ success: false, error: 'Only leader' });
       }
-      // في حال ضغط الليدر resolve يدوياً (fallback)
       const sortResult = await getVoteResult(data.roomId);
-      await setPhase(data.roomId, Phase.DAY_JUSTIFICATION);
       const state = await getRoom(data.roomId);
+      if (!state) return callback({ success: false, error: 'Room not found' });
+
+      const maxJust = state.config.maxJustifications || 2;
+
+      // بناء قائمة المتهمين مع حالة التبرير
       const accusedPlayers = sortResult.topCandidates.map(c => {
-        const p = state?.players.find(pl => pl.physicalId === c.targetPhysicalId);
-        return { ...c, name: p?.name, role: p?.role, gender: p?.gender };
+        const p = state.players.find(pl => pl.physicalId === c.targetPhysicalId);
+        return {
+          ...c,
+          name: p?.name,
+          role: p?.role,
+          gender: p?.gender,
+          justificationCount: p?.justificationCount || 0,
+          canJustify: (p?.justificationCount || 0) < maxJust,
+        };
       });
+
+      // فلترة: من يقدر يبرر
+      const canJustifyList = accusedPlayers.filter(a => a.canJustify);
+
+      await setPhase(data.roomId, Phase.DAY_JUSTIFICATION);
+
       io.to(data.roomId).emit('day:justification-started', {
         resultType: sortResult.type,
         accused: accusedPlayers,
+        canJustifyList,
+        allExhausted: canJustifyList.length === 0,
         topVotes: sortResult.topVotes,
-        candidates: state?.votingState?.candidates || [],
+        maxJustifications: maxJust,
+        candidates: state.votingState?.candidates || [],
       });
       callback({ success: true, result: sortResult });
     } catch (err: any) {
@@ -174,12 +193,35 @@ export function registerDayEvents(io: Server, socket: Socket) {
     try {
       if (socket.data.role !== 'leader') return callback({ success: false, error: 'Only leader' });
 
+      // زيادة عداد التبرير للاعب
+      // @ts-ignore
+      const { getRoom: getR, updateRoom: updR } = await import('../game/state.js');
+      const st = await getR(data.roomId);
+      if (st) {
+        const pl = st.players.find((p: any) => p.physicalId === data.physicalId);
+        if (pl) {
+          pl.justificationCount = (pl.justificationCount || 0) + 1;
+          await updR(data.roomId, { players: st.players });
+        }
+      }
+
       io.to(data.roomId).emit('day:justification-timer-started', {
         physicalId: data.physicalId,
         timeLimitSeconds: data.timeLimitSeconds,
         startTime: Date.now(),
       });
 
+      callback({ success: true });
+    } catch (err: any) {
+      callback({ success: false, error: err.message });
+    }
+  });
+
+  // ── إيقاف تايمر التبرير ──────────────────────────
+  socket.on('day:stop-justification-timer', async (data: { roomId: string }, callback) => {
+    try {
+      if (socket.data.role !== 'leader') return callback({ success: false, error: 'Only leader' });
+      io.to(data.roomId).emit('day:justification-timer-stopped');
       callback({ success: true });
     } catch (err: any) {
       callback({ success: false, error: err.message });
@@ -348,7 +390,7 @@ export function registerDayEvents(io: Server, socket: Socket) {
   // ── ⏳ أفعال التوقيت (Start, Pause, Resume) ────────
   socket.on('day:timer-action', async (data: {
     roomId: string;
-    action: 'START' | 'PAUSE' | 'RESUME';
+    action: 'START' | 'PAUSE' | 'RESUME' | 'RESET';
   }, callback) => {
     try {
       if (socket.data.role !== 'leader') return callback({ success: false, error: 'Only leader' });
@@ -372,6 +414,11 @@ export function registerDayEvents(io: Server, socket: Socket) {
         }
         ds.status = SpeakerStatus.PAUSED;
         ds.startTime = null;
+      } else if (data.action === 'RESET') {
+        // إعادة التايمر من البداية
+        ds.timeRemaining = ds.timeLimitSeconds;
+        ds.startTime = null;
+        ds.status = SpeakerStatus.WAITING;
       }
 
       await updateRoom(data.roomId, { discussionState: ds });
