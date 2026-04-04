@@ -36,6 +36,7 @@ interface GameState {
     displayPin: string;
   };
   players: any[];
+  rolesPool?: string[];
   votingState?: VotingState;
 }
 
@@ -218,6 +219,10 @@ export default function LeaderPage() {
       });
     });
 
+    const offGameClosed = on('game:closed', () => {
+      setGameState(null);
+    });
+
     return () => {
       offPlayerJoined();
       offPhaseChanged();
@@ -227,6 +232,7 @@ export default function LeaderPage() {
       offVotingStarted();
       offVoteUpdate();
       offEliminationPending();
+      offGameClosed();
     };
   }, [on, gameState?.roomId]);
 
@@ -254,6 +260,7 @@ export default function LeaderPage() {
           displayPin: response.displayPin || '',
         },
         players: [],
+        rolesPool: [],
       });
 
       // تحديث القائمة
@@ -282,6 +289,7 @@ export default function LeaderPage() {
             displayPin: game.displayPin,
           },
           players: data.state.players || [],
+          rolesPool: data.state.rolesPool || [],
         });
 
         // Join socket room
@@ -300,6 +308,18 @@ export default function LeaderPage() {
       </div>
     );
   }
+
+  const handleCloseRoom = async () => {
+    if (!gameState) return;
+    if (!confirm('هل أنت متأكد من إغلاق الغرفة بالكامل؟ سيتم طرد جميع اللاعبين ولن تظهر الغرفة مجدداً.')) return;
+    try {
+      await emit('room:close', { roomId: gameState.roomId });
+      setGameState(null);
+      fetchActiveGames();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
 
   // ══════════════════════════════════════════════════
   // بعد إنشاء / استعادة اللعبة
@@ -322,6 +342,12 @@ export default function LeaderPage() {
               <span className="text-[#555]">Phase: </span>
               <span className="text-[#C5A059] font-bold">{gameState.phase}</span>
             </div>
+            <button
+              onClick={handleCloseRoom}
+              className="text-[#8A0303] text-xs font-mono uppercase tracking-widest hover:text-red-500 transition-colors"
+            >
+              [ Terminate ]
+            </button>
             <button
               onClick={() => setGameState(null)}
               className="text-[#555] text-xs font-mono uppercase tracking-widest hover:text-white transition-colors"

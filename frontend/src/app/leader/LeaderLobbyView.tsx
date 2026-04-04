@@ -13,22 +13,24 @@ export default function LeaderLobbyView({ gameState, emit, setError }: LeaderLob
   const [showAddForm, setShowAddForm] = useState(false);
   const [addForm, setAddForm] = useState({ name: '', physicalId: '', phone: '', dob: '', gender: 'MALE' });
   const [kickingId, setKickingId] = useState<number | null>(null);
+  const [localError, setLocalError] = useState('');
 
   const handleForceAdd = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLocalError('');
     try {
       await emit('room:force-add-player', {
         roomId: gameState.roomId,
         physicalId: Number(addForm.physicalId),
         name: addForm.name,
-        phone: addForm.phone,
+        phone: addForm.phone || '0700000000',
         dob: addForm.dob,
         gender: addForm.gender,
       });
       setShowAddForm(false);
       setAddForm({ name: '', physicalId: '', phone: '', dob: '', gender: 'MALE' });
     } catch (err: any) {
-      setError(err.message);
+      setLocalError(err.message);
     }
   };
 
@@ -92,6 +94,7 @@ export default function LeaderLobbyView({ gameState, emit, setError }: LeaderLob
                 </select>
               </div>
             </div>
+            {localError && <p className="text-[#8A0303] text-xs font-mono tracking-widest text-center mb-4 uppercase">{localError}</p>}
             <button type="submit" className="bg-[#111] border border-[#C5A059]/50 text-[#C5A059] px-6 py-2 hover:bg-[#C5A059]/10 transition-colors font-mono uppercase text-xs tracking-widest w-full">REGISTER AGENT</button>
           </motion.form>
         )}

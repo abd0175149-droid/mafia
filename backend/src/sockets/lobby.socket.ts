@@ -286,6 +286,7 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
 
       const generated = generateRoles(playerCount);
       await setPhase(data.roomId, Phase.ROLE_GENERATION);
+      io.to(data.roomId).emit('game:phase-changed', { phase: Phase.ROLE_GENERATION });
 
       socket.emit('setup:roles-generated', {
         mafiaRoles: generated.mafiaRoles,
@@ -320,6 +321,7 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
       }
 
       await updateRoom(data.roomId, { phase: Phase.ROLE_BINDING, rolesPool: data.roles });
+      io.to(data.roomId).emit('game:phase-changed', { phase: Phase.ROLE_BINDING });
 
       socket.emit('setup:binding-start', {
         players: state.players.map(p => ({ physicalId: p.physicalId, name: p.name })),
@@ -370,6 +372,7 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
       }
 
       await setPhase(data.roomId, Phase.DAY_DISCUSSION);
+      io.to(data.roomId).emit('game:phase-changed', { phase: Phase.DAY_DISCUSSION });
 
       io.to(data.roomId).emit('game:started', {
         round: 1,
@@ -401,6 +404,25 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
       socket.data.role = 'leader';
       socket.data.roomId = data.roomId;
       console.log(`👑 Leader rejoined room: ${data.roomId}`);
+    }
+  });
+
+  // ── إغلاق الغرفة (Soft Delete) ────────────────
+  socket.on('room:close', async (data: { roomId: string }, callback) => {
+    try {
+      if (socket.data.role !== 'leader') {
+        return callback({ success: false, error: 'Only leader can close the room' });
+      }
+
+      await setPhase(data.roomId, Phase.GAME_OVER);
+      activeRooms.delete(data.roomId);
+      
+      io.to(data.roomId).emit('game:closed');
+
+      callback({ success: true });
+      console.log(`🔒 Room closed manually: ${data.roomId}`);
+    } catch (err: any) {
+      callback({ success: false, error: err.message });
     }
   });
 
