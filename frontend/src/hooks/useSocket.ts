@@ -45,6 +45,8 @@ export function useSocket() {
         return reject(new Error('Socket not initialized'));
       }
       
+      console.log(`[useSocket] Emitting '${event}' | Socket ID: ${socketRef.current.id} | Connected: ${socketRef.current.connected}`);
+
       // نضيف Timeout لمدة 5 ثواني حتى لا يظل معلقاً للأبد
       if (typeof socketRef.current.timeout === 'function') {
         socketRef.current.timeout(5000).emit(event, data, (err: Error, response: any) => {

@@ -27,16 +27,27 @@ export default function LeaderLobbyView({ gameState, emit, setError }: LeaderLob
     
     setLocalError('');
     try {
-      console.log('[Frontend] handleForceAdd: 🚀 Emitting room:force-add-player...');
-      const response = await emit('room:force-add-player', {
-        roomId: gameState.roomId,
-        physicalId: Number(addForm.physicalId),
-        name: addForm.name,
-        phone: addForm.phone || '0700000000',
-        dob: addForm.dob,
-        gender: addForm.gender,
+      // نستخدم REST API بدلاً من WebSocket لتجنب مشاكل انقطاع الاتصال المفاجئ من متصفح الليدر
+      const result = await fetch('/api/leader/force-add-player', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomId: gameState.roomId,
+          physicalId: Number(addForm.physicalId),
+          name: addForm.name,
+          phone: addForm.phone || '0700000000',
+          dob: addForm.dob,
+          gender: addForm.gender,
+        })
       });
-      console.log('[Frontend] handleForceAdd: ✅ Backend returned success:', response);
+
+      const response = await result.json();
+
+      if (!result.ok || !response.success) {
+        throw new Error(response.error || 'فشل تحديث أو إضافة اللاعب');
+      }
+
+      console.log('[Frontend] handleForceAdd: ✅ Backend returned success', response);
       setShowAddForm(false);
       setAddForm({ name: '', physicalId: '', phone: '', dob: '', gender: 'MALE' });
     } catch (err: any) {

@@ -5,6 +5,9 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { createHash, randomBytes } from 'crypto';
 import { env } from '../config/env.js';
+import { updateRoom, addPlayer, updatePlayer } from '../game/state.js';
+import { Phase } from '../game/state.js';
+import { activeRooms } from '../sockets/lobby.socket.js';
 
 const router = Router();
 
@@ -148,5 +151,42 @@ export function requireLeader(req: Request, res: Response, next: NextFunction) {
   (req as any).leader = session;
   next();
 }
+
+// ── 7. إجبار إضافة لاعب (Offline Agent) لليدر ──
+router.post('/force-add-player', requireLeader, async (req, res) => {
+  try {
+    const { roomId, physicalId, name, phone, dob, gender } = req.body;
+    
+    if (!roomId || physicalId === undefined || !name) {
+      return res.status(400).json({ success: false, error: 'بيانات غير مكتملة' });
+    }
+
+    const state = await addPlayer(roomId, Number(physicalId), name, phone || '0700000000');
+    await updatePlayer(roomId, Number(physicalId), { dob, gender });
+
+    const room = activeRooms.get(roomId);
+    if (room) {
+      room.playerCount = state.players.length;
+    }
+
+    // إخبار الجميع عبر Socket.io (using req.app.get('io') if possible, or io directly)
+    // since we need io, we will emit it here if we have imported io, but we don't have io global.
+    // Let's use activeRooms map or similar. But since we don't have io here directly, we can just let `lobby.socket.ts` expose a helper, or attach `io` to `app`.
+    // We'll set app.set('io', io) inside index.ts and use it here.
+    const io = req.app.get('io');
+    if (io) {
+      io.to(roomId).emit('room:player-joined', {
+        physicalId: Number(physicalId),
+        name,
+        totalPlayers: state.players.length,
+        maxPlayers: state.config.maxPlayers,
+      });
+    }
+
+    return res.json({ success: true });
+  } catch (err: any) {
+    return res.status(400).json({ success: false, error: err.message });
+  }
+});
 
 export default router;

@@ -8,7 +8,7 @@ import { createRoom, addPlayer, updatePlayer, updateRoom, getRoom, getRoomByCode
 import { generateRoles, validateRoleDistribution, Role } from '../game/roles.js';
 
 // ── قائمة الغرف النشطة (in-memory tracker) ──
-const activeRooms: Map<string, { roomId: string; roomCode: string; gameName: string; playerCount: number; maxPlayers: number; displayPin: string }> = new Map();
+export const activeRooms: Map<string, { roomId: string; roomCode: string; gameName: string; playerCount: number; maxPlayers: number; displayPin: string }> = new Map();
 
 export function getActiveRooms() {
   return Array.from(activeRooms.values());
