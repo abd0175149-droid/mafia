@@ -260,7 +260,7 @@ export default function MafiaCard({
         {/* 🂠 الوجه الأمامي — السرية        */}
         {/* ══════════════════════════════════ */}
         <div
-          className={`absolute inset-0 rounded-2xl overflow-hidden border-2 ${
+          className={`absolute inset-0 rounded-2xl overflow-hidden bg-black border-2 ${
             isFemale ? 'border-purple-500/40' : 'border-[#C5A059]/40'
           } ${isSilenced ? 'border-rose-600/60' : ''}`}
           style={{ backfaceVisibility: 'hidden' }}
@@ -372,7 +372,7 @@ export default function MafiaCard({
         {/* 🂡 الوجه الخلفي — الكشف          */}
         {/* ══════════════════════════════════ */}
         <div
-          className={`absolute inset-0 rounded-2xl overflow-hidden border-2 ${theme.border} ${theme.glow}`}
+          className={`absolute inset-0 rounded-2xl overflow-hidden bg-black border-2 ${theme.border} ${theme.glow}`}
           style={{
             backfaceVisibility: 'hidden',
             transform: 'rotateY(180deg)',
