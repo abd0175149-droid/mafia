@@ -479,80 +479,105 @@ export default function DisplayPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.8, ease: 'easeOut' }}
-            className="w-full max-w-6xl relative z-10"
+            className="w-full max-w-7xl relative z-10 flex flex-col items-center"
           >
-            {/* عنوان اللعبة */}
-            <motion.div className="flex items-center justify-between border-b-2 border-[#2a2a2a] pb-6 mb-12">
-              <h1 className="text-6xl md:text-7xl font-black tracking-tighter" style={{ fontFamily: 'Amiri, serif' }}>
-                <span className="text-white">{gameName}</span>
-              </h1>
-              <div className="text-right">
-                <p className="text-[#808080] text-sm uppercase tracking-widest font-mono mb-2">OPERATION CODE</p>
-                <p className="text-5xl font-mono text-[#C5A059] tracking-[0.2em]">{roomCode}</p>
-              </div>
-            </motion.div>
+            {/* عنوان اللعبة واللوجو (MAFIA CLUB) */}
+            <div className="flex flex-col items-center justify-center gap-4 mb-12 w-full border-b border-[#2a2a2a]/40 pb-8">
+              <motion.div
+                 initial={{ opacity: 0, scale: 0.8 }}
+                 animate={{ opacity: 1, scale: 1 }}
+                 transition={{ duration: 1 }}
+               >
+                 <Image
+                   src="/mafia_logo.png"
+                   alt="Mafia Club Logo"
+                   width={80}
+                   height={80}
+                   className="select-none w-[60px] h-[60px] drop-shadow-[0_0_20px_rgba(138,3,3,0.3)]"
+                   priority
+                 />
+               </motion.div>
+               <h1 className="text-center">
+                 <span
+                   className="block text-4xl font-black tracking-tight text-[#C5A059] mb-1"
+                   style={{ fontFamily: 'Amiri, serif', textShadow: '0 0 30px rgba(138,3,3,0.4)' }}
+                 >
+                   MAFIA
+                 </span>
+                 <span className="flex justify-between text-xl font-light text-[#8A0303] w-full" dir="ltr" style={{ fontFamily: 'Amiri, serif' }}>
+                   {'CLUB'.split('').map((l, i) => <span key={i}>{l}</span>)}
+                 </span>
+               </h1>
+            </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+            <div className="flex flex-col lg:flex-row w-full gap-12 items-start justify-between">
               
-              {/* القسم الأيمن: QR Code */}
-              <div className="flex flex-col items-center">
-                <div className="noir-card p-8 mb-6 border-[#8A0303]/30 relative">
+              {/* القسم الأيمن (Top-Right): QR Code والإحصائيات */}
+              <div className="flex flex-col items-center w-full lg:w-1/3">
+                <div className="w-full text-center flex flex-col items-center">
+                  <p className="text-[#808080] text-sm uppercase tracking-widest font-mono mb-2">OPERATION CODE</p>
+                  <p className="text-5xl font-mono text-[#C5A059] tracking-[0.2em] mb-6">{roomCode}</p>
+                </div>
+
+                <div className="noir-card p-6 mb-8 border-[#8A0303]/30 relative w-full flex flex-col items-center justify-center">
                   <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-[#8A0303] animate-pulse" />
                   <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-[#8A0303] animate-pulse" />
                   <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-[#8A0303] animate-pulse" />
                   <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-[#8A0303] animate-pulse" />
                   
-                  <div className="bg-white p-4 grayscale contrast-125 mb-4">
+                  <div className="bg-white p-3 grayscale contrast-125 mb-4 inline-block">
                     <QRDisplay url={joinUrl} />
                   </div>
-                  <p className="text-[#808080] text-sm font-mono mt-4 text-center tracking-widest uppercase">
-                    SCAN TO ENTER THE OPERATION
+                  <p className="text-[#808080] text-xs font-mono text-center tracking-widest uppercase">
+                    SCAN TO ENTER
                   </p>
+                </div>
+
+                <div className="w-full text-center font-mono noir-card p-4 border-[#2a2a2a]">
+                  <p className="text-[#555] text-xs mb-2 tracking-[0.3em] uppercase">AGENTS REGISTERED</p>
+                  <div className="flex items-baseline justify-center gap-2">
+                    <span className="text-5xl font-black text-[#C5A059]">{playerCount}</span>
+                    <span className="text-2xl text-[#333]">/</span>
+                    <span className="text-2xl text-[#555]">{maxPlayers}</span>
+                  </div>
                 </div>
               </div>
 
-              {/* القسم الأيسر: الإحصائيات والأكواد */}
-              <div className="flex flex-col h-full">
-                
-                {/* عداد اللاعبين */}
-                <div className="mb-10 font-mono">
-                  <p className="text-[#555] text-sm mb-2 tracking-[0.3em] uppercase">AGENTS REGISTERED</p>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-7xl font-black text-[#C5A059]">{playerCount}</span>
-                    <span className="text-3xl text-[#333]">/</span>
-                    <span className="text-3xl text-[#555]">{maxPlayers}</span>
-                  </div>
+              {/* القسم الأيسر: شبكة اللاعبين المرنة باستخدام MafiaCard */}
+              <div className="w-full lg:w-2/3">
+                <div className="flex items-center justify-between border-b border-[#2a2a2a] pb-2 mb-6">
+                  <p className="text-[#555] text-sm tracking-[0.3em] uppercase">ACTIVE ROSTER</p>
+                  <p className="text-[#808080] text-xs font-mono tracking-widest uppercase">{gameName}</p>
                 </div>
 
-                {/* قائمة اللاعبين */}
-                <div>
-                  <p className="text-[#555] text-sm mb-4 tracking-[0.3em] uppercase border-b border-[#2a2a2a] pb-2">ACTIVE ROSTER</p>
-                  {players.length > 0 ? (
-                    <motion.div 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="grid grid-cols-2 gap-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar"
-                    >
-                      <AnimatePresence>
-                        {players.map((p, i) => (
-                          <motion.div
-                            key={p.physicalId}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: i * 0.05 }}
-                            className="bg-[#0c0c0c] border border-[#2a2a2a] p-3 flex items-center gap-3"
-                          >
-                            <span className="text-xs font-mono text-[#555]">AGENT_{p.physicalId.toString().padStart(2, '0')}</span>
-                            <span className="text-white font-bold tracking-wider flex-1">{p.name}</span>
-                            <span className="text-[#2E5C31] text-[8px] font-mono tracking-widest uppercase animate-pulse">✓</span>
-                          </motion.div>
-                        ))}
-                      </AnimatePresence>
-                    </motion.div>
-                  ) : (
-                    <p className="text-[#333] font-mono italic">AWAITING AGENTS...</p>
-                  )}
-                </div>
+                {players.length > 0 ? (
+                  <div className="grid grid-cols-[repeat(auto-fit,minmax(176px,1fr))] gap-6 justify-items-center max-h-[60vh] overflow-y-auto custom-scrollbar pr-4 pb-12">
+                    <AnimatePresence>
+                      {players.map((p: any, i: number) => (
+                        <motion.div
+                          key={p.physicalId}
+                          initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          transition={{ delay: i * 0.05 }}
+                        >
+                          <MafiaCard
+                            playerNumber={p.physicalId}
+                            playerName={p.name}
+                            role={p.role || null}
+                            isFlipped={true}
+                            flippable={false}
+                            isAlive={p.isAlive !== false}
+                            size="sm"
+                          />
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-16 noir-card border-dashed">
+                    <p className="text-[#333] font-mono italic tracking-[0.2em] uppercase">AWAITING AGENT CONNECTIONS...</p>
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>
