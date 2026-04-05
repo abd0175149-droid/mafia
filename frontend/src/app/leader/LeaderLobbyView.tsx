@@ -170,7 +170,7 @@ export default function LeaderLobbyView({ gameState, emit, setError }: LeaderLob
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-6 justify-items-center">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(176px,1fr))] gap-6 justify-items-center">
           {gameState.players.map((player: any, i: number) => {
             const isKicking = kickingId === player.physicalId;
 
