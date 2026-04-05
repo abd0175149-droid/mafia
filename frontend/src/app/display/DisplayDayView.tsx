@@ -623,26 +623,60 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
               
               <h2 className="text-4xl md:text-6xl font-black text-white mb-10 tracking-tighter" style={{ fontFamily: 'Amiri, serif' }}>تم الإقصاء</h2>
               
-              <div className="flex flex-wrap justify-center gap-6 relative z-10">
+              <div className="flex flex-wrap justify-center gap-8 md:gap-12 relative z-10">
                 {revealedRoles.map((roleInfo: any, i: number) => {
                   const p = players.find((p: any) => p.physicalId === roleInfo.physicalId);
+                  const isMafia = roleInfo.role?.includes('MAFIA') || roleInfo.role === 'GODFATHER' || roleInfo.role === 'SILENCER' || roleInfo.role === 'CHAMELEON';
                   return (
                     <motion.div
                       key={roleInfo.physicalId}
-                      initial={{ opacity: 0, y: 40, rotateY: 0 }}
-                      animate={{ opacity: 1, y: 0, rotateY: 0 }}
+                      initial={{ opacity: 0, y: 40 }}
+                      animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.8 + (i * 0.6) }}
+                      className="flex items-center gap-4 md:gap-6"
                     >
+                      {/* الكارد — بشكل عادي */}
                       <MafiaCard
                         playerNumber={roleInfo.physicalId}
                         playerName={p?.name || 'Unknown'}
                         role={roleInfo.role}
                         isFlipped={true}
                         flippable={false}
-                        isAlive={false}
+                        isAlive={true}
                         size="fluid"
                         className="w-52 h-[18rem] md:w-60 md:h-[20rem] lg:w-72 lg:h-[24rem]"
                       />
+
+                      {/* أيقونة الفريق بجانب الكارد */}
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 1.5 + (i * 0.6), type: 'spring', damping: 10 }}
+                        className="flex flex-col items-center gap-3"
+                      >
+                        {/* أيقونة كبيرة */}
+                        <motion.div
+                          animate={{ 
+                            scale: [1, 1.15, 1],
+                            opacity: [0.7, 1, 0.7],
+                          }}
+                          transition={{ duration: 2, repeat: Infinity }}
+                          className={`text-6xl md:text-7xl lg:text-8xl ${
+                            isMafia 
+                              ? 'drop-shadow-[0_0_20px_rgba(220,38,38,0.5)]' 
+                              : 'drop-shadow-[0_0_20px_rgba(161,161,170,0.4)]'
+                          }`}
+                        >
+                          {isMafia ? '💀' : '⚰️'}
+                        </motion.div>
+
+                        {/* نص الفريق */}
+                        <span className={`text-xs md:text-sm font-mono font-bold tracking-widest uppercase ${
+                          isMafia ? 'text-red-500' : 'text-zinc-400'
+                        }`}>
+                          {isMafia ? 'MAFIA' : 'CITIZEN'}
+                        </span>
+                      </motion.div>
                     </motion.div>
                   );
                 })}
