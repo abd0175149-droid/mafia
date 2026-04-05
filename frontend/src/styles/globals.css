@@ -184,4 +184,74 @@
   .text-gradient-gold {
     @apply text-[#C5A059] drop-shadow-[0_2px_4px_rgba(0,0,0,1)];
   }
+
+  /* ═══ Spotlight Vignette — إظلام حواف الشاشة عند وجود متكلم ═══ */
+  .spotlight-vignette {
+    position: relative;
+  }
+  .spotlight-vignette::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(circle at center, transparent 25%, rgba(0,0,0,0.6) 70%, rgba(0,0,0,0.85) 100%);
+    z-index: 40;
+    animation: vignetteIn 1s ease-out forwards;
+  }
+
+  @keyframes vignetteIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* ═══ Glitch Text — تأثير تشويش لنص الإسكات ═══ */
+  .glitch-text {
+    position: relative;
+    animation: glitchShake 0.3s ease-in-out infinite alternate;
+  }
+  .glitch-text::before,
+  .glitch-text::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.8;
+  }
+  .glitch-text::before {
+    color: #ff0000;
+    clip-path: inset(20% 0 50% 0);
+    animation: glitchClip1 0.5s linear infinite alternate;
+    transform: translate(-2px, -1px);
+  }
+  .glitch-text::after {
+    color: #00ffff;
+    clip-path: inset(50% 0 20% 0);
+    animation: glitchClip2 0.4s linear infinite alternate;
+    transform: translate(2px, 1px);
+  }
+
+  @keyframes glitchShake {
+    0% { transform: translate(0); }
+    20% { transform: translate(-2px, 1px); }
+    40% { transform: translate(2px, -1px); }
+    60% { transform: translate(-1px, 2px); }
+    80% { transform: translate(1px, -2px); }
+    100% { transform: translate(0); }
+  }
+  @keyframes glitchClip1 {
+    0% { clip-path: inset(20% 0 50% 0); }
+    25% { clip-path: inset(10% 0 60% 0); }
+    50% { clip-path: inset(30% 0 40% 0); }
+    75% { clip-path: inset(15% 0 55% 0); }
+    100% { clip-path: inset(25% 0 45% 0); }
+  }
+  @keyframes glitchClip2 {
+    0% { clip-path: inset(50% 0 20% 0); }
+    25% { clip-path: inset(60% 0 10% 0); }
+    50% { clip-path: inset(40% 0 30% 0); }
+    75% { clip-path: inset(55% 0 15% 0); }
+    100% { clip-path: inset(45% 0 25% 0); }
+  }
 }

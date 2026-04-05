@@ -292,7 +292,7 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
                     <span className="text-6xl mb-2">🔇</span>
                     <span className="text-4xl font-black font-mono">{silencedPlayerId}</span>
                   </motion.div>
-                  <h2 className="text-5xl font-black text-[#8A0303] uppercase tracking-[0.2em] bg-black px-8 py-3 border-y-2 border-[#8A0303]">
+                  <h2 className="text-5xl font-black text-[#8A0303] uppercase tracking-[0.2em] bg-black px-8 py-3 border-y-2 border-[#8A0303] glitch-text" data-text="SILENCED BY SYNDICATE">
                     SILENCED BY SYNDICATE
                   </h2>
                   <p className="mt-6 text-[#ffccd5] font-mono text-xl tracking-widest uppercase">
@@ -313,7 +313,7 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
                     </p>
                   </>
                 ) : (
-                  <div className="flex flex-col items-center">
+                  <div className="flex flex-col items-center spotlight-vignette">
                     <h2 className="text-3xl font-mono text-[#555] uppercase tracking-widest mb-12">ACTIVE SPEAKER</h2>
                     
                     <div className={`relative flex items-center justify-center rounded-full p-2 mb-12 transition-all duration-1000 ${

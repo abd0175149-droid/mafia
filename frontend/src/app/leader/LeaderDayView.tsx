@@ -867,21 +867,19 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
                     <p className="text-[#8A0303] text-[10px] mt-1 font-mono">LINKED TO #{initiatorDetails?.physicalId}</p>
                   )}
 
-                  {/* Eye Button — يكشف الدور لليدر فقط */}
+                  {/* Eye Button — Hold-to-Reveal: يكشف الدور فقط أثناء الضغط المستمر */}
                   <button
-                    onClick={() => {
-                      setRevealedRoles(prev => {
-                        const next = new Set(prev);
-                        if (next.has(candidate.targetPhysicalId)) {
-                          next.delete(candidate.targetPhysicalId);
-                        } else {
-                          next.add(candidate.targetPhysicalId);
-                        }
-                        return next;
-                      });
+                    onPointerDown={() => {
+                      setRevealedRoles(prev => new Set(prev).add(candidate.targetPhysicalId));
                     }}
-                    className="absolute top-0 left-0 w-7 h-7 flex items-center justify-center text-xs bg-black/70 border border-[#333] hover:border-[#C5A059] rounded-full transition-colors"
-                    title="كشف الدور"
+                    onPointerUp={() => {
+                      setRevealedRoles(prev => { const n = new Set(prev); n.delete(candidate.targetPhysicalId); return n; });
+                    }}
+                    onPointerLeave={() => {
+                      setRevealedRoles(prev => { const n = new Set(prev); n.delete(candidate.targetPhysicalId); return n; });
+                    }}
+                    className="absolute top-0 left-0 w-7 h-7 flex items-center justify-center text-xs bg-black/70 border border-[#333] hover:border-[#C5A059] rounded-full transition-colors select-none touch-none"
+                    title="اضغط مع الاستمرار لكشف الدور"
                   >
                     {revealedRoles.has(candidate.targetPhysicalId) ? '🙈' : '👁'}
                   </button>

@@ -7,6 +7,7 @@ import { getSocket } from '@/lib/socket';
 import type { Socket } from 'socket.io-client';
 import DisplayDayView from './DisplayDayView';
 import MafiaCard from '@/components/MafiaCard';
+import NightAnimCinematic from '@/components/NightAnimCinematic';
 
 // مؤثرات صوتية باستخدام Web Audio API
 function playCardFlipSound(role: string | null, isMafia: boolean) {
@@ -455,10 +456,10 @@ export default function DisplayPage() {
               {/* القسم الأيمن: QR Code */}
               <div className="flex flex-col items-center">
                 <div className="noir-card p-8 mb-6 border-[#8A0303]/30 relative">
-                  <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-[#8A0303]" />
-                  <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-[#8A0303]" />
-                  <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-[#8A0303]" />
-                  <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-[#8A0303]" />
+                  <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-[#8A0303] animate-pulse" />
+                  <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-[#8A0303] animate-pulse" />
+                  <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-[#8A0303] animate-pulse" />
+                  <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-[#8A0303] animate-pulse" />
                   
                   <div className="bg-white p-4 grayscale contrast-125 mb-4">
                     <QRDisplay url={joinUrl} />
@@ -501,7 +502,8 @@ export default function DisplayPage() {
                             className="bg-[#0c0c0c] border border-[#2a2a2a] p-3 flex items-center gap-3"
                           >
                             <span className="text-xs font-mono text-[#555]">AGENT_{p.physicalId.toString().padStart(2, '0')}</span>
-                            <span className="text-white font-bold tracking-wider">{p.name}</span>
+                            <span className="text-white font-bold tracking-wider flex-1">{p.name}</span>
+                            <span className="text-[#2E5C31] text-[8px] font-mono tracking-widest uppercase animate-pulse">✓</span>
                           </motion.div>
                         ))}
                       </AnimatePresence>
@@ -529,7 +531,7 @@ export default function DisplayPage() {
             <AnimatePresence>
               {animation && (
                 <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="noir-card p-10 mt-12 max-w-lg mx-auto border-[#8A0303]/40">
-                  <NightAnim data={animation} />
+                  <NightAnimCinematic data={animation} />
                 </motion.div>
               )}
             </AnimatePresence>
@@ -557,7 +559,7 @@ export default function DisplayPage() {
                   transition={{ duration: 0.6 }}
                   className="noir-card p-10 mt-12 max-w-xl mx-auto border-[#C5A059]/30"
                 >
-                  <NightAnim data={animation} />
+                  <NightAnimCinematic data={animation} />
                 </motion.div>
               )}
             </AnimatePresence>
@@ -583,15 +585,15 @@ export default function DisplayPage() {
               <div className="flex flex-wrap justify-center gap-4 md:gap-6">
                 {players.map((p: any, i: number) => {
                   const roleStr = p.role || null;
-                  const isMafia = roleStr ? isMafiaRole(roleStr as Role) : false;
-                  const flipDelay = 2 + (i * 0.5); // كل كارد ينقلب بعد 0.5 ثانية من اللي قبله
+                  const isMafiaR = roleStr ? isMafiaRole(roleStr as Role) : false;
+                  const flipDelay = 2 + (i * 0.5);
 
                   return (
                     <GameOverCard
                       key={p.physicalId}
                       player={p}
                       role={roleStr}
-                      isMafia={isMafia}
+                      isMafia={isMafiaR}
                       flipDelay={flipDelay}
                       isAlive={p.isAlive}
                     />
@@ -666,95 +668,3 @@ function QRDisplay({ url }: { url: string }) {
   return <QRComponent value={url} size={250} bgColor="#ffffff" fgColor="#000000" level="M" />;
 }
 
-// ══════════════════════════════════════════════════════
-// 🌙 Night Animation
-// ══════════════════════════════════════════════════════
-function NightAnim({ data }: { data: any }) {
-  const map: Record<string, { icon: string; text: string; color: string }> = {
-    // أنيميشن الطابور الليلي (بدون أسماء)
-    ASSASSINATION_ATTEMPT: { icon: '🔪', text: 'عملية اغتيال جارية', color: 'text-[#8A0303]' },
-    SILENCE: { icon: '🤐', text: 'عملية إسكات', color: 'text-[#555555]' },
-    INVESTIGATION: { icon: '👁️', text: 'تحقيق جارٍ', color: 'text-[#C5A059]' },
-    PROTECTION: { icon: '💉', text: 'حماية طبية', color: 'text-[#2E5C31]' },
-    SNIPE: { icon: '🎯', text: 'تصويب القناص', color: 'text-[#8A0303]' },
-    // أنيميشن ملخص الصباح
-    ASSASSINATION: { icon: '🩸', text: 'تم الاغتيال', color: 'text-[#8A0303]' },
-    ASSASSINATION_BLOCKED: { icon: '🛡️', text: 'نجاة بالحماية', color: 'text-[#2E5C31]' },
-    SNIPE_MAFIA: { icon: '🎯', text: 'القناص نجح', color: 'text-[#C5A059]' },
-    SNIPE_CITIZEN: { icon: '💀', text: 'القناص فشل', color: 'text-[#8A0303]' },
-  };
-  const a = map[data.type] || { icon: '❓', text: data.type, color: 'text-[#808080]' };
-
-  // هل هذا حدث يُكشف فيه دور اللاعب؟ (اغتيال ناجح أو قنص)
-  const showCard = ['ASSASSINATION', 'SNIPE_MAFIA', 'SNIPE_CITIZEN'].includes(data.type);
-  const targetRole = data.extra?.targetRole || null;
-
-  return (
-    <div className="text-center py-4">
-      <motion.div
-        className="text-7xl md:text-8xl mb-4"
-        animate={{ scale: [0.8, 1.2, 1] }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-      >
-        {a.icon}
-      </motion.div>
-      <motion.p
-        className={`text-3xl md:text-4xl font-black tracking-widest mb-3 ${a.color}`}
-        style={{ fontFamily: 'Amiri, serif' }}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-      >
-        {a.text}
-      </motion.p>
-
-      {/* الاغتيال/القنص — كارد اللاعب مع دوره */}
-      {showCard && targetRole && (
-        <motion.div
-          className="flex justify-center mt-6"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8, type: 'spring', damping: 12 }}
-        >
-          <MafiaCard
-            playerNumber={data.targetPhysicalId}
-            playerName={data.targetName || 'Unknown'}
-            role={targetRole}
-            isFlipped={true}
-            flippable={false}
-            isAlive={true}
-            size="fluid"
-            className="w-48 h-[16rem] md:w-56 md:h-[19rem]"
-          />
-        </motion.div>
-      )}
-
-      {/* الاغتيال — بدون role (fallback للنص فقط) */}
-      {data.type === 'ASSASSINATION' && !targetRole && data.targetName && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
-          <p className="text-white text-2xl font-black mt-4" style={{ fontFamily: 'Amiri, serif' }}>{data.targetName}</p>
-          <p className="text-[#555] font-mono text-sm mt-1">#{data.targetPhysicalId}</p>
-        </motion.div>
-      )}
-
-      {/* الحماية — رسالة عامة بدون اسم */}
-      {data.type === 'ASSASSINATION_BLOCKED' && (
-        <motion.p className="text-[#2E5C31] text-lg font-mono mt-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
-          تم إنقاذ أحد اللاعبين من الاغتيال
-        </motion.p>
-      )}
-
-      {/* قنص — بدون role (fallback) */}
-      {data.type === 'SNIPE_MAFIA' && !targetRole && (
-        <motion.p className="text-[#C5A059] text-lg font-mono mt-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
-          خرج عضو مافيا من اللعبة
-        </motion.p>
-      )}
-      {data.type === 'SNIPE_CITIZEN' && !targetRole && (
-        <motion.p className="text-[#8A0303] text-lg font-mono mt-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
-          خرج لاعبان من اللعبة
-        </motion.p>
-      )}
-    </div>
-  );
-}

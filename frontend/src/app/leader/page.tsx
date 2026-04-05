@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useSocket } from '@/hooks/useSocket';
+import MafiaCard from '@/components/MafiaCard';
 import LeaderDayView from './LeaderDayView';
 import LeaderLobbyView from './LeaderLobbyView';
 import LeaderRoleConfigurator from './LeaderRoleConfigurator';
@@ -559,9 +560,25 @@ export default function LeaderPage() {
             <h2 className="text-4xl font-black text-white mb-4" style={{ fontFamily: 'Amiri, serif' }}>
               {gameState.winner === 'MAFIA' ? 'انتصار المافيا' : 'تطهير المدينة'}
             </h2>
-            <p className="text-[#808080] font-mono tracking-widest uppercase text-sm">
+            <p className="text-[#808080] font-mono tracking-widest uppercase text-sm mb-8">
               {gameState.winner === 'MAFIA' ? 'ALL CITIZENS ELIMINATED' : 'THREAT NEUTRALIZED'}
             </p>
+
+            {/* شبكة كروت مصغرة — المراجعة النهائية لليدر */}
+            <div className="flex flex-wrap justify-center gap-3">
+              {gameState.players.map((p: any) => (
+                <MafiaCard
+                  key={p.physicalId}
+                  playerNumber={p.physicalId}
+                  playerName={p.name}
+                  role={p.role}
+                  isFlipped={true}
+                  flippable={false}
+                  isAlive={p.isAlive}
+                  size="sm"
+                />
+              ))}
+            </div>
           </div>
         )}
 
