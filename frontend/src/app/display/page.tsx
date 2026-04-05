@@ -479,7 +479,7 @@ export default function DisplayPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.8, ease: 'easeOut' }}
-            className="w-full max-w-7xl relative z-10 flex flex-col items-center"
+            className="w-full max-w-[1600px] relative z-10 flex flex-col items-center"
           >
             {/* عنوان اللعبة واللوجو (MAFIA CLUB) */}
             <div className="flex flex-col items-center justify-center gap-4 mb-12 w-full border-b border-[#2a2a2a]/40 pb-8">
@@ -510,10 +510,10 @@ export default function DisplayPage() {
                </h1>
             </div>
 
-            <div className="flex flex-col lg:flex-row w-full gap-12 items-start justify-between">
+            <div className="flex flex-col flex-auto lg:flex-row w-full gap-8 items-start justify-between">
               
               {/* القسم الأيمن (Top-Right): QR Code والإحصائيات */}
-              <div className="flex flex-col items-center w-full lg:w-1/3">
+              <div className="flex flex-col items-center w-full lg:w-[350px] shrink-0">
                 <div className="w-full text-center flex flex-col items-center">
                   <p className="text-[#808080] text-sm uppercase tracking-widest font-mono mb-2">OPERATION CODE</p>
                   <p className="text-5xl font-mono text-[#C5A059] tracking-[0.2em] mb-6">{roomCode}</p>
@@ -544,7 +544,7 @@ export default function DisplayPage() {
               </div>
 
               {/* القسم الأيسر: شبكة اللاعبين المرنة باستخدام MafiaCard */}
-              <div className="w-full lg:w-2/3">
+              <div className="w-full flex-1">
                 <div className="flex items-center justify-between border-b border-[#2a2a2a] pb-2 mb-6">
                   <p className="text-[#555] text-sm tracking-[0.3em] uppercase">ACTIVE ROSTER</p>
                   <p className="text-[#808080] text-xs font-mono tracking-widest uppercase">{gameName}</p>
@@ -552,10 +552,11 @@ export default function DisplayPage() {
 
                 {players.length > 0 ? (
                   <div className="grid grid-cols-[repeat(auto-fit,minmax(176px,1fr))] gap-6 justify-items-center max-h-[60vh] overflow-y-auto custom-scrollbar pr-4 pb-12">
-                    <AnimatePresence>
-                      {players.map((p: any, i: number) => (
+                    <AnimatePresence mode="popLayout">
+                      {players.slice().reverse().map((p: any, i: number) => (
                         <motion.div
                           key={p.physicalId}
+                          layout
                           initial={{ opacity: 0, scale: 0.9, y: 10 }}
                           animate={{ opacity: 1, scale: 1, y: 0 }}
                           transition={{ delay: i * 0.05 }}
