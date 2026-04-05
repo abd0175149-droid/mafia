@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
 import { Phase, isMafiaRole, Role } from '@/lib/constants';
 import { getSocket } from '@/lib/socket';
 import type { Socket } from 'socket.io-client';
@@ -315,31 +316,76 @@ export default function DisplayPage() {
   // 🖥️ واجهة العرض
   // ══════════════════════════════════════════════════
   return (
-    <div className="display-bg flex flex-col items-center justify-center p-8 font-sans selection:bg-[#8A0303] selection:text-white">
+    <div className="display-bg min-h-screen relative overflow-hidden flex flex-col items-center justify-center p-8 font-sans blood-vignette selection:bg-[#8A0303] selection:text-white w-full">
       
-      {/* Connection indicator */}
-      <div className="absolute top-6 left-6 flex items-center gap-3 bg-[#0c0c0c] border border-[#2a2a2a] px-4 py-2 opacity-80 z-20">
-        <div className={`w-3 h-3 ${isConnected ? 'bg-[#2E5C31] shadow-[0_0_10px_#2E5C31] animate-pulse' : 'bg-[#8A0303]'}`} />
-        <span className="text-xs font-mono tracking-widest text-[#808080] uppercase">{isConnected ? 'Server Connected' : 'Disconnected'}</span>
-      </div>
+      <div className="relative z-10 w-full h-full flex flex-col items-center justify-center">
+        {/* Connection indicator */}
+        <div className="absolute top-0 left-0 flex items-center gap-3 bg-[#0c0c0c] border border-[#2a2a2a] px-4 py-2 opacity-80 z-20">
+          <div className={`w-3 h-3 ${isConnected ? 'bg-[#2E5C31] shadow-[0_0_10px_#2E5C31] animate-pulse' : 'bg-[#8A0303]'}`} />
+          <span className="text-xs font-mono tracking-widest text-[#808080] uppercase">{isConnected ? 'Server Connected' : 'Disconnected'}</span>
+        </div>
 
-      <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait">
 
-        {/* ══════════════════════════════════════════ */}
-        {/* شاشة إدخال PIN                           */}
-        {/* ══════════════════════════════════════════ */}
-        {step === 'pin' && (
-          <motion.div
-            key="pin-screen"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-            className="text-center relative z-10 noir-card p-16 w-full max-w-xl"
-          >
-            <div className="text-8xl mb-8 grayscale opacity-80">🗝️</div>
-            <h1 className="text-5xl font-black mb-4 text-white tracking-widest uppercase" style={{ fontFamily: 'Amiri, serif' }}>تصريح الدخول</h1>
-            <p className="text-[#808080] mb-10 text-lg font-mono tracking-widest">ENTER ACCESS CODE</p>
+          {/* ══════════════════════════════════════════ */}
+          {/* شاشة إدخال PIN                           */}
+          {/* ══════════════════════════════════════════ */}
+          {step === 'pin' && (
+            <motion.div
+              key="pin-screen"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              className="text-center relative z-10 noir-card p-16 w-full max-w-xl"
+            >
+              <div className="flex flex-col items-center justify-center gap-4 mb-10 w-full">
+                {/* اللوجو */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 1, delay: 0.2 }}
+                >
+                  <Image
+                    src="/mafia_logo.png"
+                    alt="Mafia Club Logo"
+                    width={100}
+                    height={100}
+                    className="select-none w-[80px] h-[80px] sm:w-[100px] sm:h-[100px] drop-shadow-[0_0_20px_rgba(138,3,3,0.3)]"
+                    priority
+                  />
+                </motion.div>
+                
+                {/* النصوص */}
+                <h1 className="text-center">
+                  <span
+                    className="block text-5xl sm:text-6xl font-black tracking-tight text-[#C5A059] mb-1"
+                    style={{
+                      fontFamily: 'Amiri, serif',
+                      textShadow: '0 0 30px rgba(138,3,3,0.4)',
+                    }}
+                  >
+                    MAFIA
+                  </span>
+                  <span
+                    dir="ltr"
+                    className="flex justify-between text-2xl sm:text-3xl font-light text-[#8A0303] w-full"
+                    style={{
+                      fontFamily: 'Amiri, serif',
+                      textShadow: '0 0 20px rgba(138,3,3,0.3)',
+                    }}
+                  >
+                    {'CLUB'.split('').map((letter, i) => (
+                      <span key={i}>{letter}</span>
+                    ))}
+                  </span>
+                </h1>
+              </div>
+
+              <div className="mb-8 border-t border-[#2a2a2a]/40 pt-6">
+                <h2 className="text-2xl font-black mb-2 text-white" style={{ fontFamily: 'Amiri, serif' }}>تصريح الدخول للعملية</h2>
+                <p className="text-[#808080] text-xs font-mono tracking-widest uppercase">ENTER DISPLAY ACCESS CODE</p>
+              </div>
 
             <form onSubmit={(e) => { e.preventDefault(); handlePinSubmit(); }} className="mb-8">
               <input
@@ -605,6 +651,7 @@ export default function DisplayPage() {
         )}
 
       </AnimatePresence>
+      </div>
     </div>
   );
 }
