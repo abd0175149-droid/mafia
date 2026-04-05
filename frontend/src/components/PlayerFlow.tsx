@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
+import MafiaCard from './MafiaCard';
 import { useGameState } from '@/hooks/useGameState';
 
 type Step = 'code' | 'phone' | 'register' | 'number' | 'done';
@@ -25,10 +26,12 @@ const PhoneIcon = () => (
   </svg>
 );
 
-const BadgeIcon = () => (
+const SeatIcon = () => (
   <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-80">
-    <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
-    <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"></path>
+    <path d="M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3"></path>
+    <path d="M3 16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v1.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 5 12.5V11a2 2 0 0 0-4 0z"></path>
+    <path d="M15 18v2"></path>
+    <path d="M9 18v2"></path>
   </svg>
 );
 
@@ -414,7 +417,7 @@ export default function PlayerFlow({ initialRoomCode = '' }: PlayerFlowProps) {
           {step === 'number' && (
             <motion.div key="number" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <div className="text-center mb-8 border-b border-[#2a2a2a]/40 pb-6">
-                <div className="mb-4 text-[#C5A059] flex justify-center"><BadgeIcon /></div>
+                <div className="mb-4 text-[#C5A059] flex justify-center"><SeatIcon /></div>
                 <h2 className="text-2xl font-black mb-2 text-white truncate" style={{ fontFamily: 'Amiri, serif' }}>مرحباً {displayName}</h2>
                 <p className="text-[#808080] text-[10px] font-mono uppercase tracking-[0.2em]">SELECT ASSIGNED SEAT</p>
               </div>
@@ -476,13 +479,16 @@ export default function PlayerFlow({ initialRoomCode = '' }: PlayerFlowProps) {
               </motion.div>
               <h2 className="text-3xl font-black mb-4 text-[#C5A059]" style={{ fontFamily: 'Amiri, serif' }}>اكتمل التشفير</h2>
               
-              <div className="bg-black/50 border border-[#2a2a2a] rounded-lg p-5 mb-8">
-                <p className="text-[#C5A059] text-5xl font-black font-mono tracking-widest mb-3">
-                  {physicalId?.toString().padStart(2, '0')}
-                </p>
-                <p className="text-[#808080] font-bold">
-                  {displayName}
-                </p>
+              <div className="flex justify-center mb-8">
+                <MafiaCard
+                  playerNumber={parseInt(physicalId)}
+                  playerName={displayName}
+                  role={null}
+                  gender={gender === 'female' ? 'FEMALE' : 'MALE'}
+                  showVoting={false}
+                  flippable={false}
+                  size="md"
+                />
               </div>
 
               <div className="w-16 h-[1px] bg-[#2a2a2a] mx-auto mb-6" />
