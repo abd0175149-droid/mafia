@@ -91,13 +91,15 @@ export default function HomePage() {
             MAFIA
           </span>
           <span
-            className="block text-2xl md:text-4xl lg:text-5xl font-light tracking-[0.5em] text-[#8A0303] mt-1"
+            className="flex justify-between text-2xl md:text-4xl lg:text-5xl font-light text-[#8A0303] mt-1 w-full"
             style={{
               fontFamily: 'Amiri, serif',
               textShadow: '0 0 30px rgba(138,3,3,0.3)',
             }}
           >
-            CLUB
+            {'CLUB'.split('').map((letter, i) => (
+              <span key={i}>{letter}</span>
+            ))}
           </span>
         </h1>
 
