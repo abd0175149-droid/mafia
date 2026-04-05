@@ -503,33 +503,24 @@ export default function LeaderPage() {
   if (gameState) {
     return (
       <div className="display-bg min-h-screen p-8 font-sans">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-10 border-b border-[#2a2a2a] pb-6">
-          <div>
-            <h1 className="text-3xl font-black text-white" style={{ fontFamily: 'Amiri, serif' }}>{gameState.config.gameName}</h1>
-            <p className="text-[#808080] text-xs mt-2 font-mono uppercase tracking-[0.2em]">
-              OP_CODE: <span className="text-[#C5A059]">{gameState.roomCode}</span>
-              {' | '}
-              PIN: <span className="text-[#8A0303]">{gameState.config.displayPin}</span>
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="noir-card px-6 py-3 text-xs font-mono uppercase tracking-widest border-[#C5A059]/30">
-              <span className="text-[#555]">Phase: </span>
-              <span className="text-[#C5A059] font-bold">{gameState.phase}</span>
-            </div>
-            <button
-              onClick={handleCloseRoom}
-              className="text-[#8A0303] text-xs font-mono uppercase tracking-widest hover:text-red-500 transition-colors"
-            >
-              [ Terminate ]
-            </button>
+        {/* Minimal Navigation Bar */}
+        <div className="flex flex-row-reverse items-center justify-between mb-6 pb-4 border-b border-[#2a2a2a]/50">
+          <div className="flex items-center gap-6">
             <button
               onClick={() => setGameState(null)}
-              className="text-[#555] text-xs font-mono uppercase tracking-widest hover:text-white transition-colors"
+              className="text-[#555] text-[10px] font-mono uppercase tracking-[0.2em] hover:text-white transition-colors"
             >
               [ Return ]
             </button>
+            <button
+              onClick={handleCloseRoom}
+              className="text-[#8A0303] text-[10px] font-mono uppercase tracking-[0.2em] hover:text-red-500 transition-colors"
+            >
+              [ Terminate ]
+            </button>
+          </div>
+          <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#555]">
+            SYSTEM PHASE: <span className="text-[#C5A059] font-bold ml-2">{gameState.phase}</span>
           </div>
         </div>
 

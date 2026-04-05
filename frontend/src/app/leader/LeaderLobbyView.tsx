@@ -76,11 +76,20 @@ export default function LeaderLobbyView({ gameState, emit, setError }: LeaderLob
         <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#C5A059]/40 to-transparent opacity-80" />
         
         {/* معلومات الغرفة */}
-        <div>
-          <h2 className="text-3xl font-black text-white mb-1" style={{ fontFamily: 'Amiri, serif' }}>غرفة اللوبي</h2>
-          <p className="text-[#808080] text-[10px] font-mono tracking-[0.3em] uppercase">
-            OPERATION: <span className="text-[#C5A059] font-bold">{gameState.config.gameName}</span>
-          </p>
+        <div className="flex-1">
+          <h2 className="text-3xl font-black text-white mb-2" style={{ fontFamily: 'Amiri, serif' }}>
+            {gameState.config.gameName || 'غرفة اللوبي'}
+          </h2>
+          <div className="flex flex-wrap items-center gap-4 text-[10px] font-mono tracking-[0.2em] uppercase">
+            <span className="bg-[#111] border border-[#2a2a2a] px-3 py-1.5 rounded text-[#808080]">
+              OP_CODE: <span className="text-[#C5A059] font-bold text-xs ml-1">{gameState.roomCode}</span>
+            </span>
+            {gameState.config.displayPin && (
+              <span className="bg-[#8A0303]/10 border border-[#8A0303]/30 px-3 py-1.5 rounded text-[#8A0303]">
+                PIN: <span className="font-bold text-xs ml-1">{gameState.config.displayPin}</span>
+              </span>
+            )}
+          </div>
         </div>
 
         {/* مؤشر المقاعد */}
