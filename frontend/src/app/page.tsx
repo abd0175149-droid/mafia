@@ -72,34 +72,17 @@ export default function HomePage() {
   return (
     <div className="display-bg min-h-screen flex flex-col items-center justify-center p-6 sm:p-12 relative overflow-hidden font-arabic selection:bg-[#8A0303] selection:text-white blood-vignette">
 
-      {/* ── اللوجو الشبحي في المنتصف (خلف كل شيء) ── */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 0.07, scale: 1 }}
-          transition={{ duration: 2, ease: 'easeOut' }}
-        >
-          <Image
-            src="/mafia_logo.png"
-            alt="Mafia Club Logo"
-            width={500}
-            height={500}
-            className="select-none blur-[1px]"
-            priority
-          />
-        </motion.div>
-      </div>
-
-      {/* ── Title: MAFIA CLUB ── */}
+      {/* ── Title: MAFIA CLUB + Logo ── */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-        className="text-center mb-14 relative z-10 w-full max-w-4xl"
+        className="flex items-center justify-center gap-6 md:gap-10 mb-14 relative z-10 w-full max-w-4xl"
       >
-        <h1 className="mb-4">
+        {/* النصوص */}
+        <h1 className="text-center md:text-right">
           <span
-            className="block text-7xl md:text-9xl font-black tracking-tight text-[#C5A059]"
+            className="block text-6xl md:text-8xl lg:text-9xl font-black tracking-tight text-[#C5A059]"
             style={{
               fontFamily: 'Amiri, serif',
               textShadow: '0 0 60px rgba(138,3,3,0.4), 0 4px 20px rgba(0,0,0,0.8)',
@@ -108,7 +91,7 @@ export default function HomePage() {
             MAFIA
           </span>
           <span
-            className="block text-3xl md:text-5xl font-light tracking-[0.5em] text-[#8A0303] mt-1"
+            className="block text-2xl md:text-4xl lg:text-5xl font-light tracking-[0.5em] text-[#8A0303] mt-1"
             style={{
               fontFamily: 'Amiri, serif',
               textShadow: '0 0 30px rgba(138,3,3,0.3)',
@@ -117,8 +100,27 @@ export default function HomePage() {
             CLUB
           </span>
         </h1>
-        <div className="h-[1px] w-40 bg-gradient-to-r from-transparent via-[#C5A059] to-transparent mx-auto opacity-50" />
+
+        {/* اللوجو — بنفس ارتفاع الكلمتين */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1, delay: 0.3 }}
+          className="shrink-0"
+        >
+          <Image
+            src="/mafia_logo.png"
+            alt="Mafia Club Logo"
+            width={180}
+            height={180}
+            className="select-none w-[100px] h-[100px] md:w-[150px] md:h-[150px] lg:w-[180px] lg:h-[180px] drop-shadow-[0_0_30px_rgba(138,3,3,0.3)]"
+            priority
+          />
+        </motion.div>
       </motion.div>
+
+      {/* خط فاصل */}
+      <div className="h-[1px] w-40 bg-gradient-to-r from-transparent via-[#C5A059] to-transparent mx-auto opacity-50 mb-14 relative z-10" />
 
       {/* ── Navigation Cards ── */}
       <motion.div
