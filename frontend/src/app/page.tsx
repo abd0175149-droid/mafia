@@ -91,6 +91,7 @@ export default function HomePage() {
             MAFIA
           </span>
           <span
+            dir="ltr"
             className="flex justify-between text-2xl md:text-4xl lg:text-5xl font-light text-[#8A0303] mt-1 w-full"
             style={{
               fontFamily: 'Amiri, serif',
