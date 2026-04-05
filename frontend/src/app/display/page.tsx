@@ -685,17 +685,21 @@ function NightAnim({ data }: { data: any }) {
   };
   const a = map[data.type] || { icon: '❓', text: data.type, color: 'text-[#808080]' };
 
+  // هل هذا حدث يُكشف فيه دور اللاعب؟ (اغتيال ناجح أو قنص)
+  const showCard = ['ASSASSINATION', 'SNIPE_MAFIA', 'SNIPE_CITIZEN'].includes(data.type);
+  const targetRole = data.extra?.targetRole || null;
+
   return (
-    <div className="text-center py-8">
+    <div className="text-center py-4">
       <motion.div
-        className="text-8xl mb-6"
+        className="text-7xl md:text-8xl mb-4"
         animate={{ scale: [0.8, 1.2, 1] }}
         transition={{ duration: 0.8, ease: "easeOut" }}
       >
         {a.icon}
       </motion.div>
       <motion.p
-        className={`text-4xl font-black tracking-widest mb-3 ${a.color}`}
+        className={`text-3xl md:text-4xl font-black tracking-widest mb-3 ${a.color}`}
         style={{ fontFamily: 'Amiri, serif' }}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -704,8 +708,29 @@ function NightAnim({ data }: { data: any }) {
         {a.text}
       </motion.p>
 
-      {/* الاغتيال — يعرض اسم الضحية */}
-      {data.type === 'ASSASSINATION' && data.targetName && (
+      {/* الاغتيال/القنص — كارد اللاعب مع دوره */}
+      {showCard && targetRole && (
+        <motion.div
+          className="flex justify-center mt-6"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8, type: 'spring', damping: 12 }}
+        >
+          <MafiaCard
+            playerNumber={data.targetPhysicalId}
+            playerName={data.targetName || 'Unknown'}
+            role={targetRole}
+            isFlipped={true}
+            flippable={false}
+            isAlive={true}
+            size="fluid"
+            className="w-48 h-[16rem] md:w-56 md:h-[19rem]"
+          />
+        </motion.div>
+      )}
+
+      {/* الاغتيال — بدون role (fallback للنص فقط) */}
+      {data.type === 'ASSASSINATION' && !targetRole && data.targetName && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
           <p className="text-white text-2xl font-black mt-4" style={{ fontFamily: 'Amiri, serif' }}>{data.targetName}</p>
           <p className="text-[#555] font-mono text-sm mt-1">#{data.targetPhysicalId}</p>
@@ -719,15 +744,13 @@ function NightAnim({ data }: { data: any }) {
         </motion.p>
       )}
 
-      {/* قنص ناجح — خرج المافيا فقط */}
-      {data.type === 'SNIPE_MAFIA' && (
+      {/* قنص — بدون role (fallback) */}
+      {data.type === 'SNIPE_MAFIA' && !targetRole && (
         <motion.p className="text-[#C5A059] text-lg font-mono mt-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
           خرج عضو مافيا من اللعبة
         </motion.p>
       )}
-
-      {/* قنص فاشل — خرج لاعبان */}
-      {data.type === 'SNIPE_CITIZEN' && (
+      {data.type === 'SNIPE_CITIZEN' && !targetRole && (
         <motion.p className="text-[#8A0303] text-lg font-mono mt-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
           خرج لاعبان من اللعبة
         </motion.p>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import MafiaCard from '@/components/MafiaCard';
 
 interface LeaderNightViewProps {
   gameState: any;
@@ -469,30 +470,36 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
             </div>
           </div>
 
-          {/* DDL اختيار الهدف */}
+          {/* شبكة اختيار الهدف — MafiaCard */}
           <div className="mb-6">
-            <label className="block text-[10px] font-mono text-[#808080] mb-2 tracking-widest uppercase text-center">
+            <label className="block text-[10px] font-mono text-[#808080] mb-3 tracking-widest uppercase text-center">
               SELECT TARGET
             </label>
-            <div className="grid grid-cols-2 gap-2">
-              {nightStep.availableTargets.map((target: any) => (
-                <button
-                  key={target.physicalId}
-                  onClick={() => setSelectedTarget(target.physicalId)}
-                  className={`p-3 border font-mono text-sm transition-all flex items-center gap-2 ${
-                    selectedTarget === target.physicalId
-                      ? `${meta.color.replace('text-', 'border-')} text-white bg-white/5`
-                      : 'border-[#2a2a2a] text-[#808080] hover:border-[#555] hover:text-white'
-                  }`}
-                >
-                  <span className={`w-7 h-7 flex items-center justify-center text-xs border shrink-0 ${
-                    selectedTarget === target.physicalId ? meta.color.replace('text-', 'border-') : 'border-[#333]'
-                  }`}>
-                    {target.physicalId}
-                  </span>
-                  <span className="truncate text-xs">{target.name}</span>
-                </button>
-              ))}
+            <div className="grid grid-cols-2 gap-3">
+              {nightStep.availableTargets.map((target: any) => {
+                const isSelected = selectedTarget === target.physicalId;
+                return (
+                  <div
+                    key={target.physicalId}
+                    onClick={() => setSelectedTarget(target.physicalId)}
+                    className={`cursor-pointer rounded-xl transition-all duration-300 ${
+                      isSelected
+                        ? `ring-2 ${meta.color.replace('text-', 'ring-')} shadow-lg scale-[1.03]`
+                        : 'ring-1 ring-[#2a2a2a] hover:ring-[#555] opacity-80 hover:opacity-100'
+                    }`}
+                  >
+                    <MafiaCard
+                      playerNumber={target.physicalId}
+                      playerName={target.name}
+                      role={null}
+                      isFlipped={false}
+                      flippable={false}
+                      size="sm"
+                      className="!w-full !h-[10rem]"
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
 
