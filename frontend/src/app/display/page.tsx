@@ -571,9 +571,11 @@ export default function DisplayPage() {
                           <MafiaCard
                             playerNumber={p.physicalId}
                             playerName={p.name}
-                            role={p.role || null}
-                            isFlipped={true}
+                            role={null}
+                            gender={p.gender === 'FEMALE' ? 'FEMALE' : 'MALE'}
+                            isFlipped={false}
                             flippable={false}
+                            showVoting={false}
                             isAlive={p.isAlive !== false}
                             size="sm"
                           />
