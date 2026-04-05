@@ -135,6 +135,18 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
     }
   };
 
+  // ── تأكيد إنهاء اللعبة (عند فوز ليلي) ──
+  const handleConfirmEnd = async () => {
+    setLoading(true);
+    try {
+      await emit('game:confirm-end', { roomId: gameState.roomId });
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // ── تفعيل الممرضة ──
   const handleActivateNurse = async () => {
     try {
@@ -356,23 +368,49 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
           </div>
         </div>
 
-        {/* زر بدء النهار */}
+        {/* زر بدء النهار أو إنهاء اللعبة */}
         <div className="text-center mt-8">
-          <button
-            onClick={handleStartDay}
-            disabled={loading || (!allRevealed && displayableEvents.length > 0)}
-            className={`btn-premium px-12 py-5 !text-lg group ${
-              allRevealed || displayableEvents.length === 0
-                ? '!border-[#C5A059]'
-                : '!border-[#2a2a2a] grayscale opacity-50'
-            }`}
-          >
-            <span className="text-white group-hover:tracking-[0.2em] transition-all">
-              ☀️ بدء نقاش اليوم الجديد
-            </span>
-          </button>
-          {!allRevealed && displayableEvents.length > 0 && (
-            <p className="text-[#555] font-mono text-[9px] mt-3 tracking-widest">اعرض جميع الأحداث أولاً</p>
+          {gameState.pendingWinner ? (
+            /* ── شاشة فوز معلقة ── */
+            <div className="noir-card p-8 border-[#C5A059]/40 max-w-md mx-auto">
+              <div className="text-6xl mb-4">{gameState.pendingWinner === 'MAFIA' ? '🩸' : '⚖️'}</div>
+              <h3 className="text-2xl font-black text-white mb-2" style={{ fontFamily: 'Amiri, serif' }}>
+                {gameState.pendingWinner === 'MAFIA' ? 'المافيا انتصرت!' : 'المدينة انتصرت!'}
+              </h3>
+              <p className="text-[#808080] font-mono text-xs tracking-widest uppercase mb-6">
+                {gameState.pendingWinner === 'MAFIA' ? 'THE SYNDICATE HAS PREVAILED' : 'THE CITY HAS BEEN CLEANSED'}
+              </p>
+              <button
+                onClick={handleConfirmEnd}
+                disabled={loading || (!allRevealed && displayableEvents.length > 0)}
+                className="btn-premium px-10 py-4 !text-base w-full !border-[#C5A059]"
+              >
+                <span>🏁 عرض النتائج وإنهاء اللعبة</span>
+              </button>
+              {!allRevealed && displayableEvents.length > 0 && (
+                <p className="text-[#555] font-mono text-[9px] mt-3 tracking-widest">اعرض جميع الأحداث أولاً</p>
+              )}
+            </div>
+          ) : (
+            /* ── زر بدء النهار العادي ── */
+            <>
+              <button
+                onClick={handleStartDay}
+                disabled={loading || (!allRevealed && displayableEvents.length > 0)}
+                className={`btn-premium px-12 py-5 !text-lg group ${
+                  allRevealed || displayableEvents.length === 0
+                    ? '!border-[#C5A059]'
+                    : '!border-[#2a2a2a] grayscale opacity-50'
+                }`}
+              >
+                <span className="text-white group-hover:tracking-[0.2em] transition-all">
+                  ☀️ بدء نقاش اليوم الجديد
+                </span>
+              </button>
+              {!allRevealed && displayableEvents.length > 0 && (
+                <p className="text-[#555] font-mono text-[9px] mt-3 tracking-widest">اعرض جميع الأحداث أولاً</p>
+              )}
+            </>
           )}
         </div>
       </div>

@@ -349,6 +349,7 @@ export default function LeaderPage() {
           ...prev,
           phase: 'MORNING_RECAP',
           morningEvents: data.events,
+          pendingWinner: data.pendingWinner || null,
         } as any;
       });
     });

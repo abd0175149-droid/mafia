@@ -4,7 +4,7 @@
 // ══════════════════════════════════════════════════════
 
 import { Server, Socket } from 'socket.io';
-import { getRoom, setPhase, Phase, getAlivePlayers } from '../game/state.js';
+import { setPhase, Phase } from '../game/state.js';
 import { getGameState, setGameState } from '../config/redis.js';
 import { resolveNight, resetNightActions, getAvailableTargets } from '../game/night-resolver.js';
 import { Role, NIGHT_ACTIVE_ROLES, isMafiaRole } from '../game/roles.js';
@@ -254,20 +254,23 @@ export function registerNightEvents(io: Server, socket: Socket) {
       // إبلاغ الجميع بالمرحلة الجديدة
       io.to(data.roomId).emit('game:phase-changed', { phase: Phase.MORNING_RECAP });
 
-      // إرسال كروت الملخص لليدر
+      // حفظ حالة الفوز المعلقة (إن وجدت) بدون بث فوري
+      let pendingWinner: string | null = null;
+      if (resolution.winResult !== WinResult.GAME_CONTINUES) {
+        pendingWinner = resolution.winResult === WinResult.MAFIA_WIN ? 'MAFIA' : 'CITIZEN';
+        // حفظ في الـ state للاستخدام لاحقاً عند تأكيد الليدر
+        const state = await getGameState(data.roomId);
+        if (state) {
+          state.pendingWinner = pendingWinner;
+          await setGameState(data.roomId, state);
+        }
+      }
+
+      // إرسال كروت الملخص لليدر + حالة الفوز المعلقة
       socket.emit('night:morning-recap', {
         events: resolution.events,
+        pendingWinner: pendingWinner,
       });
-
-      // فحص نهاية اللعبة
-      if (resolution.winResult !== WinResult.GAME_CONTINUES) {
-        const state = await getRoom(data.roomId);
-        io.to(data.roomId).emit('game:over', {
-          winner: resolution.winResult === WinResult.MAFIA_WIN ? 'MAFIA' : 'CITIZEN',
-          players: state?.players,
-        });
-        await setPhase(data.roomId, Phase.GAME_OVER);
-      }
 
       callback({ success: true, events: resolution.events });
     } catch (err: any) {
@@ -301,6 +304,38 @@ export function registerNightEvents(io: Server, socket: Socket) {
         targetName: event.targetName,
         extra: event.extra,
       });
+
+      callback({ success: true });
+    } catch (err: any) {
+      callback({ success: false, error: err.message });
+    }
+  });
+
+  // ── تأكيد إنهاء اللعبة (بعد عرض أحداث الصباح) ────
+  socket.on('game:confirm-end', async (data: { roomId: string }, callback) => {
+    try {
+      if (socket.data.role !== 'leader') {
+        return callback({ success: false, error: 'Only leader' });
+      }
+
+      const state = await getGameState(data.roomId);
+      if (!state) return callback({ success: false, error: 'Room not found' });
+
+      const winner = state.pendingWinner;
+      if (!winner) {
+        return callback({ success: false, error: 'No pending winner' });
+      }
+
+      // الآن نبث game:over للجميع
+      io.to(data.roomId).emit('game:over', {
+        winner: winner,
+        players: state.players,
+      });
+      await setPhase(data.roomId, Phase.GAME_OVER);
+
+      // مسح pendingWinner
+      state.pendingWinner = null;
+      await setGameState(data.roomId, state);
 
       callback({ success: true });
     } catch (err: any) {
