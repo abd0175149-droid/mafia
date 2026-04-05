@@ -593,6 +593,87 @@ export default function DisplayPage() {
           </motion.div>
         )}
 
+        {/* ══════════════════════════════════════════ */}
+        {/* مرحلة توزيع الأدوار (ROLE_GENERATION)    */}
+        {/* ══════════════════════════════════════════ */}
+        {step === 'lobby' && phase === Phase.ROLE_GENERATION && (
+          <motion.div
+            key="role-gen-screen"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            className="w-full max-w-[1600px] relative z-10 flex flex-col items-center justify-center p-8 min-h-[80vh]"
+          >
+            {/* عنوان اللعبة واللوجو (MAFIA CLUB) */}
+            <div className="flex flex-col items-center justify-center gap-4 mb-16 w-full">
+              <motion.div>
+                 <Image
+                   src="/mafia_logo.png"
+                   alt="Mafia Club Logo"
+                   width={100}
+                   height={100}
+                   className="select-none w-[80px] h-[80px] md:w-[120px] md:h-[120px] drop-shadow-[0_0_20px_rgba(138,3,3,0.3)]"
+                   priority
+                 />
+               </motion.div>
+               <h1 className="text-center">
+                 <span
+                   className="block text-5xl md:text-7xl font-black tracking-tight text-[#C5A059] mb-1"
+                   style={{ fontFamily: 'Amiri, serif', textShadow: '0 0 30px rgba(138,3,3,0.4)' }}
+                 >
+                   MAFIA
+                 </span>
+                 <span className="flex justify-between text-2xl md:text-3xl font-light text-[#8A0303] w-full" dir="ltr" style={{ fontFamily: 'Amiri, serif' }}>
+                   {'CLUB'.split('').map((l, i) => <span key={i}>{l}</span>)}
+                 </span>
+               </h1>
+            </div>
+
+            {/* شبكة الكروت (لاعبين) */}
+            <div className="w-full mb-16">
+               <div className="flex items-center justify-center border-b border-[#2a2a2a] pb-4 mb-10 max-w-2xl mx-auto">
+                  <p className="text-[#555] text-sm md:text-lg tracking-[0.3em] uppercase">ACTIVE ROSTER</p>
+               </div>
+               
+               <div className="grid grid-cols-[repeat(auto-fit,minmax(176px,1fr))] gap-8 justify-items-center w-full max-w-7xl mx-auto">
+                 <AnimatePresence mode="popLayout">
+                   {players.slice().reverse().map((p: any, i: number) => (
+                      <motion.div
+                        key={p.physicalId}
+                        layout
+                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                      >
+                        <MafiaCard
+                          playerNumber={p.physicalId}
+                          playerName={p.name}
+                          role={null}
+                          gender={p.gender === 'FEMALE' ? 'FEMALE' : 'MALE'}
+                          isFlipped={false}
+                          flippable={false}
+                          showVoting={false}
+                          isAlive={p.isAlive !== false}
+                          size="sm"
+                        />
+                      </motion.div>
+                   ))}
+                 </AnimatePresence>
+               </div>
+            </div>
+
+            {/* رسالة الانتظار */}
+            <motion.div
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="mt-8 text-center border-t border-[#2a2a2a]/40 pt-8 w-full max-w-3xl"
+            >
+              <h2 className="text-3xl font-black text-[#C5A059] tracking-widest uppercase mb-4" style={{ fontFamily: 'Amiri, serif', textShadow: '0 0 15px rgba(197,160,89,0.3)' }}>في انتظار بدء الجيم</h2>
+              <p className="text-[#808080] font-mono tracking-[0.4em] text-sm uppercase">AWAITING OPERATION COMMENCEMENT...</p>
+            </motion.div>
+          </motion.div>
+        )}
+
         {/* ═══ النهار ═══ */}
         {step === 'lobby' && phase.startsWith('DAY_') && (
           <DisplayDayView key="day-view" roomId={currentRoomId} players={players} initialDiscussionState={discussionState} teamCounts={teamCounts} />
