@@ -165,24 +165,6 @@ export default function PlayerFlow({ initialRoomCode = '' }: PlayerFlowProps) {
 
   return (
     <div className="display-bg min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 font-sans relative overflow-hidden blood-vignette selection:bg-[#8A0303] selection:text-white">
-      
-      {/* ── اللوجو الشبحي في المنتصف (خلف كل شيء) ── */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 0.05, scale: 1 }}
-          transition={{ duration: 2, ease: 'easeOut' }}
-        >
-          <Image
-            src="/mafia_logo.png"
-            alt="Mafia Club Logo"
-            width={400}
-            height={400}
-            className="select-none blur-[1px] w-[300px] h-[300px] sm:w-[400px] sm:h-[400px]"
-            priority
-          />
-        </motion.div>
-      </div>
 
       {/* ── Title: MAFIA CLUB + Logo ── */}
       <motion.div
@@ -356,7 +338,7 @@ export default function PlayerFlow({ initialRoomCode = '' }: PlayerFlowProps) {
                     <select
                       value={dobDay}
                       onChange={(e) => setDobDay(e.target.value)}
-                      className="p-3 bg-black/40 border border-[#2a2a2a] rounded-lg text-white text-center focus:border-[#C5A059] focus:outline-none text-xs"
+                      className="p-3 bg-[#0c0c0c] border border-[#2a2a2a] rounded-lg text-white text-center focus:border-[#C5A059] focus:outline-none text-xs"
                     >
                       <option value="">DD</option>
                       {Array.from({ length: 31 }, (_, i) => (
@@ -366,7 +348,7 @@ export default function PlayerFlow({ initialRoomCode = '' }: PlayerFlowProps) {
                     <select
                       value={dobMonth}
                       onChange={(e) => setDobMonth(e.target.value)}
-                      className="p-3 bg-black/40 border border-[#2a2a2a] rounded-lg text-white text-center focus:border-[#C5A059] focus:outline-none text-xs"
+                      className="p-3 bg-[#0c0c0c] border border-[#2a2a2a] rounded-lg text-white text-center focus:border-[#C5A059] focus:outline-none text-xs"
                     >
                       <option value="">MM</option>
                       {Array.from({ length: 12 }, (_, i) => (
@@ -376,7 +358,7 @@ export default function PlayerFlow({ initialRoomCode = '' }: PlayerFlowProps) {
                     <select
                       value={dobYear}
                       onChange={(e) => setDobYear(e.target.value)}
-                      className="p-3 bg-black/40 border border-[#2a2a2a] rounded-lg text-white text-center focus:border-[#C5A059] focus:outline-none text-xs"
+                      className="p-3 bg-[#0c0c0c] border border-[#2a2a2a] rounded-lg text-white text-center focus:border-[#C5A059] focus:outline-none text-xs"
                     >
                       <option value="">YYYY</option>
                       {Array.from({ length: 50 }, (_, i) => {
@@ -495,8 +477,8 @@ export default function PlayerFlow({ initialRoomCode = '' }: PlayerFlowProps) {
               <h2 className="text-3xl font-black mb-4 text-[#C5A059]" style={{ fontFamily: 'Amiri, serif' }}>اكتمل التشفير</h2>
               
               <div className="bg-black/50 border border-[#2a2a2a] rounded-lg p-5 mb-8">
-                <p className="text-white text-lg font-mono tracking-widest mb-1">
-                  AGENT_{physicalId?.toString().padStart(2, '0')}
+                <p className="text-[#C5A059] text-5xl font-black font-mono tracking-widest mb-3">
+                  {physicalId?.toString().padStart(2, '0')}
                 </p>
                 <p className="text-[#808080] font-bold">
                   {displayName}
