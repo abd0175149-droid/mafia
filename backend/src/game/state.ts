@@ -133,6 +133,7 @@ export interface GameState {
   } | null;
   tiedCandidates?: Candidate[]; // In case of tie
   winner: 'MAFIA' | 'CITIZEN' | null;
+  pendingWinner?: string | null; // فوز مُعلّق (ينتظر تأكيد الليدر بعد ملخص الصباح)
   createdAt: string;
 }
 
