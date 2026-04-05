@@ -163,6 +163,7 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
         gameName: state.config.gameName,
         playerCount: state.players.length,
         maxPlayers: state.config.maxPlayers,
+        occupiedSeats: state.players.map(p => p.physicalId),
       });
     } catch (err: any) {
       callback({ success: false, error: err.message });

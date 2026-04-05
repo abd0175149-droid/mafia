@@ -82,8 +82,8 @@ export default function PlayerFlow({ initialRoomCode = '' }: PlayerFlowProps) {
       setRoomId(res.roomId);
       setGameName(res.gameName);
       setMaxPlayers(res.maxPlayers || 10);
-      if (res.players && Array.isArray(res.players)) {
-        setOccupiedSeats(res.players.map((p: any) => p.physicalId).filter(Boolean));
+      if (res.occupiedSeats && Array.isArray(res.occupiedSeats)) {
+        setOccupiedSeats(res.occupiedSeats);
       }
       if (!code) setStep('phone');
     } catch (err: any) {
@@ -183,6 +183,56 @@ export default function PlayerFlow({ initialRoomCode = '' }: PlayerFlowProps) {
           />
         </motion.div>
       </div>
+
+      {/* ── Title: MAFIA CLUB + Logo ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+        className="flex items-center justify-center gap-4 md:gap-6 mb-8 relative z-10 w-full max-w-md"
+      >
+        {/* النصوص */}
+        <h1 className="text-center md:text-right">
+          <span
+            className="block text-4xl md:text-5xl font-black tracking-tight text-[#C5A059]"
+            style={{
+              fontFamily: 'Amiri, serif',
+              textShadow: '0 0 30px rgba(138,3,3,0.4)',
+            }}
+          >
+            MAFIA
+          </span>
+          <span
+            dir="ltr"
+            className="flex justify-between text-xl md:text-2xl font-light text-[#8A0303] mt-1 w-full"
+            style={{
+              fontFamily: 'Amiri, serif',
+              textShadow: '0 0 20px rgba(138,3,3,0.3)',
+            }}
+          >
+            {'CLUB'.split('').map((letter, i) => (
+              <span key={i}>{letter}</span>
+            ))}
+          </span>
+        </h1>
+
+        {/* اللوجو */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1, delay: 0.3 }}
+          className="shrink-0"
+        >
+          <Image
+            src="/mafia_logo.png"
+            alt="Mafia Club Logo"
+            width={80}
+            height={80}
+            className="select-none w-[60px] h-[60px] md:w-[80px] md:h-[80px] drop-shadow-[0_0_20px_rgba(138,3,3,0.3)]"
+            priority
+          />
+        </motion.div>
+      </motion.div>
 
       <motion.div
         initial={{ opacity: 0, y: 10 }}
