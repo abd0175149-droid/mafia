@@ -3,6 +3,32 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import Image from 'next/image';
+
+// ── SVG Icons ──
+const DisplayIcon = () => (
+  <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="transition-all duration-500">
+    <rect x="4" y="6" width="40" height="28" rx="3" stroke="currentColor" strokeWidth="2" fill="none"/>
+    <line x1="24" y1="34" x2="24" y2="42" stroke="currentColor" strokeWidth="2"/>
+    <line x1="16" y1="42" x2="32" y2="42" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    <circle cx="24" cy="20" r="6" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+    <circle cx="24" cy="20" r="2" fill="currentColor"/>
+  </svg>
+);
+
+const PlayerIcon = () => (
+  <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="transition-all duration-500">
+    <circle cx="24" cy="16" r="8" stroke="currentColor" strokeWidth="2" fill="none"/>
+    <path d="M8 42c0-8.837 7.163-16 16-16s16 7.163 16 16" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/>
+    <path d="M20 14l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const LeaderIcon = () => (
+  <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M16 4l4 8 8 2-6 6 2 8-8-4-8 4 2-8-6-6 8-2z" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinejoin="round"/>
+  </svg>
+);
 
 export default function HomePage() {
   const [isLeaderLoggedIn, setIsLeaderLoggedIn] = useState(false);
@@ -44,42 +70,87 @@ export default function HomePage() {
   };
 
   return (
-    <div className="display-bg min-h-screen flex flex-col items-center justify-center p-6 sm:p-12 relative overflow-hidden font-arabic selection:bg-[#8A0303] selection:text-white">
-      
-      {/* ── Logo & Title (Noir Style) ── */}
+    <div className="display-bg min-h-screen flex flex-col items-center justify-center p-6 sm:p-12 relative overflow-hidden font-arabic selection:bg-[#8A0303] selection:text-white blood-vignette">
+
+      {/* ── اللوجو الشبحي في المنتصف (خلف كل شيء) ── */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 0.07, scale: 1 }}
+          transition={{ duration: 2, ease: 'easeOut' }}
+        >
+          <Image
+            src="/mafia_logo.png"
+            alt="Mafia Club Logo"
+            width={500}
+            height={500}
+            className="select-none blur-[1px]"
+            priority
+          />
+        </motion.div>
+      </div>
+
+      {/* ── Title: MAFIA CLUB ── */}
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-        className="text-center mb-16 relative z-10 w-full max-w-4xl"
+        className="text-center mb-14 relative z-10 w-full max-w-4xl"
       >
-        <div className="absolute top-[-50%] left-1/2 -translate-x-1/2 w-64 h-64 bg-[#8A0303] rounded-full blur-[150px] opacity-20 pointer-events-none" />
-        
-        <h1 className="text-7xl md:text-9xl font-black mb-6 tracking-tighter mix-blend-screen" style={{ fontFamily: 'Amiri, serif' }}>
-          <span className="text-[#8A0303] tracking-normal drop-shadow-[0_5px_15px_rgba(138,3,3,0.5)]">المافيا</span>
+        <h1 className="mb-4">
+          <span
+            className="block text-7xl md:text-9xl font-black tracking-tight text-[#C5A059]"
+            style={{
+              fontFamily: 'Amiri, serif',
+              textShadow: '0 0 60px rgba(138,3,3,0.4), 0 4px 20px rgba(0,0,0,0.8)',
+            }}
+          >
+            MAFIA
+          </span>
+          <span
+            className="block text-3xl md:text-5xl font-light tracking-[0.5em] text-[#8A0303] mt-1"
+            style={{
+              fontFamily: 'Amiri, serif',
+              textShadow: '0 0 30px rgba(138,3,3,0.3)',
+            }}
+          >
+            CLUB
+          </span>
         </h1>
-        <div className="h-[1px] w-32 bg-gradient-to-r from-transparent via-[#C5A059] to-transparent mx-auto mb-6 opacity-60" />
-        <p className="text-[#a0a0a0] text-xl font-light uppercase tracking-[0.3em] font-mono">
-          Phygital Engine
-        </p>
+        <div className="h-[1px] w-40 bg-gradient-to-r from-transparent via-[#C5A059] to-transparent mx-auto opacity-50" />
       </motion.div>
 
-      {/* ── Core Navigation Cards ── */}
+      {/* ── Navigation Cards ── */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1, delay: 0.3 }}
-        className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-3xl relative z-10 mb-16"
+        className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl relative z-10 mb-12"
       >
         {/* Display Card */}
         <Link href="/display" className="group block h-full">
           <motion.div
-            className="noir-card-hover h-full p-12 text-center flex flex-col items-center justify-center border-b-4 border-b-[#2a2a2a] group-hover:border-b-[#8A0303]"
+            whileHover={{ y: -4, scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="h-full p-10 text-center flex flex-col items-center justify-center rounded-xl
+              bg-black/50 backdrop-blur-md border border-[#2a2a2a] 
+              group-hover:border-[#8A0303]/60 group-hover:shadow-[0_0_40px_rgba(138,3,3,0.15)]
+              transition-all duration-500 relative overflow-hidden"
           >
-            <div className="text-6xl mb-6 grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500">👁️</div>
-            <h2 className="text-3xl font-black mb-3 text-white tracking-widest uppercase" style={{ fontFamily: 'Amiri, serif' }}>شاشة العرض</h2>
-            <p className="text-[#808080] text-sm tracking-wide">
-              واجهة المراقبة والاستجواب
+            {/* شريط علوي */}
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#8A0303]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            
+            <div className="text-[#555] group-hover:text-[#8A0303] transition-colors duration-500 mb-5">
+              <DisplayIcon />
+            </div>
+            <h2
+              className="text-2xl font-black mb-2 text-white tracking-widest uppercase"
+              style={{ fontFamily: 'Amiri, serif' }}
+            >
+              شاشة العرض
+            </h2>
+            <p className="text-[#555] text-xs font-mono tracking-widest uppercase">
+              DISPLAY MONITOR
             </p>
           </motion.div>
         </Link>
@@ -87,12 +158,27 @@ export default function HomePage() {
         {/* Player Card */}
         <Link href="/player" className="group block h-full">
           <motion.div
-            className="noir-card-hover h-full p-12 text-center flex flex-col items-center justify-center border-b-4 border-b-[#2a2a2a] group-hover:border-b-[#C5A059]"
+            whileHover={{ y: -4, scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="h-full p-10 text-center flex flex-col items-center justify-center rounded-xl
+              bg-black/50 backdrop-blur-md border border-[#2a2a2a]
+              group-hover:border-[#C5A059]/60 group-hover:shadow-[0_0_40px_rgba(197,160,89,0.15)]
+              transition-all duration-500 relative overflow-hidden"
           >
-            <div className="text-6xl mb-6 grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-500">🎭</div>
-            <h2 className="text-3xl font-black mb-3 text-white tracking-widest uppercase" style={{ fontFamily: 'Amiri, serif' }}>بطاقة اللاعب</h2>
-            <p className="text-[#808080] text-sm tracking-wide">
-              تسجيل الدخول للهوية السرية
+            {/* شريط علوي */}
+            <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#C5A059]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            
+            <div className="text-[#555] group-hover:text-[#C5A059] transition-colors duration-500 mb-5">
+              <PlayerIcon />
+            </div>
+            <h2
+              className="text-2xl font-black mb-2 text-white tracking-widest uppercase"
+              style={{ fontFamily: 'Amiri, serif' }}
+            >
+              بطاقة اللاعب
+            </h2>
+            <p className="text-[#555] text-xs font-mono tracking-widest uppercase">
+              PLAYER CARD
             </p>
           </motion.div>
         </Link>
@@ -127,10 +213,19 @@ export default function HomePage() {
               </div>
               <Link href="/leader" className="group block">
                 <motion.div
-                  className="noir-card-hover py-8 text-center border-[#C5A059]/20"
+                  whileHover={{ y: -2 }}
+                  className="py-6 text-center rounded-xl bg-black/50 backdrop-blur-md border border-[#C5A059]/20 
+                    group-hover:border-[#C5A059]/50 group-hover:shadow-[0_0_30px_rgba(197,160,89,0.1)]
+                    transition-all duration-500 flex items-center justify-center gap-3"
                 >
-                  <h2 className="text-2xl font-bold mb-2 text-[#C5A059] tracking-widest uppercase" style={{ fontFamily: 'Amiri, serif' }}>
-                    غرفة العمليات (الليدر)
+                  <div className="text-[#C5A059]">
+                    <LeaderIcon />
+                  </div>
+                  <h2
+                    className="text-xl font-bold text-[#C5A059] tracking-widest uppercase"
+                    style={{ fontFamily: 'Amiri, serif' }}
+                  >
+                    غرفة العمليات
                   </h2>
                 </motion.div>
               </Link>
@@ -144,11 +239,15 @@ export default function HomePage() {
               className="text-center"
             >
               <Link href="/leader/login">
-                <button
-                  className="btn-ghost px-10 py-5 text-sm uppercase tracking-[0.2em]"
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="px-10 py-4 text-sm uppercase tracking-[0.2em] font-mono text-[#555] 
+                    border border-[#2a2a2a] rounded-xl bg-black/30 backdrop-blur-sm
+                    hover:text-[#C5A059] hover:border-[#C5A059]/30 transition-all duration-500"
                 >
                   وصول الإدارة (Restricted)
-                </button>
+                </motion.button>
               </Link>
             </motion.div>
           )}
@@ -164,7 +263,7 @@ export default function HomePage() {
       >
         <div className="h-[1px] w-24 bg-[#2a2a2a] mx-auto mb-4" />
         <p className="text-[#444] text-[10px] tracking-[0.4em] font-mono uppercase">
-          Classified • Mafia Engine v2.0
+          Mafia Club • v2.0
         </p>
       </motion.div>
     </div>
