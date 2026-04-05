@@ -502,7 +502,7 @@ export default function LeaderPage() {
   // ══════════════════════════════════════════════════
   if (gameState) {
     return (
-      <div className="display-bg min-h-screen p-8 font-sans">
+      <div className="display-bg min-h-screen p-8 font-sans relative overflow-hidden blood-vignette selection:bg-[#8A0303] selection:text-white">
         {/* Minimal Navigation Bar */}
         <div className="flex flex-row-reverse items-center justify-between mb-6 pb-4 border-b border-[#2a2a2a]/50">
           <div className="flex items-center gap-6">
@@ -585,8 +585,8 @@ export default function LeaderPage() {
   // شاشة إنشاء لعبة + الألعاب النشطة
   // ══════════════════════════════════════════════════
   return (
-    <div className="display-bg min-h-screen flex flex-col items-center py-12 px-6 font-sans">
-      <div className="w-full max-w-2xl">
+    <div className="display-bg min-h-screen flex flex-col items-center py-12 px-6 font-sans relative overflow-hidden blood-vignette selection:bg-[#8A0303] selection:text-white">
+      <div className="w-full max-w-2xl relative z-10">
         {/* Header */}
         <div className="text-center mb-12 border-b border-[#2a2a2a] pb-8">
           <div className="text-6xl mb-4 grayscale opacity-80">⚖️</div>
