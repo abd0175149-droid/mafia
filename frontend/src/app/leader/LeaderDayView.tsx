@@ -89,7 +89,7 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
     const candidate = candidates[candidateIndex];
     if (candidate.votes + delta < 0) return;
 
-    const maxVotes = alivePlayers.filter((p: any) => !p.isSilenced).length;
+    const maxVotes = alivePlayers.length; // المسكت يصوت
 
     // فحص العداد المحلي المتزامن — يتحدث فوراً بدون انتظار السيرفر
     if (delta === 1 && localVoteTotalRef.current >= maxVotes) return;
@@ -811,7 +811,7 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
   if (gameState.phase === 'DAY_VOTING') {
     // حساب مجموع الأصوات من كل الكروت مباشرةً (ليس من totalVotesCast)
     const totalVotes = candidates.reduce((sum: number, c: any) => sum + c.votes, 0);
-    const votingAliveCount = alivePlayers.filter((p: any) => !p.isSilenced).length;
+    const votingAliveCount = alivePlayers.length; // المسكت يصوت
     const isComplete = totalVotes >= votingAliveCount;
 
     return (

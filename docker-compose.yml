@@ -33,6 +33,20 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Redis (In-Memory State) ─────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
     restart: unless-stopped
 
   # ── PostgreSQL (Persistent DB) ──────────────────
@@ -55,3 +69,4 @@ services:
 
 volumes:
   postgres_data:
+

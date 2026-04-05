@@ -15,7 +15,9 @@ import {
   handleTieBreaker,
   TieBreakerAction,
 } from '../game/vote-engine.js';
-import { WinResult } from '../game/win-checker.js';
+import { checkWinCondition, WinResult } from '../game/win-checker.js';
+import { isMafiaRole } from '../game/roles.js';
+import { getGameState, setGameState } from '../config/redis.js';
 
 export function registerDayEvents(io: Server, socket: Socket) {
 
@@ -275,18 +277,7 @@ export function registerDayEvents(io: Server, socket: Socket) {
     }
   });
 
-  // ── العفو (بعد التبرير) ──────────────────────────
-  socket.on('day:pardon', async (data: { roomId: string }, callback) => {
-    try {
-      if (socket.data.role !== 'leader') return callback({ success: false, error: 'Only leader' });
-
-      // لا إقصاء → الانتقال لليل
-      io.to(data.roomId).emit('day:pardoned');
-      callback({ success: true });
-    } catch (err: any) {
-      callback({ success: false, error: err.message });
-    }
-  });
+  // ── (تم حذف العفو — غير مطلوب حسب قواعد اللعبة) ──
 
   // ── كشف النتيجة ──────────────────────────────
   socket.on('day:trigger-reveal', async (data: { roomId: string, result: any }, callback) => {
@@ -333,12 +324,59 @@ export function registerDayEvents(io: Server, socket: Socket) {
       const state = await handleTieBreaker(data.roomId, data.action, data.tiedCandidates);
 
       if (data.action === TieBreakerAction.CANCEL) {
+        // إلغاء التصويت → العودة لمرحلة النقاش
+        await setPhase(data.roomId, Phase.DAY_DISCUSSION);
+        io.to(data.roomId).emit('game:phase-changed', { phase: Phase.DAY_DISCUSSION });
         io.to(data.roomId).emit('day:cancelled');
       } else if (data.action === TieBreakerAction.ELIMINATE_ALL) {
-        io.to(data.roomId).emit('day:elimination', {
-          eliminated: data.tiedCandidates?.map(c => c.targetPhysicalId) || [],
+        // إقصاء جميع المتعادلين مع تطبيق قواعد الاتفاقيات وفحص الفوز
+        const eliminated: number[] = [];
+        const revealedRoles: { physicalId: number; role: string }[] = [];
+
+        if (data.tiedCandidates) {
+          for (const candidate of data.tiedCandidates) {
+            const target = state.players.find((p: any) => p.physicalId === candidate.targetPhysicalId);
+            if (target && target.isAlive) {
+              target.isAlive = false;
+              eliminated.push(target.physicalId);
+              revealedRoles.push({ physicalId: target.physicalId, role: target.role || 'UNKNOWN' });
+
+              // قاعدة الاتفاقية: إذا المستهدف مواطن → المُبادر يُقصى أيضاً
+              if (candidate.type === 'DEAL' && candidate.initiatorPhysicalId) {
+                const targetIsMafia = target.role ? isMafiaRole(target.role) : false;
+                if (!targetIsMafia) {
+                  const initiator = state.players.find((p: any) => p.physicalId === candidate.initiatorPhysicalId);
+                  if (initiator && initiator.isAlive) {
+                    initiator.isAlive = false;
+                    eliminated.push(initiator.physicalId);
+                    revealedRoles.push({ physicalId: initiator.physicalId, role: initiator.role || 'UNKNOWN' });
+                  }
+                }
+              }
+            }
+          }
+          await setGameState(data.roomId, state);
+        }
+
+        // بث الإقصاء
+        io.to(data.roomId).emit('day:elimination-pending', {
+          eliminated,
+          revealedRoles,
           type: 'ELIMINATE_ALL',
+          winResult: WinResult.GAME_CONTINUES,
         });
+
+        // فحص شرط الفوز
+        const winResult = checkWinCondition(state);
+        if (winResult !== WinResult.GAME_CONTINUES) {
+          state.winner = winResult === WinResult.MAFIA_WIN ? 'MAFIA' : 'CITIZEN';
+          await setGameState(data.roomId, state);
+          io.to(data.roomId).emit('game:over', {
+            winner: winResult === WinResult.MAFIA_WIN ? 'MAFIA' : 'CITIZEN',
+            players: state.players,
+          });
+          await setPhase(data.roomId, Phase.GAME_OVER);
+        }
       } else {
         await setPhase(data.roomId, Phase.DAY_VOTING);
         io.to(data.roomId).emit('day:voting-started', {

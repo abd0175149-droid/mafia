@@ -94,8 +94,10 @@ async function main() {
 ╚══════════════════════════════════════════════╝
     `);
 
-    // ── 6. Auto-Seed Test Game ────────────────────
-    await seedDummyGame();
+    // ── 6. Auto-Seed Test Game (تطوير فقط) ────────
+    if (process.env.NODE_ENV !== 'production') {
+      await seedDummyGame();
+    }
   });
 }
 

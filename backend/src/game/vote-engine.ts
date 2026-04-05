@@ -32,9 +32,10 @@ export async function initVoting(roomId: string): Promise<GameState> {
     votes: 0,
   }));
 
-  // إنشاء كارت عادي للوضع الطبيعي للاعبين الأحياء غير المستهدفين باتفاقية وغير المسكتين (المسكت لا يصوت عليه؟ بلى يمكن التصويت ضده، المسكت فقط يُحرم من الكلام.. انتظر، 'غير مُسكت' في vote-engine القديم كانت تعني أنه لا يضاف كمرشح؟ لا، المسكت لا يمكن التصويت عليه ربما. سنترك الفلتر كما كان).
+  // إنشاء كارت عادي لكل لاعب حي غير مستهدف باتفاقية
+  // المسكت يظهر كمرشح (يمكن التصويت ضده) ويمكنه التصويت — فقط لا يتكلم في النقاش والتبرير
   const playerCandidates: Candidate[] = alive
-    .filter(p => !p.isSilenced && !dealTargets.includes(p.physicalId))
+    .filter(p => !dealTargets.includes(p.physicalId))
     .map(p => ({
       type: CandidateType.PLAYER as const,
       targetPhysicalId: p.physicalId,
@@ -78,8 +79,9 @@ export async function castVote(
   }
 
   // منع تجاوز الحد الأقصى للأصوات
+  // المسكت يمكنه التصويت — الحد = كل الأحياء
   if (delta === 1) {
-    const maxVotes = getAlivePlayers(state).filter(p => !p.isSilenced).length;
+    const maxVotes = getAlivePlayers(state).length;
     if (state.votingState.totalVotesCast >= maxVotes) {
       throw new Error('Maximum votes reached');
     }
@@ -96,9 +98,10 @@ export async function castVote(
 
 /**
  * الإقفال الآلي: عندما (مجموع الأصوات == عدد الأحياء)
+ * المسكت يصوت — لذا الحد = كل الأحياء
  */
 export function isVotingComplete(state: GameState): boolean {
-  const aliveCount = getAlivePlayers(state).filter(p => !p.isSilenced).length;
+  const aliveCount = getAlivePlayers(state).length;
   return state.votingState.totalVotesCast >= aliveCount;
 }
 
@@ -195,8 +198,9 @@ export async function resolveVoting(roomId: string): Promise<VoteResolution> {
       eliminated.push(target.physicalId);
       revealedRoles.push({ physicalId: target.physicalId, role: target.role || 'UNKNOWN' });
 
-      // إذا كان المستهدف مواطناً → يُقصى المبادر أيضاً
-      if (target.role && !isMafiaRole(target.role) && initiator) {
+      // إذا الدور غير معروف (null) → يُعامل كمواطن (الأسوأ للمُبادر)
+      const targetIsMafia = target.role ? isMafiaRole(target.role) : false;
+      if (!targetIsMafia && initiator) {
         initiator.isAlive = false;
         eliminated.push(initiator.physicalId);
         revealedRoles.push({ physicalId: initiator.physicalId, role: initiator.role || 'UNKNOWN' });

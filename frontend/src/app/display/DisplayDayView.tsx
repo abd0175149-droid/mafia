@@ -206,10 +206,7 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
       setJustTimeRemaining(0);
     };
 
-    const onPardoned = () => {
-      // العفو - سيُنتقل لليل عبر phase-changed
-      setPhase('DISCUSSION');
-    };
+
 
     socket.on('day:voting-started', onVotingStarted);
     socket.on('day:vote-update', onVoteUpdate);
@@ -222,7 +219,7 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
     socket.on('day:justification-started', onJustificationStarted);
     socket.on('day:justification-timer-started', onJustificationTimerStarted);
     socket.on('day:justification-timer-stopped', onJustificationTimerStopped);
-    socket.on('day:pardoned', onPardoned);
+
 
     return () => {
       socket.off('day:voting-started', onVotingStarted);
@@ -236,11 +233,12 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
       socket.off('day:justification-started', onJustificationStarted);
       socket.off('day:justification-timer-started', onJustificationTimerStarted);
       socket.off('day:justification-timer-stopped', onJustificationTimerStopped);
-      socket.off('day:pardoned', onPardoned);
+
     };
   }, [roomId]);
 
-  const aliveCount = players.filter((p: any) => p.isAlive && !p.isSilenced).length;
+  // المسكت يمكنه التصويت — لذا الحد = كل الأحياء
+  const aliveCount = players.filter((p: any) => p.isAlive).length;
 
   const prevVotesRef = useRef(totalVotesCast);
   const sortedCandidates = [...candidates].sort((a,b) => b.votes - a.votes);

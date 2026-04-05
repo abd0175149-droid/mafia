@@ -318,8 +318,16 @@ export function registerNightEvents(io: Server, socket: Socket) {
       // تصفير حالة النقاش والتصويت من الجولة السابقة
       const state = await getGameState(data.roomId);
       if (state) {
-        (state as any).discussionState = null;
-        (state as any).votingState = null;
+        state.discussionState = null;
+        state.votingState = {
+          totalVotesCast: 0,
+          deals: [],
+          candidates: [],
+          hiddenPlayersFromVoting: [],
+          tieBreakerLevel: 0,
+        };
+        // تصفير الإسكات لبداية نهار جديد
+        state.players.forEach(p => { if (p.isAlive) p.isSilenced = false; });
         await setGameState(data.roomId, state);
       }
 
