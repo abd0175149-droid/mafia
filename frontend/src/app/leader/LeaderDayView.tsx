@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
+import MafiaCard from '@/components/MafiaCard';
 
 interface LeaderDayViewProps {
   gameState: any;
@@ -402,28 +403,22 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
           AWAITING DIRECTOR ORDER TO DECLASSIFY IDENTITIES...
         </p>
 
-        {/* كروت المُقصَين — مرئية لليدر فقط */}
-        <div className="space-y-3 mb-8 w-full max-w-sm">
-          <p className="text-[#555] font-mono text-[10px] tracking-widest uppercase mb-2">🔒 LEADER EYES ONLY</p>
+        {/* كروت المُقصَين — MafiaCard */}
+        <div className="flex flex-wrap justify-center gap-3 mb-8">
+          <p className="w-full text-center text-[#555] font-mono text-[10px] tracking-widest uppercase mb-2">🔒 LEADER EYES ONLY</p>
           {eliminatedIds.map((physicalId: number) => {
             const player = gameState.players.find((p: any) => p.physicalId === physicalId);
             const role = pendingRolesMap[physicalId] || player?.role || 'UNKNOWN';
-            const isMafia = ['GODFATHER','SILENCER','CHAMELEON','MAFIA_REGULAR'].includes(role);
-
             return (
-              <div key={physicalId} className={`border p-4 flex items-center gap-4 bg-black/60 ${isMafia ? 'border-[#ff4444]/40' : 'border-[#44ff44]/40'}`}>
-                <div className={`w-12 h-12 border-2 rounded-full flex items-center justify-center font-mono text-xl font-black shrink-0 ${
-                  isMafia ? 'border-[#ff4444] text-[#ff4444]' : 'border-[#44ff44] text-[#44ff44]'
-                }`}>
-                  {physicalId}
-                </div>
-                <div className="text-right flex-1">
-                  <p className="text-white font-bold text-sm" style={{ fontFamily: 'Amiri, serif' }}>{player?.name || 'Unknown'}</p>
-                  <p className={`font-mono text-xs font-bold ${isMafia ? 'text-[#ff4444]' : 'text-[#44ff44]'}`}>
-                    {isMafia ? '🎭' : '🏛'} {role}
-                  </p>
-                </div>
-              </div>
+              <MafiaCard
+                key={physicalId}
+                playerNumber={physicalId}
+                playerName={player?.name || 'Unknown'}
+                role={role}
+                isFlipped={true}
+                flippable={false}
+                size="sm"
+              />
             );
           })}
         </div>
@@ -469,32 +464,22 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
           <p className="text-[#808080] font-mono uppercase tracking-widest text-xs">IDENTITY DECLASSIFIED • ELIMINATION COMPLETE</p>
         </div>
 
-        {/* قائمة المُقصَين */}
-        <div className="space-y-4 mb-10 w-full max-w-md">
+        {/* قائمة المُقصَين — MafiaCard */}
+        <div className="flex flex-wrap justify-center gap-4 mb-10">
           {eliminated.map((physicalId: number) => {
             const player = gameState.players.find((p: any) => p.physicalId === physicalId);
             const role = revealedRolesData[physicalId];
-            const isMafia = role && ['GODFATHER','SILENCER','CHAMELEON','MAFIA_REGULAR'].includes(role);
-
             return (
-              <div key={physicalId} className={`noir-card p-6 ${isMafia ? 'border-[#ff4444]/50' : 'border-[#44ff44]/50'}`}>
-                <div className="flex items-center gap-4">
-                  <div className={`w-16 h-16 border-2 rounded-full flex items-center justify-center font-mono text-3xl font-black ${
-                    isMafia ? 'border-[#ff4444] text-[#ff4444] bg-[#ff4444]/10' : 'border-[#44ff44] text-[#44ff44] bg-[#44ff44]/10'
-                  }`}>
-                    {physicalId}
-                  </div>
-                  <div className="text-right flex-1">
-                    <h3 className="text-xl font-bold text-white" style={{ fontFamily: 'Amiri, serif' }}>{player?.name || 'Unknown'}</h3>
-                    <p className={`font-mono text-sm font-bold mt-1 ${isMafia ? 'text-[#ff4444]' : 'text-[#44ff44]'}`}>
-                      {role || 'UNKNOWN'}
-                    </p>
-                    <p className={`text-[10px] font-mono tracking-widest mt-1 ${isMafia ? 'text-[#ff4444]/60' : 'text-[#44ff44]/60'}`}>
-                      {isMafia ? '🎭 MAFIA OPERATIVE — ELIMINATED' : '🏛 CITIZEN — ELIMINATED'}
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <MafiaCard
+                key={physicalId}
+                playerNumber={physicalId}
+                playerName={player?.name || 'Unknown'}
+                role={role}
+                isFlipped={true}
+                flippable={false}
+                isAlive={false}
+                size="md"
+              />
             );
           })}
         </div>
@@ -901,14 +886,18 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
                     {revealedRoles.has(candidate.targetPhysicalId) ? '🙈' : '👁'}
                   </button>
 
-                  {/* Role Badge (visible when revealed) */}
+                  {/* Role Card (visible when revealed) */}
                   {revealedRoles.has(candidate.targetPhysicalId) && targetDetails?.role && (
-                    <div className={`mt-1 text-[9px] font-mono font-bold px-2 py-0.5 inline-block border rounded ${
-                      ['GODFATHER','SILENCER','CHAMELEON','MAFIA_REGULAR'].includes(targetDetails.role)
-                        ? 'border-[#ff4444]/50 text-[#ff4444] bg-[#ff4444]/10'
-                        : 'border-[#44ff44]/50 text-[#44ff44] bg-[#44ff44]/10'
-                    }`}>
-                      🔒 {targetDetails.role}
+                    <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/80 rounded-lg">
+                      <MafiaCard
+                        playerNumber={candidate.targetPhysicalId}
+                        playerName={targetDetails?.name || ''}
+                        role={targetDetails.role}
+                        isFlipped={true}
+                        flippable={false}
+                        size="sm"
+                        className="!w-36 !h-[13rem]"
+                      />
                     </div>
                   )}
                 </div>

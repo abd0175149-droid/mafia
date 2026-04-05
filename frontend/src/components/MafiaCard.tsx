@@ -180,9 +180,11 @@ export interface MafiaCardProps {
   /** الجنس لتمييز الكارد بصرياً */
   gender?: 'MALE' | 'FEMALE';
   /** حجم الكارد */
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'fluid';
   /** هل الكارد قابل للقلب */
   flippable?: boolean;
+  /** className إضافي للحاوية الخارجية */
+  className?: string;
 }
 
 // ── Component ────────────────────────────────
@@ -201,6 +203,7 @@ export default function MafiaCard({
   gender = 'MALE',
   size = 'md',
   flippable = true,
+  className = '',
 }: MafiaCardProps) {
   const [internalFlip, setInternalFlip] = useState(false);
   const isFlipped = controlledFlip !== undefined ? controlledFlip : internalFlip;
@@ -216,14 +219,15 @@ export default function MafiaCard({
     sm: 'w-44 h-[15rem]',
     md: 'w-56 h-[20rem]',
     lg: 'w-64 h-[22rem]',
+    fluid: 'w-full h-full',
   }[size];
 
   // حجم الأيقونة
-  const iconSize = { sm: 32, md: 44, lg: 52 }[size];
+  const iconSize = { sm: 32, md: 44, lg: 52, fluid: 48 }[size];
 
   // حجم الخطوط
-  const nameSize = { sm: 'text-base', md: 'text-xl', lg: 'text-2xl' }[size];
-  const roleNameSize = { sm: 'text-lg', md: 'text-2xl', lg: 'text-3xl' }[size];
+  const nameSize = { sm: 'text-base', md: 'text-xl', lg: 'text-2xl', fluid: 'text-xl md:text-2xl lg:text-3xl' }[size];
+  const roleNameSize = { sm: 'text-lg', md: 'text-2xl', lg: 'text-3xl', fluid: 'text-2xl md:text-3xl lg:text-4xl' }[size];
 
   const handleCardClick = () => {
     if (!flippable) return;
@@ -241,7 +245,7 @@ export default function MafiaCard({
 
   return (
     <div
-      className={`${sizeClasses} select-none ${!isAlive ? 'opacity-30 grayscale pointer-events-none' : ''}`}
+      className={`${sizeClasses} select-none ${!isAlive ? 'opacity-30 grayscale pointer-events-none' : ''} ${className}`}
       style={{ perspective: '1000px' }}
     >
       <div

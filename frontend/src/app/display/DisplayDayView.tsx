@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getSocket } from '@/lib/socket';
+import MafiaCard from '@/components/MafiaCard';
 
 const playAudioBeep = (type: 'tick' | 'buzzer') => {
   try {
@@ -614,31 +615,34 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
             initial={{ opacity: 0, scale: 0.5, rotateX: 90 }}
             animate={{ opacity: 1, scale: 1, rotateX: 0 }}
             transition={{ type: 'spring', damping: 15 }}
-            className="text-center w-full max-w-4xl"
+            className="text-center w-full max-w-5xl"
           >
-            <div className="bg-[#8A0303]/10 border-2 border-[#8A0303] p-12 relative overflow-hidden">
+            <div className="bg-[#8A0303]/10 border-2 border-[#8A0303] p-8 md:p-12 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-[#8A0303]/20 mix-blend-screen blur-3xl rounded-full" />
               <div className="absolute bottom-0 left-0 w-32 h-32 bg-[#C5A059]/20 mix-blend-screen blur-3xl rounded-full" />
               
-              <h2 className="text-6xl font-black text-white mb-10 tracking-tighter" style={{ fontFamily: 'Amiri, serif' }}>تم الإقصاء</h2>
+              <h2 className="text-4xl md:text-6xl font-black text-white mb-10 tracking-tighter" style={{ fontFamily: 'Amiri, serif' }}>تم الإقصاء</h2>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10 justify-center">
-                {revealedRoles.map((roleInfo, i) => {
-                  const p = players.find(p => p.physicalId === roleInfo.physicalId);
-                  const isMafia = roleInfo.role.includes('MAFIA') || roleInfo.role === 'GODFATHER' || roleInfo.role === 'SILENCER';
+              <div className="flex flex-wrap justify-center gap-6 relative z-10">
+                {revealedRoles.map((roleInfo: any, i: number) => {
+                  const p = players.find((p: any) => p.physicalId === roleInfo.physicalId);
                   return (
-                    <motion.div 
+                    <motion.div
                       key={roleInfo.physicalId}
-                      initial={{ opacity: 0, x: i % 2 === 0 ? -50 : 50 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 1 + (i * 0.5) }}
-                      className={`p-6 border-l-4 ${isMafia ? 'border-[#8A0303] bg-gradient-to-r from-[#8A0303]/20 to-transparent' : 'border-white bg-[#111]'}`}
+                      initial={{ opacity: 0, y: 40, rotateY: 0 }}
+                      animate={{ opacity: 1, y: 0, rotateY: 0 }}
+                      transition={{ delay: 0.8 + (i * 0.6) }}
                     >
-                      <p className="text-3xl font-bold text-white mb-2">{p?.name}</p>
-                      <p className="text-[#808080] font-mono text-sm tracking-widest mb-4">AGENT_0{roleInfo.physicalId}</p>
-                      <div className={`text-2xl font-black uppercase tracking-[0.2em] font-mono ${isMafia ? 'text-[#8A0303]' : 'text-white'}`}>
-                        [ {roleInfo.role} ]
-                      </div>
+                      <MafiaCard
+                        playerNumber={roleInfo.physicalId}
+                        playerName={p?.name || 'Unknown'}
+                        role={roleInfo.role}
+                        isFlipped={true}
+                        flippable={false}
+                        isAlive={false}
+                        size="fluid"
+                        className="w-52 h-[18rem] md:w-60 md:h-[20rem] lg:w-72 lg:h-[24rem]"
+                      />
                     </motion.div>
                   );
                 })}

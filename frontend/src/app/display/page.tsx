@@ -2,10 +2,63 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Phase } from '@/lib/constants';
+import { Phase, isMafiaRole, Role } from '@/lib/constants';
 import { getSocket } from '@/lib/socket';
 import type { Socket } from 'socket.io-client';
 import DisplayDayView from './DisplayDayView';
+import MafiaCard from '@/components/MafiaCard';
+
+// مؤثرات صوتية باستخدام Web Audio API
+function playCardFlipSound(role: string | null, isMafia: boolean) {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    if (role === 'GODFATHER') {
+      // صوت دراماتيكي للشيخ
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(120, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(60, ctx.currentTime + 0.8);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.8);
+    } else if (role === 'SHERIFF') {
+      // صوت بطولي للشريف
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(523, ctx.currentTime);
+      osc.frequency.setValueAtTime(659, ctx.currentTime + 0.15);
+      osc.frequency.setValueAtTime(784, ctx.currentTime + 0.3);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.5);
+    } else if (isMafia) {
+      // صوت مشؤوم للمافيا
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(200, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.4);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.4);
+    } else {
+      // صوت محايد للمواطن
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.2);
+    }
+  } catch (_) {}
+}
 
 // ══════════════════════════════════════════════════════
 // 📺 شاشة العرض - Display Page
@@ -513,22 +566,84 @@ export default function DisplayPage() {
 
         {/* ═══ نهاية اللعبة ═══ */}
         {step === 'lobby' && phase === Phase.GAME_OVER && winner && (
-          <motion.div key="gameover" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center relative z-10 w-full max-w-3xl noir-card p-20 border-[#C5A059]/40">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[100%] h-1 bg-gradient-to-r from-transparent via-[#C5A059] to-transparent opacity-50" />
-            <motion.div className="text-9xl mb-10 grayscale">
-              {winner === 'MAFIA' ? '🩸' : '⚖️'}
-            </motion.div>
-            <h1 className="text-7xl font-black uppercase tracking-tighter text-white" style={{ fontFamily: 'Amiri, serif' }}>
-              {winner === 'MAFIA' ? 'انتصار المافيا' : 'تطهير المدينة'}
-            </h1>
-            <p className="text-[#808080] font-mono mt-6 tracking-[0.4em] uppercase">
-              {winner === 'MAFIA' ? 'ALL CITIZENS ELIMINATED' : 'THREAT NEUTRALIZED'}
-            </p>
+          <motion.div key="gameover" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center relative z-10 w-full max-w-6xl">
+            <div className="noir-card p-8 md:p-16 border-[#C5A059]/40 relative overflow-hidden">
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[100%] h-1 bg-gradient-to-r from-transparent via-[#C5A059] to-transparent opacity-50" />
+              <motion.div className="text-7xl md:text-9xl mb-6 grayscale">
+                {winner === 'MAFIA' ? '🩸' : '⚖️'}
+              </motion.div>
+              <h1 className="text-4xl md:text-7xl font-black uppercase tracking-tighter text-white mb-2" style={{ fontFamily: 'Amiri, serif' }}>
+                {winner === 'MAFIA' ? 'انتصار المافيا' : 'تطهير المدينة'}
+              </h1>
+              <p className="text-[#808080] font-mono mb-10 tracking-[0.4em] uppercase text-sm">
+                {winner === 'MAFIA' ? 'ALL CITIZENS ELIMINATED' : 'THREAT NEUTRALIZED'}
+              </p>
+
+              {/* شبكة كروت اللاعبين — stagger flip */}
+              <div className="flex flex-wrap justify-center gap-4 md:gap-6">
+                {players.map((p: any, i: number) => {
+                  const roleStr = p.role || null;
+                  const isMafia = roleStr ? isMafiaRole(roleStr as Role) : false;
+                  const flipDelay = 2 + (i * 0.5); // كل كارد ينقلب بعد 0.5 ثانية من اللي قبله
+
+                  return (
+                    <GameOverCard
+                      key={p.physicalId}
+                      player={p}
+                      role={roleStr}
+                      isMafia={isMafia}
+                      flipDelay={flipDelay}
+                      isAlive={p.isAlive}
+                    />
+                  );
+                })}
+              </div>
+            </div>
           </motion.div>
         )}
 
       </AnimatePresence>
     </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════
+// 🎴 GameOverCard — كارد نهاية اللعبة مع أنيميشن تلقائي + صوت
+// ══════════════════════════════════════════════════════
+function GameOverCard({ player, role, isMafia, flipDelay, isAlive }: {
+  player: any;
+  role: string | null;
+  isMafia: boolean;
+  flipDelay: number;
+  isAlive: boolean;
+}) {
+  const [flipped, setFlipped] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFlipped(true);
+      playCardFlipSound(role, isMafia);
+    }, flipDelay * 1000);
+    return () => clearTimeout(timer);
+  }, [flipDelay, role, isMafia]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: flipDelay * 0.3, duration: 0.4 }}
+    >
+      <MafiaCard
+        playerNumber={player.physicalId}
+        playerName={player.name}
+        role={role}
+        isFlipped={flipped}
+        flippable={false}
+        isAlive={isAlive}
+        size="fluid"
+        className="w-40 h-[14rem] md:w-52 md:h-[18rem] lg:w-60 lg:h-[20rem]"
+      />
+    </motion.div>
   );
 }
 
