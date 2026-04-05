@@ -199,6 +199,20 @@
     animation: vignetteIn 1s ease-out forwards;
   }
 
+  /* ═══ Revealed Vignette — حواف حمراء وهّاجة عند كشف الهوية ═══ */
+  .revealed-vignette {
+    position: relative;
+  }
+  .revealed-vignette::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(circle at center, transparent 30%, rgba(138,3,3,0.3) 60%, rgba(138,3,3,0.7) 100%);
+    z-index: 40;
+    animation: vignetteIn 1.5s ease-out forwards;
+  }
+
   @keyframes vignetteIn {
     from { opacity: 0; }
     to { opacity: 1; }

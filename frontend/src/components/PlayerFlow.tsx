@@ -26,6 +26,7 @@ export default function PlayerFlow({ initialRoomCode = '' }: PlayerFlowProps) {
   const [physicalId, setPhysicalId] = useState('');
   const [playerId, setPlayerId] = useState<number | null>(null);
   const [apiError, setApiError] = useState('');
+  const [occupiedSeats, setOccupiedSeats] = useState<number[]>([]);
 
   // ── البحث التلقائي عن الغرفة عند وجود كود مسبق ──
   useEffect(() => {
@@ -52,6 +53,10 @@ export default function PlayerFlow({ initialRoomCode = '' }: PlayerFlowProps) {
       setRoomId(res.roomId);
       setGameName(res.gameName);
       setMaxPlayers(res.maxPlayers || 10);
+      // جلب المقاعد المحجوزة
+      if (res.players && Array.isArray(res.players)) {
+        setOccupiedSeats(res.players.map((p: any) => p.physicalId).filter(Boolean));
+      }
       if (!code) setStep('phone');
     } catch (err: any) {
       setApiError(err.message || 'لم يتم العثور على لعبة بهذا الكود');
@@ -334,12 +339,16 @@ export default function PlayerFlow({ initialRoomCode = '' }: PlayerFlowProps) {
               <div className="grid grid-cols-6 gap-2 mb-6">
                 {Array.from({ length: maxPlayers }, (_, i) => i + 1).map(num => {
                   const isSelected = physicalId === String(num);
+                  const isOccupied = occupiedSeats.includes(num);
                   return (
                     <button
                       key={num}
-                      onClick={() => setPhysicalId(String(num))}
+                      onClick={() => !isOccupied && setPhysicalId(String(num))}
+                      disabled={isOccupied}
                       className={`p-3 font-mono font-black text-xl border transition-all ${
-                        isSelected
+                        isOccupied
+                          ? 'bg-[#1a1a1a] text-[#333] border-[#1a1a1a] opacity-30 cursor-not-allowed line-through'
+                          : isSelected
                           ? 'bg-[#C5A059] text-black border-[#C5A059] shadow-[0_0_15px_rgba(197,160,89,0.4)]'
                           : 'bg-[#050505] text-white border-[#2a2a2a] hover:border-[#C5A059] hover:bg-[#0a0a0a]'
                       }`}
