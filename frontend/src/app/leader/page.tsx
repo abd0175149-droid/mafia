@@ -503,80 +503,82 @@ export default function LeaderPage() {
   if (gameState) {
     return (
       <div className="display-bg min-h-screen p-8 font-sans relative overflow-hidden blood-vignette selection:bg-[#8A0303] selection:text-white">
-        {/* Minimal Navigation Bar */}
-        <div className="flex flex-row-reverse items-center justify-between mb-6 pb-4 border-b border-[#2a2a2a]/50">
-          <div className="flex items-center gap-6">
-            <button
-              onClick={() => setGameState(null)}
-              className="text-[#555] text-[10px] font-mono uppercase tracking-[0.2em] hover:text-white transition-colors"
-            >
-              [ Return ]
-            </button>
-            <button
-              onClick={handleCloseRoom}
-              className="text-[#8A0303] text-[10px] font-mono uppercase tracking-[0.2em] hover:text-red-500 transition-colors"
-            >
-              [ Terminate ]
-            </button>
-          </div>
-          <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#555]">
-            SYSTEM PHASE: <span className="text-[#C5A059] font-bold ml-2">{gameState.phase}</span>
-          </div>
-        </div>
-
-        {/* ── Main Content based on Phase ── */}
-        
-        {gameState.phase === 'LOBBY' && (
-          <LeaderLobbyView gameState={gameState} emit={emit} setError={setError} />
-        )}
-
-        {gameState.phase === 'ROLE_GENERATION' && (
-          <LeaderRoleConfigurator gameState={gameState} emit={emit} setError={setError} />
-        )}
-
-        {gameState.phase === 'ROLE_BINDING' && (
-          <LeaderRoleBinding gameState={gameState} emit={emit} setError={setError} />
-        )}
-
-        {(gameState.phase.startsWith('DAY_')) && (
-          <LeaderDayView gameState={gameState} emit={emit} setError={setError} />
-        )}
-
-        {(gameState.phase === 'NIGHT' || gameState.phase === 'MORNING_RECAP') && (
-          <LeaderNightView gameState={gameState} emit={emit} setError={setError} />
-        )}
-
-        {gameState.phase === 'GAME_OVER' && (
-          <div className="flex flex-col items-center justify-center p-12 text-center">
-            <div className="text-8xl mb-6 grayscale">{gameState.winner === 'MAFIA' ? '🩸' : '⚖️'}</div>
-            <h2 className="text-4xl font-black text-white mb-4" style={{ fontFamily: 'Amiri, serif' }}>
-              {gameState.winner === 'MAFIA' ? 'انتصار المافيا' : 'تطهير المدينة'}
-            </h2>
-            <p className="text-[#808080] font-mono tracking-widest uppercase text-sm mb-8">
-              {gameState.winner === 'MAFIA' ? 'ALL CITIZENS ELIMINATED' : 'THREAT NEUTRALIZED'}
-            </p>
-
-            {/* شبكة كروت مصغرة — المراجعة النهائية لليدر */}
-            <div className="flex flex-wrap justify-center gap-3">
-              {gameState.players.map((p: any) => (
-                <MafiaCard
-                  key={p.physicalId}
-                  playerNumber={p.physicalId}
-                  playerName={p.name}
-                  role={p.role}
-                  isFlipped={true}
-                  flippable={false}
-                  isAlive={p.isAlive}
-                  size="sm"
-                />
-              ))}
+        <div className="relative z-10 w-full h-full">
+          {/* Minimal Navigation Bar */}
+          <div className="flex flex-row-reverse items-center justify-between mb-6 pb-4 border-b border-[#2a2a2a]/50">
+            <div className="flex items-center gap-6">
+              <button
+                onClick={() => setGameState(null)}
+                className="text-[#555] text-[10px] font-mono uppercase tracking-[0.2em] hover:text-white transition-colors"
+              >
+                [ Return ]
+              </button>
+              <button
+                onClick={handleCloseRoom}
+                className="text-[#8A0303] text-[10px] font-mono uppercase tracking-[0.2em] hover:text-red-500 transition-colors"
+              >
+                [ Terminate ]
+              </button>
+            </div>
+            <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#555]">
+              SYSTEM PHASE: <span className="text-[#C5A059] font-bold ml-2">{gameState.phase}</span>
             </div>
           </div>
-        )}
+
+          {/* ── Main Content based on Phase ── */}
+          
+          {gameState.phase === 'LOBBY' && (
+            <LeaderLobbyView gameState={gameState} emit={emit} setError={setError} />
+          )}
+
+          {gameState.phase === 'ROLE_GENERATION' && (
+            <LeaderRoleConfigurator gameState={gameState} emit={emit} setError={setError} />
+          )}
+
+          {gameState.phase === 'ROLE_BINDING' && (
+            <LeaderRoleBinding gameState={gameState} emit={emit} setError={setError} />
+          )}
+
+          {(gameState.phase.startsWith('DAY_')) && (
+            <LeaderDayView gameState={gameState} emit={emit} setError={setError} />
+          )}
+
+          {(gameState.phase === 'NIGHT' || gameState.phase === 'MORNING_RECAP') && (
+            <LeaderNightView gameState={gameState} emit={emit} setError={setError} />
+          )}
+
+          {gameState.phase === 'GAME_OVER' && (
+            <div className="flex flex-col items-center justify-center p-12 text-center">
+              <div className="text-8xl mb-6 grayscale">{gameState.winner === 'MAFIA' ? '🩸' : '⚖️'}</div>
+              <h2 className="text-4xl font-black text-white mb-4" style={{ fontFamily: 'Amiri, serif' }}>
+                {gameState.winner === 'MAFIA' ? 'انتصار المافيا' : 'تطهير المدينة'}
+              </h2>
+              <p className="text-[#808080] font-mono tracking-widest uppercase text-sm mb-8">
+                {gameState.winner === 'MAFIA' ? 'ALL CITIZENS ELIMINATED' : 'THREAT NEUTRALIZED'}
+              </p>
+
+              {/* شبكة كروت مصغرة — المراجعة النهائية لليدر */}
+              <div className="flex flex-wrap justify-center gap-3">
+                {gameState.players.map((p: any) => (
+                  <MafiaCard
+                    key={p.physicalId}
+                    playerNumber={p.physicalId}
+                    playerName={p.name}
+                    role={p.role}
+                    isFlipped={true}
+                    flippable={false}
+                    isAlive={p.isAlive}
+                    size="sm"
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
 
 
-        {error && <p className="text-[#8A0303] mt-6 text-sm font-mono tracking-widest text-center uppercase">{error}</p>}
+          {error && <p className="text-[#8A0303] mt-6 text-sm font-mono tracking-widest text-center uppercase">{error}</p>}
+        </div>
       </div>
     );
   }
