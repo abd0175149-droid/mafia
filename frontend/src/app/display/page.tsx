@@ -319,11 +319,6 @@ export default function DisplayPage() {
     <div className="display-bg min-h-screen relative overflow-hidden flex flex-col items-center justify-center p-8 font-sans blood-vignette selection:bg-[#8A0303] selection:text-white w-full">
       
       <div className="relative z-10 w-full h-full flex flex-col items-center justify-center">
-        {/* Connection indicator */}
-        <div className="absolute top-0 left-0 flex items-center gap-3 bg-[#0c0c0c] border border-[#2a2a2a] px-4 py-2 opacity-80 z-20">
-          <div className={`w-3 h-3 ${isConnected ? 'bg-[#2E5C31] shadow-[0_0_10px_#2E5C31] animate-pulse' : 'bg-[#8A0303]'}`} />
-          <span className="text-xs font-mono tracking-widest text-[#808080] uppercase">{isConnected ? 'Server Connected' : 'Disconnected'}</span>
-        </div>
 
         <AnimatePresence mode="wait">
 
