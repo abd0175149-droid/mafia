@@ -144,8 +144,13 @@ export default function DisplayPage() {
           name: data.name,
           isAlive: true,
           gender: data.gender,
-        }].sort((a: any, b: any) => a.physicalId - b.physicalId);
+        }];
       });
+    };
+
+    const onPlayerKicked = (data: any) => {
+      setPlayerCount(data.totalPlayers);
+      setPlayers(prev => prev.filter(p => p.physicalId !== data.physicalId));
     };
 
     const onPhaseChanged = async (data: any) => {
@@ -197,6 +202,7 @@ export default function DisplayPage() {
     };
 
     socket.on('room:player-joined', onPlayerJoined);
+    socket.on('room:player-kicked', onPlayerKicked);
     socket.on('room:player-updated', onPlayerUpdated);
     socket.on('game:phase-changed', onPhaseChanged);
     socket.on('night:animation', onNightAnimation);
@@ -209,6 +215,7 @@ export default function DisplayPage() {
 
     return () => {
       socket.off('room:player-joined', onPlayerJoined);
+      socket.off('room:player-kicked', onPlayerKicked);
       socket.off('room:player-updated', onPlayerUpdated);
       socket.off('game:phase-changed', onPhaseChanged);
       socket.off('night:animation', onNightAnimation);
