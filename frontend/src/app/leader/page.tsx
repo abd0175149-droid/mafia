@@ -528,17 +528,15 @@ export default function LeaderPage() {
 
           {/* ── Main Content based on Phase ── */}
           
-          {gameState.phase !== 'LOBBY' && (
-            <div className="flex flex-col items-center justify-center gap-3 mb-8 w-full border-b border-[#2a2a2a]/40 pb-6">
-              <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
-                 <Image src="/mafia_logo.png" alt="Mafia Club Logo" width={60} height={60} className="select-none w-[50px] h-[50px] drop-shadow-[0_0_15px_rgba(138,3,3,0.3)]" priority />
-               </motion.div>
-               <h1 className="text-center">
-                 <span className="block text-3xl font-black tracking-tight text-[#C5A059] mb-1" style={{ fontFamily: 'Amiri, serif', textShadow: '0 0 20px rgba(138,3,3,0.4)' }}>MAFIA</span>
-                 <span className="flex justify-between text-lg font-light text-[#8A0303] w-full" dir="ltr" style={{ fontFamily: 'Amiri, serif' }}>{'CLUB'.split('').map((l: string, i: number) => <span key={i}>{l}</span>)}</span>
-               </h1>
-            </div>
-          )}
+          <div className="flex flex-col items-center justify-center gap-3 mb-8 w-full border-b border-[#2a2a2a]/40 pb-6">
+            <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
+               <Image src="/mafia_logo.png" alt="Mafia Club Logo" width={60} height={60} className="select-none w-[50px] h-[50px] drop-shadow-[0_0_15px_rgba(138,3,3,0.3)]" priority />
+             </motion.div>
+             <h1 className="text-center">
+               <span className="block text-3xl font-black tracking-tight text-[#C5A059] mb-1" style={{ fontFamily: 'Amiri, serif', textShadow: '0 0 20px rgba(138,3,3,0.4)' }}>MAFIA</span>
+               <span className="flex justify-between text-lg font-light text-[#8A0303] w-full" dir="ltr" style={{ fontFamily: 'Amiri, serif' }}>{'CLUB'.split('').map((l: string, i: number) => <span key={i}>{l}</span>)}</span>
+             </h1>
+          </div>
 
           {gameState.phase === 'LOBBY' && (
             <LeaderLobbyView gameState={gameState} emit={emit} setError={setError} />
@@ -603,9 +601,16 @@ export default function LeaderPage() {
     <div className="display-bg min-h-screen flex flex-col items-center py-12 px-6 font-sans relative overflow-hidden blood-vignette selection:bg-[#8A0303] selection:text-white">
       <div className="w-full max-w-2xl relative z-10">
         {/* Header */}
-        <div className="text-center mb-12 border-b border-[#2a2a2a] pb-8">
-          <div className="text-6xl mb-4 grayscale opacity-80">⚖️</div>
-          <h1 className="text-4xl font-black mb-2 text-white" style={{ fontFamily: 'Amiri, serif' }}>المقر الرئيسي</h1>
+        <div className="text-center mb-12 border-b border-[#2a2a2a] pb-8 flex flex-col items-center">
+          <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }} className="mb-4">
+             <Image src="/mafia_logo.png" alt="Mafia Club Logo" width={80} height={80} className="select-none w-[60px] h-[60px] drop-shadow-[0_0_15px_rgba(138,3,3,0.3)]" priority />
+           </motion.div>
+           <h1 className="text-center mb-8">
+             <span className="block text-4xl font-black tracking-tight text-[#C5A059] mb-1" style={{ fontFamily: 'Amiri, serif', textShadow: '0 0 20px rgba(138,3,3,0.4)' }}>MAFIA</span>
+             <span className="flex justify-between text-xl font-light text-[#8A0303] w-full" dir="ltr" style={{ fontFamily: 'Amiri, serif' }}>{'CLUB'.split('').map((l: string, i: number) => <span key={i}>{l}</span>)}</span>
+           </h1>
+
+          <h2 className="text-3xl font-black mb-2 text-white" style={{ fontFamily: 'Amiri, serif' }}>المقر الرئيسي</h2>
           <p className="text-[#808080] text-xs font-mono tracking-[0.2em] uppercase">
             DIRECTOR: <span className="text-[#C5A059]">{leaderName}</span>
           </p>
