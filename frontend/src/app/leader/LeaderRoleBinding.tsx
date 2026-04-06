@@ -9,11 +9,14 @@ import {
   closestCenter,
   KeyboardSensor,
   PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Role, ROLE_NAMES, ROLE_ICONS } from '@/lib/constants';
+import MafiaCard from '@/components/MafiaCard';
 
 interface LeaderRoleBindingProps {
   gameState: any;
@@ -61,27 +64,27 @@ function DroppablePlayerCard({ player, children }: { player: any; children: Reac
   return (
     <div
       ref={setNodeRef}
-      className={`bg-[#0c0c0c] border p-4 flex flex-col items-center gap-3 relative transition-colors ${
+      className={`p-3 flex flex-col items-center gap-3 relative transition-all rounded-xl border ${
         isOver 
-          ? 'border-[#C5A059] bg-[#C5A059]/10' 
-          : isFemale ? 'border-[#4c1d95]/50' : 'border-[#2a2a2a]'
+          ? 'border-[#C5A059] bg-[#C5A059]/10 shadow-[0_0_20px_rgba(197,160,89,0.3)]' 
+          : 'border-transparent hover:border-[#2a2a2a]/50'
       }`}
     >
-      <div className={`w-12 h-12 rounded-none bg-[#111] border flex items-center justify-center font-mono text-xl z-10 relative ${
-        isFemale ? 'border-[#4c1d95] text-[#c4b5fd]' : 'border-[#2a2a2a] text-[#808080]'
-      }`}>
-        {player.physicalId}
-      </div>
-      <div className="text-center w-full z-10 relative">
-        <p className={`font-bold text-sm truncate ${isFemale ? 'text-[#ddd6fe]' : 'text-white'}`}>{player.name}</p>
-        <p className="text-[9px] uppercase tracking-widest mt-1 opacity-50 font-mono text-[#808080]">
-          {isFemale ? 'FEMALE' : 'MALE'}
-        </p>
-      </div>
+      <MafiaCard
+        playerNumber={player.physicalId}
+        playerName={player.name}
+        role={null}
+        gender={isFemale ? 'FEMALE' : 'MALE'}
+        isFlipped={false}
+        flippable={false}
+        showVoting={false}
+        isAlive={true}
+        size="sm"
+      />
       
       {/* Role Placement Area */}
-      <div className="w-full h-12 mt-2 border border-dashed border-[#555] bg-black/50 flex items-center justify-center z-10 relative overflow-hidden">
-        {children || <span className="text-[10px] text-[#2a2a2a] font-mono tracking-widest uppercase relative z-0">DROP ROLE</span>}
+      <div className={`w-full max-w-[140px] h-10 mt-1 border border-dashed rounded-md flex items-center justify-center z-10 relative overflow-hidden transition-colors ${isOver ? 'border-[#C5A059] bg-black/80' : 'border-[#555]/60 bg-[#050505]'}`}>
+        {children || <span className="text-[9px] text-[#555] font-mono tracking-widest uppercase relative z-0">DROP ROLE</span>}
       </div>
     </div>
   );
@@ -94,7 +97,8 @@ export default function LeaderRoleBinding({ gameState, emit, setError }: LeaderR
   const [loading, setLoading] = useState(false);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 10 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 8 } }),
     useSensor(KeyboardSensor)
   );
 
@@ -229,16 +233,19 @@ export default function LeaderRoleBinding({ gameState, emit, setError }: LeaderR
     : null;
 
   return (
-    <div className="mb-10">
-      <div className="text-center mb-8 border-b border-[#2a2a2a] pb-6">
+    <div className="mb-10 w-full max-w-6xl mx-auto">
+      {/* Header Container */}
+      <div className="bg-black/30 border border-[#2a2a2a] rounded-xl p-8 mb-8 backdrop-blur-sm relative overflow-hidden text-center">
+        <div className="absolute left-0 top-0 w-1 h-full bg-[#C5A059]/40" />
         <h2 className="text-3xl font-black text-white" style={{ fontFamily: 'Amiri, serif' }}>توزيع الأدوار والسِّريّة</h2>
-        <p className="text-[#808080] font-mono tracking-[0.2em] mt-2 uppercase text-xs">ROLE SYNC AUTHORIZATION</p>
+        <p className="text-[#808080] font-mono tracking-[0.3em] mt-3 uppercase text-xs">ROLE SYNC AUTHORIZATION & CLASSIFICATION</p>
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         {/* Unbound Roles Pool */}
-        <div className="noir-card p-6 mb-8 border-[#2a2a2a] min-h-[120px] bg-[#0a0a0a]">
-          <h3 className="text-xs font-mono text-[#555] uppercase tracking-widest mb-4">
+        <div className="bg-black/40 border border-[#8A0303]/30 rounded-xl p-6 mb-8 backdrop-blur-sm min-h-[140px] relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-full h-[1px] bg-gradient-to-l from-transparent via-[#8A0303]/50 to-transparent" />
+          <h3 className="text-xs font-mono text-[#C5A059] uppercase tracking-[0.2em] mb-4 font-bold border-b border-[#2a2a2a] pb-3">
             Unassigned Action Chips ({unboundRoles.filter(r => r.role !== Role.CITIZEN).length})
           </h3>
           <div className="flex flex-wrap gap-3 items-center">
@@ -251,8 +258,7 @@ export default function LeaderRoleBinding({ gameState, emit, setError }: LeaderR
           </div>
         </div>
 
-        {/* Players Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-12">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-6 mb-12">
           {gameState.players.map((player: any) => {
             const boundRoleData = boundPlayers[player.physicalId];
             return (
