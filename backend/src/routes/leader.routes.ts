@@ -169,10 +169,6 @@ router.post('/force-add-player', requireLeader, async (req, res) => {
       room.playerCount = state.players.length;
     }
 
-    // إخبار الجميع عبر Socket.io (using req.app.get('io') if possible, or io directly)
-    // since we need io, we will emit it here if we have imported io, but we don't have io global.
-    // Let's use activeRooms map or similar. But since we don't have io here directly, we can just let `lobby.socket.ts` expose a helper, or attach `io` to `app`.
-    // We'll set app.set('io', io) inside index.ts and use it here.
     const io = req.app.get('io');
     if (io) {
       io.to(roomId).emit('room:player-joined', {
@@ -180,6 +176,7 @@ router.post('/force-add-player', requireLeader, async (req, res) => {
         name,
         totalPlayers: state.players.length,
         maxPlayers: state.config.maxPlayers,
+        gender: gender || 'MALE',
       });
     }
 

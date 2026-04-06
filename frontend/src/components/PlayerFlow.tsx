@@ -154,7 +154,11 @@ export default function PlayerFlow({ initialRoomCode = '' }: PlayerFlowProps) {
     if (!physicalId || !displayName) return;
     setApiError('');
     try {
-      await joinRoom(roomId, parseInt(physicalId), displayName, phone, playerId || undefined);
+      const dateOfBirth = dobYear && dobMonth && dobDay
+        ? `${dobYear}-${dobMonth.padStart(2, '0')}-${dobDay.padStart(2, '0')}`
+        : undefined;
+      const genderUpper = gender === 'female' ? 'FEMALE' : gender === 'male' ? 'MALE' : undefined;
+      await joinRoom(roomId, parseInt(physicalId), displayName, phone, playerId || undefined, genderUpper, dateOfBirth);
       setStep('done');
     } catch (err: any) {
       setApiError(err.message);

@@ -186,11 +186,13 @@ export function useGameState() {
     name: string,
     phone?: string,
     playerId?: number,
+    gender?: string,
+    dob?: string,
   ) => {
     setLoading(true);
     setError(null);
     try {
-      await emit('room:join', { roomId, physicalId, name, phone, playerId });
+      await emit('room:join', { roomId, physicalId, name, phone, playerId, gender, dob });
     } catch (err: any) {
       setError(err.message);
       throw err;

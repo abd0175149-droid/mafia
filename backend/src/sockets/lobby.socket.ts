@@ -180,6 +180,8 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
     name: string;
     phone?: string;
     playerId?: number;
+    gender?: string;
+    dob?: string;
   }, callback) => {
     try {
       const state = await addPlayer(
@@ -189,6 +191,15 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
         data.phone || null,
         data.playerId || null,
       );
+
+      // تحديث الجنس وتاريخ الميلاد إذا تم إرسالها
+      if (data.gender || data.dob) {
+        await updatePlayer(data.roomId, data.physicalId, {
+          gender: data.gender || 'MALE',
+          dob: data.dob || '2000-01-01',
+        });
+      }
+
       socket.join(data.roomId);
       socket.data.role = 'player';
       socket.data.roomId = data.roomId;
@@ -201,17 +212,16 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
       }
 
       // بث للجميع في الغرفة
-      const joinedPlayer = state.players.find(p => p.physicalId === data.physicalId);
       io.to(data.roomId).emit('room:player-joined', {
         physicalId: data.physicalId,
         name: data.name,
         totalPlayers: state.players.length,
         maxPlayers: state.config.maxPlayers,
-        gender: joinedPlayer?.gender || 'MALE',
+        gender: data.gender || 'MALE',
       });
 
       callback({ success: true });
-      console.log(`👤 Player joined: #${data.physicalId} - ${data.name}`);
+      console.log(`👤 Player joined: #${data.physicalId} - ${data.name} (${data.gender || 'MALE'})`);
     } catch (err: any) {
       callback({ success: false, error: err.message });
     }
