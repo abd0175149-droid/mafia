@@ -395,7 +395,7 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
                             gender={p.gender === 'FEMALE' ? 'FEMALE' : 'MALE'}
                             isFlipped={false}
                             flippable={false}
-                            size="sm"
+                            size={players.length <= 12 ? 'md' : 'sm'}
                             isAlive={p.isAlive}
                             className={isSpeaker ? 'shadow-[0_0_50px_rgba(197,160,89,0.4)] border-2 border-[#C5A059]' : ''}
                           />

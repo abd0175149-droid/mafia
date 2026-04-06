@@ -501,32 +501,14 @@ export default function DisplayPage() {
             transition={{ duration: 0.8, ease: 'easeOut' }}
             className="w-full max-w-[1600px] relative z-10 flex flex-col items-center"
           >
-            {/* عنوان اللعبة واللوجو (MAFIA CLUB) */}
-            <div className="flex flex-col items-center justify-center gap-4 mb-12 w-full border-b border-[#2a2a2a]/40 pb-8">
-              <motion.div
-                 initial={{ opacity: 0, scale: 0.8 }}
-                 animate={{ opacity: 1, scale: 1 }}
-                 transition={{ duration: 1 }}
-               >
-                 <Image
-                   src="/mafia_logo.png"
-                   alt="Mafia Club Logo"
-                   width={80}
-                   height={80}
-                   className="select-none w-[60px] h-[60px] drop-shadow-[0_0_20px_rgba(138,3,3,0.3)]"
-                   priority
-                 />
+            {/* عنوان اللعبة واللوجو (MAFIA CLUB) أعلى اليسار */}
+            <div className="absolute top-4 left-8 flex items-center justify-start gap-4 z-50">
+               <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 1 }}>
+                 <Image src="/mafia_logo.png" alt="Mafia Club Logo" width={60} height={60} className="select-none w-[60px] h-[60px] drop-shadow-[0_0_20px_rgba(138,3,3,0.3)]" priority />
                </motion.div>
-               <h1 className="text-center">
-                 <span
-                   className="block text-4xl font-black tracking-tight text-[#C5A059] mb-1"
-                   style={{ fontFamily: 'Amiri, serif', textShadow: '0 0 30px rgba(138,3,3,0.4)' }}
-                 >
-                   MAFIA
-                 </span>
-                 <span className="flex justify-between text-xl font-light text-[#8A0303] w-full" dir="ltr" style={{ fontFamily: 'Amiri, serif' }}>
-                   {'CLUB'.split('').map((l, i) => <span key={i}>{l}</span>)}
-                 </span>
+               <h1 className="flex flex-col items-start leading-none mt-1">
+                 <span className="block text-3xl font-black tracking-tight text-[#C5A059]" style={{ fontFamily: 'Amiri, serif', textShadow: '0 0 20px rgba(138,3,3,0.4)' }}>MAFIA</span>
+                 <span className="text-sm font-light text-[#8A0303] tracking-[0.3em] pl-1" style={{ fontFamily: 'Amiri, serif' }}>CLUB</span>
                </h1>
             </div>
 
@@ -571,7 +553,7 @@ export default function DisplayPage() {
                 </div>
 
                 {players.length > 0 ? (
-                  <div className="grid grid-cols-[repeat(auto-fit,minmax(176px,1fr))] gap-6 justify-items-center max-h-[60vh] overflow-y-auto custom-scrollbar pr-4 pb-12">
+                  <div className="flex flex-wrap justify-center gap-6 w-full pb-12 overflow-visible">
                     <AnimatePresence mode="popLayout">
                       {players.slice().reverse().map((p: any, i: number) => (
                         <motion.div
@@ -590,7 +572,7 @@ export default function DisplayPage() {
                             flippable={false}
                             showVoting={false}
                             isAlive={p.isAlive !== false}
-                            size="sm"
+                            size={players.length <= 12 ? 'md' : 'sm'}
                           />
                         </motion.div>
                       ))}
@@ -617,38 +599,20 @@ export default function DisplayPage() {
             exit={{ opacity: 0 }}
             className="w-full max-w-[1600px] relative z-10 flex flex-col items-center justify-center p-8 min-h-[80vh]"
           >
-            {/* عنوان اللعبة واللوجو (MAFIA CLUB) */}
-            <div className="flex flex-col items-center justify-center gap-4 mb-16 w-full">
-              <motion.div>
-                 <Image
-                   src="/mafia_logo.png"
-                   alt="Mafia Club Logo"
-                   width={100}
-                   height={100}
-                   className="select-none w-[80px] h-[80px] md:w-[120px] md:h-[120px] drop-shadow-[0_0_20px_rgba(138,3,3,0.3)]"
-                   priority
-                 />
+            {/* اللوجو والعنوان يسار الشاشة لتوفير المساحة وإعطاء مظهر سينمائي */}
+            <div className="absolute top-10 left-12 flex items-center justify-start gap-5 z-50">
+               <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 1.2 }}>
+                 <Image src="/mafia_logo.png" alt="Mafia Club Logo" width={80} height={80} className="select-none w-[70px] h-[70px] md:w-[90px] md:h-[90px] drop-shadow-[0_0_25px_rgba(138,3,3,0.4)]" priority />
                </motion.div>
-               <h1 className="text-center">
-                 <span
-                   className="block text-5xl md:text-7xl font-black tracking-tight text-[#C5A059] mb-1"
-                   style={{ fontFamily: 'Amiri, serif', textShadow: '0 0 30px rgba(138,3,3,0.4)' }}
-                 >
-                   MAFIA
-                 </span>
-                 <span className="flex justify-between text-2xl md:text-3xl font-light text-[#8A0303] w-full" dir="ltr" style={{ fontFamily: 'Amiri, serif' }}>
-                   {'CLUB'.split('').map((l, i) => <span key={i}>{l}</span>)}
-                 </span>
+               <h1 className="flex flex-col items-start leading-none mt-2">
+                 <span className="block text-4xl md:text-5xl font-black tracking-tight text-[#C5A059]" style={{ fontFamily: 'Amiri, serif', textShadow: '0 0 25px rgba(138,3,3,0.5)' }}>MAFIA</span>
+                 <span className="text-lg md:text-xl font-light text-[#8A0303] tracking-[0.3em] pl-1 mt-1" style={{ fontFamily: 'Amiri, serif' }}>CLUB</span>
                </h1>
             </div>
 
-            {/* شبكة الكروت (لاعبين) */}
-            <div className="w-full mb-16">
-               <div className="flex items-center justify-center border-b border-[#2a2a2a] pb-4 mb-10 max-w-2xl mx-auto">
-                  <p className="text-[#555] text-sm md:text-lg tracking-[0.3em] uppercase">ACTIVE ROSTER</p>
-               </div>
-               
-               <div className="grid grid-cols-[repeat(auto-fit,minmax(176px,1fr))] gap-8 justify-items-center w-full max-w-7xl mx-auto">
+            {/* شبكة الكروت (لاعبين) - زيادة الحجم وعدم التمرير */}
+            <div className="w-full mb-8 pt-8">
+               <div className="flex flex-wrap justify-center gap-8 w-full max-w-[1700px] mx-auto px-4 overflow-visible">
                  <AnimatePresence mode="popLayout">
                    {players.slice().reverse().map((p: any, i: number) => (
                       <motion.div
@@ -667,7 +631,7 @@ export default function DisplayPage() {
                           flippable={false}
                           showVoting={false}
                           isAlive={p.isAlive !== false}
-                          size="sm"
+                          size={players.length <= 12 ? 'md' : 'sm'}
                         />
                       </motion.div>
                    ))}
