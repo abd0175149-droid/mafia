@@ -652,43 +652,10 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -30 }}
-            className="w-full"
+            className="w-full h-[calc(100vh-2rem)] flex flex-col items-center justify-center relative"
           >
-            {/* ── الهيدر الموحد ── */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-[#2a2a2a] bg-black/40 backdrop-blur-sm rounded-t-xl mb-8">
-              {/* يسار: لوجو + اسم + المرحلة */}
-              <div className="flex items-center gap-4">
-                <Image src="/mafia_logo.png" alt="Mafia" width={44} height={44} className="w-[44px] h-[44px] drop-shadow-[0_0_15px_rgba(138,3,3,0.3)]" priority />
-                <div className="flex flex-col leading-none">
-                  <span className="text-2xl font-black tracking-tight text-[#C5A059]" style={{ fontFamily: 'Amiri, serif' }}>MAFIA</span>
-                  <span className="flex justify-between w-full text-[8px] font-light text-[#8A0303]" dir="ltr" style={{ fontFamily: 'Amiri, serif' }}>{'CLUB'.split('').map((l, i) => <span key={i}>{l}</span>)}</span>
-                </div>
-                <div className="w-[1px] h-8 bg-[#2a2a2a] mx-2" />
-                <div className="flex flex-col">
-                  <span className="text-lg font-black text-[#C5A059]" style={{ fontFamily: 'Amiri, serif' }}>
-                    {justificationData.resultType === 'TIE' ? 'تعادل - كلمة الدفاع' : 'كلمة الدفاع الأخيرة'}
-                  </span>
-                  <span className="text-[8px] font-mono text-[#808080] tracking-[0.3em] uppercase">
-                    {justificationData.resultType === 'TIE' ? 'TIED DEFENDANTS' : 'FINAL DEFENSE'}
-                  </span>
-                </div>
-              </div>
-
-              {/* وسط: عدد المتهمين */}
-              <div className="flex flex-col items-center">
-                <span className="text-[8px] font-mono text-[#808080] uppercase tracking-widest">ACCUSED</span>
-                <span className="text-2xl font-mono font-black text-[#C5A059]">{justificationData.accused.length}</span>
-              </div>
-
-              {/* يمين: عدد الأصوات */}
-              <div className="flex flex-col items-center">
-                <span className="text-[8px] font-mono text-[#808080] uppercase tracking-widest">VOTES AGAINST</span>
-                <span className="text-2xl font-mono font-black text-[#8A0303]">{justificationData.topVotes}</span>
-              </div>
-            </div>
-
-            {/* ── المتهمون: تايمر يسار + كارد يمين ── */}
-            <div className="flex flex-col items-center gap-10">
+            {/* ── منطقة الكارد والتايمر (مكبّرة 1.5x) ── */}
+            <div className="flex flex-col items-center gap-10" style={{ transform: 'scale(1.5)', transformOrigin: 'center center' }}>
               {justificationData.accused.map((acc: any, i: number) => {
                 const p = players.find(pl => pl.physicalId === acc.targetPhysicalId);
                 const isActiveJust = justTimer?.physicalId === acc.targetPhysicalId;
@@ -775,16 +742,49 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
                   </motion.div>
                 );
               })}
+
+              {/* رسالة الانتظار — إذا التايمر لم يبدأ بعد */}
+              {!justTimer && (
+                <div className="text-center">
+                  <span className="text-yellow-500 text-sm font-mono tracking-[0.3em] animate-pulse uppercase">
+                    AWAITING DIRECTOR TO START DEFENSE TIMER...
+                  </span>
+                </div>
+              )}
             </div>
 
-            {/* رسالة الانتظار — إذا التايمر لم يبدأ بعد */}
-            {!justTimer && (
-              <div className="mt-12 text-center">
-                <span className="text-yellow-500 text-lg font-mono tracking-[0.3em] animate-pulse uppercase">
-                  AWAITING DIRECTOR TO START DEFENSE TIMER...
-                </span>
+            {/* ── الهيدر — أسفل الشاشة ── */}
+            <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-6 py-4 border-t border-[#2a2a2a] bg-black/60 backdrop-blur-sm">
+              {/* يسار: لوجو + اسم + المرحلة */}
+              <div className="flex items-center gap-4">
+                <Image src="/mafia_logo.png" alt="Mafia" width={36} height={36} className="w-[36px] h-[36px] drop-shadow-[0_0_12px_rgba(138,3,3,0.3)]" priority />
+                <div className="flex flex-col leading-none">
+                  <span className="text-xl font-black tracking-tight text-[#C5A059]" style={{ fontFamily: 'Amiri, serif' }}>MAFIA</span>
+                  <span className="flex justify-between w-full text-[7px] font-light text-[#8A0303]" dir="ltr" style={{ fontFamily: 'Amiri, serif' }}>{'CLUB'.split('').map((l, i) => <span key={i}>{l}</span>)}</span>
+                </div>
+                <div className="w-[1px] h-7 bg-[#2a2a2a] mx-2" />
+                <div className="flex flex-col">
+                  <span className="text-base font-black text-[#C5A059]" style={{ fontFamily: 'Amiri, serif' }}>
+                    {justificationData.resultType === 'TIE' ? 'تعادل - كلمة الدفاع' : 'كلمة الدفاع الأخيرة'}
+                  </span>
+                  <span className="text-[7px] font-mono text-[#808080] tracking-[0.3em] uppercase">
+                    {justificationData.resultType === 'TIE' ? 'TIED DEFENDANTS' : 'FINAL DEFENSE'}
+                  </span>
+                </div>
               </div>
-            )}
+
+              {/* وسط: عدد المتهمين */}
+              <div className="flex flex-col items-center">
+                <span className="text-[7px] font-mono text-[#808080] uppercase tracking-widest">ACCUSED</span>
+                <span className="text-xl font-mono font-black text-[#C5A059]">{justificationData.accused.length}</span>
+              </div>
+
+              {/* يمين: عدد الأصوات */}
+              <div className="flex flex-col items-center">
+                <span className="text-[7px] font-mono text-[#808080] uppercase tracking-widest">VOTES AGAINST</span>
+                <span className="text-xl font-mono font-black text-[#8A0303]">{justificationData.topVotes}</span>
+              </div>
+            </div>
           </motion.div>
         )}
 
