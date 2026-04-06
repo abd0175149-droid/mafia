@@ -106,53 +106,85 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
   const [localTimeRemaining, setLocalTimeRemaining] = useState<number>(initialDiscussionState?.timeRemaining || 0);
   const prevTimeRef = useRef<number>(initialDiscussionState?.timeRemaining || 0);
 
-  // Cinematic Panning States
+  // ═══════════════════════════════════════════════════════════
+  // 🎥 Cinematic Camera — Dynamic Scale + Fixed Target Position
+  // ═══════════════════════════════════════════════════════════
+  // Strategy:
+  //   1. Scale factor (S) is calculated dynamically so the card ALWAYS
+  //      appears at ~75% of viewport height, regardless of its original size
+  //   2. Target screen position is FIXED (38% or 62% horizontally, 50% vertically)
+  //   3. Translation is computed to land the card exactly at that fixed spot
+  // ═══════════════════════════════════════════════════════════
+
   const containerRef = useRef<HTMLDivElement>(null);
   const [boardPan, setBoardPan] = useState({ x: 0, y: 0 });
   const [timerPos, setTimerPos] = useState<'left' | 'right'>('right');
-  const [zoomScale, setZoomScale] = useState(3);
+  const [zoomScale, setZoomScale] = useState(1);
 
+  // Store parent's natural screen center (captured when scale=1, no speaker)
+  const naturalParentPos = useRef<{ cx: number; cy: number } | null>(null);
+
+  // Capture the grid container's natural screen position while at rest
+  useEffect(() => {
+    if (!discussionState?.currentSpeakerId && containerRef.current) {
+      const timer = setTimeout(() => {
+        if (containerRef.current) {
+          const rect = containerRef.current.getBoundingClientRect();
+          naturalParentPos.current = {
+            cx: rect.left + rect.width / 2,
+            cy: rect.top + rect.height / 2,
+          };
+        }
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [discussionState?.currentSpeakerId, players.length, phase]);
+
+  // Calculate zoom + pan when speaker changes
   useEffect(() => {
     if (discussionState && discussionState.currentSpeakerId) {
       setTimeout(() => {
         const el = document.getElementById(`speaker-card-${discussionState.currentSpeakerId}`);
         const parent = containerRef.current;
         if (el && parent) {
-          // Calculate dynamic scale factor so the card never vertically exceeds the screen bounds
-          const maxAllowedHeight = window.innerHeight * 0.85; // 85% of viewport height
-          const proposedS = 3;
-          let S = Math.min(proposedS, maxAllowedHeight / el.offsetHeight);
-          // Also protect width just in case
-          const maxAllowedWidth = window.innerWidth * 0.45; // 45% width to leave space for timer
-          S = Math.min(S, maxAllowedWidth / el.offsetWidth);
-          // Minimum acceptable scale
-          S = Math.max(S, 1.2);
-
+          // ── Dynamic Scale Factor ──
+          // Card always fills 75% of viewport height after zoom
+          const targetHeight = window.innerHeight * 0.75;
+          let S = targetHeight / el.offsetHeight;
+          // Protect width: card must not exceed 42% of viewport width (space for timer)
+          S = Math.min(S, (window.innerWidth * 0.42) / el.offsetWidth);
+          S = Math.max(S, 1.2); // Minimum zoom
           setZoomScale(S);
 
-          // Get absolute pristine offsets (immune to current framer transforms)
+          // ── Card's Layout Center (pre-transform coordinates) ──
           const elCx = el.offsetLeft + el.offsetWidth / 2;
           const elCy = el.offsetTop + el.offsetHeight / 2;
           const pCx = parent.offsetWidth / 2;
           const pCy = parent.offsetHeight / 2;
 
-          // Determine native side relatively to parent center
+          // ── Timer Side ──
           const isNativeLeft = elCx < pCx;
           setTimerPos(isNativeLeft ? 'right' : 'left');
 
-          // Target positions
-          let desiredX = isNativeLeft ? parent.offsetWidth * 0.35 : parent.offsetWidth * 0.65;
-          const desiredY = pCy; // Exact vertical center of parent
+          // ── Fixed Target Screen Positions ──
+          // These are ABSOLUTE screen coordinates where the card center will ALWAYS land
+          const targetScreenX = isNativeLeft
+            ? window.innerWidth * 0.38   // Card left-third, timer on right
+            : window.innerWidth * 0.62;  // Card right-third, timer on left
+          const targetScreenY = window.innerHeight * 0.50; // Always vertically centered
 
-          // Clamp X to ensure the bounded scaled width never hits the edges
-          const safePaddingX = (el.offsetWidth * S) * 0.6; 
-          desiredX = Math.max(safePaddingX, Math.min(parent.offsetWidth - safePaddingX, desiredX));
+          // ── Parent's Natural Screen Center (captured at rest) ──
+          const pScreenCx = naturalParentPos.current?.cx ?? window.innerWidth / 2;
+          const pScreenCy = naturalParentPos.current?.cy ?? window.innerHeight / 2;
 
-          // Correct Framer-Motion translation math based on local DOM coordinates
-          const targetPanX = desiredX - pCx - (elCx - pCx) * S;
-          const targetPanY = desiredY - pCy - (elCy - pCy) * S;
+          // ── Framer Motion Translation Math ──
+          // After scale S around parent center with transformOrigin:center:
+          //   screenX = parentScreenCx + (elCx - pCx) * S + translateX
+          // Solving for translateX to hit our fixed target:
+          const tx = targetScreenX - pScreenCx - (elCx - pCx) * S;
+          const ty = targetScreenY - pScreenCy - (elCy - pCy) * S;
 
-          setBoardPan({ x: targetPanX, y: targetPanY });
+          setBoardPan({ x: tx, y: ty });
         }
       }, 150);
     } else {
