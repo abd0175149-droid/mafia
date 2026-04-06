@@ -90,6 +90,7 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
   const [totalVotesCast, setTotalVotesCast] = useState(0);
   const [tieBreakerLevel, setTieBreakerLevel] = useState(0);
 
+
   // Resolution UI States
   const [eliminatedIds, setEliminatedIds] = useState<number[]>([]);
   const [revealedRoles, setRevealedRoles] = useState<any[]>([]);
@@ -505,35 +506,69 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
             exit={{ opacity: 0, y: -30 }}
             className="w-full"
           >
-            <div className="text-center mb-12 border-b border-[#2a2a2a] pb-8">
-              {tieBreakerLevel >= 2 ? (
-                <>
-                  <div className="inline-block px-6 py-2 bg-[#8A0303]/20 border border-[#8A0303] mb-4">
-                    <span className="text-[#ff4444] font-mono text-sm tracking-[0.4em] uppercase animate-pulse">⚡ NARROWED VOTE — TIED CANDIDATES ONLY ⚡</span>
+            <div className="w-full mb-8">
+              {/* ── الهيدر الموحد: لوجو + اسم + معلومات الفرق + الأصوات ── */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-[#2a2a2a] bg-black/40 backdrop-blur-sm rounded-t-xl">
+
+                {/* يسار: اللوجو + الاسم + المرحلة */}
+                <div className="flex items-center gap-4">
+                  <Image src="/mafia_logo.png" alt="Mafia" width={44} height={44} className="w-[44px] h-[44px] drop-shadow-[0_0_15px_rgba(138,3,3,0.3)]" priority />
+                  <div className="flex flex-col leading-none">
+                    <span className="text-2xl font-black tracking-tight text-[#C5A059]" style={{ fontFamily: 'Amiri, serif' }}>MAFIA</span>
+                    <span className="flex justify-between w-full text-[8px] font-light text-[#8A0303]" dir="ltr" style={{ fontFamily: 'Amiri, serif' }}>{'CLUB'.split('').map((l, i) => <span key={i}>{l}</span>)}</span>
                   </div>
-                  <h1 className="text-5xl font-black text-[#8A0303] mb-4" style={{ fontFamily: 'Amiri, serif' }}>تصويت الحسم</h1>
-                </>
-              ) : tieBreakerLevel === 1 ? (
-                <>
-                  <div className="inline-block px-6 py-2 bg-[#C5A059]/10 border border-[#C5A059]/50 mb-4">
-                    <span className="text-[#C5A059] font-mono text-sm tracking-[0.4em] uppercase">🔁 REVOTE — ALL CANDIDATES</span>
+                  <div className="w-[1px] h-8 bg-[#2a2a2a] mx-2" />
+                  <div className="flex flex-col">
+                    {tieBreakerLevel >= 2 ? (
+                      <>
+                        <span className="text-lg font-black text-[#8A0303]" style={{ fontFamily: 'Amiri, serif' }}>تصويت الحسم</span>
+                        <span className="text-[8px] font-mono text-[#ff4444] tracking-[0.3em] uppercase animate-pulse">NARROWED VOTE</span>
+                      </>
+                    ) : tieBreakerLevel === 1 ? (
+                      <>
+                        <span className="text-lg font-black text-[#C5A059]" style={{ fontFamily: 'Amiri, serif' }}>إعادة التصويت</span>
+                        <span className="text-[8px] font-mono text-[#C5A059] tracking-[0.3em] uppercase">REVOTE</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-lg font-black text-[#C5A059]" style={{ fontFamily: 'Amiri, serif' }}>مرحلة التصويت</span>
+                        <span className="text-[8px] font-mono text-[#808080] tracking-[0.3em] uppercase">VOTING PHASE</span>
+                      </>
+                    )}
                   </div>
-                  <h1 className="text-5xl font-black text-[#C5A059] mb-4" style={{ fontFamily: 'Amiri, serif' }}>إعادة التصويت</h1>
-                </>
-              ) : (
-                <h1 className="text-5xl font-black text-[#C5A059] mb-4" style={{ fontFamily: 'Amiri, serif' }}>التصويت اللحظي</h1>
-              )}
-              <p className="text-white font-mono text-xl tracking-[0.3em] uppercase">VOTES: <span className="text-[#C5A059]">{totalVotesCast}</span> / {aliveCount}</p>
-              <div className="flex justify-center gap-8 mt-3">
-                <span className="font-mono text-sm tracking-widest">
-                  <span className="text-[#44ff44]">🏛</span> <span className="text-white">مواطنون:</span>{' '}
-                  <span className="text-[#44ff44] font-bold">{teamCounts?.citizenAlive ?? '?'}</span>
-                </span>
-                <span className="text-[#2a2a2a]">|</span>
-                <span className="font-mono text-sm tracking-widest">
-                  <span className="text-[#ff4444]">🎭</span> <span className="text-white">مافيا:</span>{' '}
-                  <span className="text-[#ff4444] font-bold">{teamCounts?.mafiaAlive ?? '?'}</span>
-                </span>
+                </div>
+
+                {/* وسط: عدادات الفرق */}
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#44ff44] text-lg">🏛</span>
+                    <div className="flex flex-col items-center">
+                      <span className="text-[8px] font-mono text-[#808080] uppercase tracking-widest">CITIZENS</span>
+                      <span className="text-2xl font-mono font-black text-[#44ff44]">{teamCounts?.citizenAlive ?? '?'}</span>
+                    </div>
+                  </div>
+                  <div className="w-[1px] h-10 bg-[#2a2a2a]" />
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#ff4444] text-lg">🎭</span>
+                    <div className="flex flex-col items-center">
+                      <span className="text-[8px] font-mono text-[#808080] uppercase tracking-widest">MAFIA</span>
+                      <span className="text-2xl font-mono font-black text-[#ff4444]">{teamCounts?.mafiaAlive ?? '?'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* يمين: عداد الأصوات */}
+                <div className="flex flex-col items-center">
+                  <span className="text-[8px] font-mono text-[#808080] uppercase tracking-widest mb-1">VOTES</span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-mono font-black text-[#C5A059]">{totalVotesCast}</span>
+                    <span className="text-lg font-mono text-[#808080]">/</span>
+                    <span className="text-lg font-mono text-white">{aliveCount}</span>
+                  </div>
+                  {totalVotesCast >= aliveCount && (
+                    <span className="text-[8px] font-mono text-[#44ff44] tracking-widest uppercase mt-1 animate-pulse">COMPLETE ✓</span>
+                  )}
+                </div>
               </div>
             </div>
 
