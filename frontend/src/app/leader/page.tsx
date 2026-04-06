@@ -132,13 +132,23 @@ export default function LeaderPage() {
     const offPlayerJoined = on('room:player-joined', (data: any) => {
       setGameState(prev => {
         if (!prev) return prev;
-        const exists = prev.players.some((p: any) => p.physicalId === data.physicalId);
-        if (exists) return prev;
+        const existingIdx = prev.players.findIndex((p: any) => p.physicalId === data.physicalId);
+        if (existingIdx >= 0) {
+          // تحديث بيانات اللاعب الموجود (الاسم، الجنس، إلخ)
+          const updatedPlayers = [...prev.players];
+          updatedPlayers[existingIdx] = {
+            ...updatedPlayers[existingIdx],
+            name: data.name || updatedPlayers[existingIdx].name,
+            gender: data.gender || updatedPlayers[existingIdx].gender,
+          };
+          return { ...prev, players: updatedPlayers };
+        }
         return {
           ...prev,
           players: [...prev.players, {
             physicalId: data.physicalId,
             name: data.name,
+            gender: data.gender || 'MALE',
             isAlive: true,
           }].sort((a: any, b: any) => a.physicalId - b.physicalId),
         };

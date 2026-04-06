@@ -82,6 +82,7 @@ interface PlayerInfo {
   name: string;
   isAlive: boolean;
   role?: string;
+  gender?: string;
 }
 
 export default function DisplayPage() {
@@ -138,12 +139,22 @@ export default function DisplayPage() {
     const onPlayerJoined = (data: any) => {
       setPlayerCount(data.totalPlayers);
       setPlayers(prev => {
-        if (prev.some(p => p.physicalId === data.physicalId)) return prev;
+        const existingIdx = prev.findIndex(p => p.physicalId === data.physicalId);
+        if (existingIdx >= 0) {
+          // تحديث بيانات اللاعب الموجود (الاسم، الجنس)
+          const updated = [...prev];
+          updated[existingIdx] = {
+            ...updated[existingIdx],
+            name: data.name || updated[existingIdx].name,
+            gender: data.gender || updated[existingIdx].gender,
+          };
+          return updated;
+        }
         return [...prev, {
           physicalId: data.physicalId,
           name: data.name,
           isAlive: true,
-          gender: data.gender,
+          gender: data.gender || 'MALE',
         }];
       });
     };
