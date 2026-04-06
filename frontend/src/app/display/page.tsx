@@ -329,13 +329,13 @@ export default function DisplayPage() {
 
         {/* Global Mini-Header for Active Phases */}
         {step === 'lobby' && phase !== Phase.LOBBY && phase !== Phase.ROLE_GENERATION && phase !== Phase.ROLE_BINDING && (
-          <div className="absolute top-4 lg:top-8 w-full flex flex-col items-center justify-center gap-1 z-50 pointer-events-none opacity-80">
+          <div className="absolute top-4 left-6 flex items-center justify-start gap-4 z-50 pointer-events-none opacity-80">
             <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}>
                <Image src="/mafia_logo.png" alt="Mafia" width={50} height={50} className="w-[45px] h-[45px] drop-shadow-[0_0_15px_rgba(138,3,3,0.3)]" priority />
              </motion.div>
-             <h1 className="text-center">
-               <span className="block text-2xl font-black tracking-tight text-[#C5A059] mb-0" style={{ fontFamily: 'Amiri, serif', textShadow: '0 0 20px rgba(138,3,3,0.4)' }}>MAFIA</span>
-               <span className="flex justify-between text-[10px] font-light text-[#8A0303] w-full" dir="ltr" style={{ fontFamily: 'Amiri, serif' }}>{'CLUB'.split('').map((l, i) => <span key={i}>{l}</span>)}</span>
+             <h1 className="flex flex-col items-start leading-none mt-1">
+               <span className="block text-2xl font-black tracking-tight text-[#C5A059]" style={{ fontFamily: 'Amiri, serif', textShadow: '0 0 20px rgba(138,3,3,0.4)' }}>MAFIA</span>
+               <span className="text-xs font-light text-[#8A0303] tracking-[0.2em] pl-0.5" style={{ fontFamily: 'Amiri, serif' }}>CLUB</span>
              </h1>
           </div>
         )}

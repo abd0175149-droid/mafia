@@ -109,6 +109,7 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
   const containerRef = useRef<HTMLDivElement>(null);
   const [boardPan, setBoardPan] = useState({ x: 0, y: 0 });
   const [timerPos, setTimerPos] = useState<'left' | 'right'>('right');
+  const [zoomScale, setZoomScale] = useState(3);
 
   useEffect(() => {
     if (discussionState && discussionState.currentSpeakerId) {
@@ -116,7 +117,18 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
         const el = document.getElementById(`speaker-card-${discussionState.currentSpeakerId}`);
         const parent = containerRef.current;
         if (el && parent) {
-          const S = 3; // Final scale factor (Zooooooom!)
+          // Calculate dynamic scale factor so the card never vertically exceeds the screen bounds
+          const maxAllowedHeight = window.innerHeight * 0.70; // 70% of viewport height
+          const proposedS = 3;
+          let S = Math.min(proposedS, maxAllowedHeight / el.offsetHeight);
+          // Also protect width just in case
+          const maxAllowedWidth = window.innerWidth * 0.45; // 45% width to leave space for timer
+          S = Math.min(S, maxAllowedWidth / el.offsetWidth);
+          // Minimum acceptable scale
+          S = Math.max(S, 1.2);
+
+          setZoomScale(S);
+
           const elCx = el.offsetLeft + el.offsetWidth / 2;
           const elCy = el.offsetTop + el.offsetHeight / 2;
           const pCx = parent.offsetWidth / 2;
@@ -129,15 +141,13 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
           // Desired final visual positions (35% left or 65% right)
           let desiredX = isNativeLeft ? parent.offsetWidth * 0.35 : parent.offsetWidth * 0.65;
           
-          // Clamp to ensure the card never cuts off!
+          // Clamp to ensure the bounding box never cuts off!
           const safePadding = (el.offsetWidth * S) * 0.6; 
           desiredX = Math.max(safePadding, Math.min(parent.offsetWidth - safePadding, desiredX));
 
           const desiredY = pCy; 
 
           // Correct Framer-Motion translation math:
-          // Visual = Center + (Original - Center) * Scale + Translate
-          // So: Translate = Desired - Center - (Original - Center) * Scale
           const targetPanX = desiredX - pCx - (elCx - pCx) * S;
           const targetPanY = desiredY - pCy - (elCy - pCy) * S;
 
@@ -354,7 +364,7 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
                   <motion.div 
                     ref={containerRef}
                     animate={{
-                      scale: discussionState?.currentSpeakerId ? 3 : 1,
+                      scale: discussionState?.currentSpeakerId ? zoomScale : 1,
                       x: discussionState?.currentSpeakerId ? boardPan.x : 0,
                       y: discussionState?.currentSpeakerId ? boardPan.y : 0,
                     }}
