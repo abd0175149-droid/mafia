@@ -367,16 +367,16 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
                     animate={{ opacity: 1, y: 0 }}
                     className="w-full flex items-center justify-between px-6 mb-3"
                   >
-                    <div className="flex items-center gap-3">
-                      <Image src="/mafia_logo.png" alt="Mafia" width={36} height={36} className="w-[36px] h-[36px] drop-shadow-[0_0_12px_rgba(138,3,3,0.3)]" priority />
-                      <div className="flex flex-col items-start leading-none">
-                        <span className="text-xl font-black tracking-tight text-[#C5A059]" style={{ fontFamily: 'Amiri, serif', textShadow: '0 0 15px rgba(138,3,3,0.4)' }}>MAFIA</span>
-                        <span className="text-[10px] font-light text-[#8A0303] tracking-[0.2em] pl-0.5" style={{ fontFamily: 'Amiri, serif' }}>CLUB</span>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end">
+                    <div className="flex flex-col items-start">
                       <span className="text-lg font-black text-white tracking-wide" style={{ fontFamily: 'Amiri, serif' }}>مرحلة النقاش</span>
                       <span className="text-[10px] font-mono text-[#555] tracking-[0.3em] uppercase">DISCUSSION PHASE</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex flex-col items-end leading-none">
+                        <span className="text-xl font-black tracking-tight text-[#C5A059]" style={{ fontFamily: 'Amiri, serif', textShadow: '0 0 15px rgba(138,3,3,0.4)' }}>MAFIA</span>
+                        <span className="text-[10px] font-light text-[#8A0303] tracking-[0.2em] pr-0.5" style={{ fontFamily: 'Amiri, serif' }}>CLUB</span>
+                      </div>
+                      <Image src="/mafia_logo.png" alt="Mafia" width={36} height={36} className="w-[36px] h-[36px] drop-shadow-[0_0_12px_rgba(138,3,3,0.3)]" priority />
                     </div>
                   </motion.div>
                 )}
