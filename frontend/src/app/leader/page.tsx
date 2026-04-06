@@ -423,6 +423,7 @@ export default function LeaderPage() {
         gender: 'MALE',
         isAlive: true,
         isSilenced: false,
+        justificationCount: 0,
       }));
 
       setGameState({

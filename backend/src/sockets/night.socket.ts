@@ -361,8 +361,13 @@ export function registerNightEvents(io: Server, socket: Socket) {
           hiddenPlayersFromVoting: [],
           tieBreakerLevel: 0,
         };
-        // تصفير الإسكات لبداية نهار جديد
-        state.players.forEach(p => { if (p.isAlive) p.isSilenced = false; });
+        // تصفير الإسكات وعدادات التبرير لبداية نهار جديد
+        state.players.forEach(p => { 
+          if (p.isAlive) {
+            p.isSilenced = false;
+            p.justificationCount = 0;
+          }
+        });
         await setGameState(data.roomId, state);
       }
 
