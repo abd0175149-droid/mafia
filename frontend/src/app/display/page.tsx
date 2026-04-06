@@ -328,7 +328,7 @@ export default function DisplayPage() {
       <div className="relative z-10 w-full h-full flex flex-col items-center justify-center">
 
         {/* Global Mini-Header for Active Phases */}
-        {step === 'lobby' && phase !== Phase.LOBBY && phase !== Phase.ROLE_GENERATION && phase !== Phase.ROLE_BINDING && (
+        {step === 'lobby' && phase !== Phase.LOBBY && phase !== Phase.ROLE_GENERATION && phase !== Phase.ROLE_BINDING && !phase.startsWith('DAY_') && (
           <div className="absolute top-4 left-6 flex items-center justify-start gap-4 z-50 pointer-events-none opacity-80">
             <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}>
                <Image src="/mafia_logo.png" alt="Mafia" width={50} height={50} className="w-[45px] h-[45px] drop-shadow-[0_0_15px_rgba(138,3,3,0.3)]" priority />

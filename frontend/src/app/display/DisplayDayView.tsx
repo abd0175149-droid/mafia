@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getSocket } from '@/lib/socket';
 import MafiaCard from '@/components/MafiaCard';
 import CircularTimer from '@/components/CircularTimer';
+import Image from 'next/image';
 
 const playAudioBeep = (type: 'tick' | 'buzzer') => {
   try {
@@ -318,7 +319,7 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
   }, [totalVotesCast, currentOrderStr, phase]);
 
   return (
-    <div className="w-full mx-auto flex flex-col items-center justify-center px-4 py-8">
+    <div className="w-full mx-auto flex flex-col items-center justify-center px-4 py-2">
       <AnimatePresence mode="wait">
         
         {/* DISCUSSION AREA */}
@@ -359,7 +360,28 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
 
             {!silencedPlayerId && (
               <>
-                <div className="w-full flex justify-center items-center h-full mb-10 overflow-visible">
+                {/* Discussion Header Bar — Logo left, Phase name right */}
+                {!discussionState?.currentSpeakerId && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="w-full flex items-center justify-between px-6 mb-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Image src="/mafia_logo.png" alt="Mafia" width={36} height={36} className="w-[36px] h-[36px] drop-shadow-[0_0_12px_rgba(138,3,3,0.3)]" priority />
+                      <div className="flex flex-col items-start leading-none">
+                        <span className="text-xl font-black tracking-tight text-[#C5A059]" style={{ fontFamily: 'Amiri, serif', textShadow: '0 0 15px rgba(138,3,3,0.4)' }}>MAFIA</span>
+                        <span className="text-[10px] font-light text-[#8A0303] tracking-[0.2em] pl-0.5" style={{ fontFamily: 'Amiri, serif' }}>CLUB</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className="text-lg font-black text-white tracking-wide" style={{ fontFamily: 'Amiri, serif' }}>مرحلة النقاش</span>
+                      <span className="text-[10px] font-mono text-[#555] tracking-[0.3em] uppercase">DISCUSSION PHASE</span>
+                    </div>
+                  </motion.div>
+                )}
+
+                <div className="w-full flex justify-center items-center h-full overflow-visible">
                   {/* Cinematic Virtual Camera Wrapper */}
                   <motion.div 
                     ref={containerRef}
@@ -370,7 +392,7 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
                     }}
                     transition={{ duration: 1.2, type: 'spring', damping: 25, stiffness: 100 }}
                     style={{ transformOrigin: 'center center' }}
-                    className="flex flex-wrap justify-center items-center gap-10 md:gap-14 w-full max-w-[2000px] mx-auto px-4 relative"
+                    className="flex flex-wrap justify-center items-center gap-6 md:gap-8 w-full max-w-[2000px] mx-auto px-4 pt-2 relative"
                   >
                     {players.map((p) => {
                       if (!p.isAlive) return null;
