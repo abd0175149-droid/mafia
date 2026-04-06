@@ -306,47 +306,87 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
             {!silencedPlayerId && (
               <>
                 {!discussionState || discussionState.isFinished ? (
-                  <>
+                  <div className="flex flex-col items-center justify-center">
                     <div className="text-8xl mb-8 grayscale opacity-70">⚖️</div>
-                    <h1 className="text-6xl font-black text-white mb-6 uppercase tracking-widest" style={{ fontFamily: 'Amiri, serif' }}>ساحة النقاش</h1>
+                    <h1 className="text-6xl font-black text-[#C5A059] mb-6 uppercase tracking-widest" style={{ fontFamily: 'Amiri, serif' }}>ساحة النقاش</h1>
                     <p className="text-[#808080] font-mono tracking-[0.4em] uppercase text-xl">
                       {!discussionState ? 'AWAITING DIRECTOR INITIALIZATION...' : 'ALL REGULAR DISCUSSIONS COMPLETE. AWAITING DEALS...'}
                     </p>
-                  </>
+                  </div>
                 ) : (
-                  <div className="flex flex-col items-center spotlight-vignette">
-                    <h2 className="text-3xl font-mono text-[#555] uppercase tracking-widest mb-12">ACTIVE SPEAKER</h2>
-                    
-                    <div className={`relative flex items-center justify-center rounded-full p-2 mb-12 transition-all duration-1000 ${
-                      discussionState.status === 'SPEAKING' 
-                        ? 'bg-gradient-to-tr from-[#C5A059] to-transparent shadow-[0_0_100px_rgba(197,160,89,0.2)]' 
-                        : discussionState.status === 'PAUSED' 
-                        ? 'bg-gradient-to-tr from-[#8A0303] to-transparent shadow-[0_0_50px_rgba(138,3,3,0.3)]'
-                        : 'bg-[#2a2a2a]'
-                    }`}>
-                      <div className="bg-[#050505] rounded-full w-[400px] h-[400px] flex flex-col items-center justify-center p-8 z-10 border border-[#111]">
-                        <span className="text-[120px] font-black text-white font-mono leading-none">{discussionState.currentSpeakerId}</span>
-                        <span className="text-3xl text-[#C5A059] uppercase tracking-widest mt-4 truncate max-w-[300px]">
-                          {players.find(p => p.physicalId === discussionState.currentSpeakerId)?.name}
-                        </span>
-                      </div>
-                    </div>
+                  <div className="w-full flex justify-center items-center h-full">
+                    <motion.div layout className="flex flex-wrap justify-center items-end gap-10 md:gap-14 w-full max-w-[1600px] mx-auto px-10">
+                      <AnimatePresence mode="popLayout">
+                        {players.map((p) => {
+                          if (!p.isAlive) return null;
+                          
+                          const isSpeaker = p.physicalId === discussionState.currentSpeakerId;
+                          const isSomeoneSpeaking = !!discussionState.currentSpeakerId;
+                          
+                          return (
+                            <motion.div
+                              layout
+                              key={p.physicalId}
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              animate={{ 
+                                opacity: isSpeaker ? 1 : isSomeoneSpeaking ? 0.25 : 1,
+                                scale: isSpeaker ? 1.25 : isSomeoneSpeaking ? 0.9 : 1,
+                                filter: isSpeaker ? 'blur(0px) grayscale(0%)' : isSomeoneSpeaking ? 'blur(4px) grayscale(60%)' : 'blur(0px) grayscale(0%)',
+                                zIndex: isSpeaker ? 50 : 10
+                              }}
+                              transition={{ duration: 0.6, ease: "easeInOut" }}
+                              className="flex flex-col items-center relative transform-origin-bottom"
+                              style={{ transformOrigin: 'bottom center' }}
+                            >
+                              {/* Spotlight Effect for Active Speaker */}
+                              {isSpeaker && (
+                                <motion.div 
+                                  layoutId="speaker-spotlight"
+                                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[500px] bg-[#C5A059]/20 blur-[80px] rounded-full pointer-events-none -z-10"
+                                />
+                              )}
 
-                    <div className="mt-8">
-                      <CircularTimer
-                        timeRemaining={localTimeRemaining}
-                        totalTime={discussionState.timeLimitSeconds}
-                        size={280}
-                        enableHeartbeat={discussionState.status === 'SPEAKING'}
-                        enableShake={discussionState.status === 'SPEAKING'}
-                      />
-                    </div>
-                    
-                    <div className="mt-8 text-xl font-mono tracking-[0.3em] font-bold">
-                      {discussionState.status === 'WAITING' && <span className="text-yellow-500 animate-pulse">AWAITING COMMENCEMENT...</span>}
-                      {discussionState.status === 'SPEAKING' && <span className="text-[#C5A059]">FLOOR IS OPEN</span>}
-                      {discussionState.status === 'PAUSED' && <span className="text-[#8A0303] animate-pulse">FLOOR SUSPENDED</span>}
-                    </div>
+                              <MafiaCard
+                                playerNumber={p.physicalId}
+                                playerName={p.name}
+                                role={null}
+                                gender={p.gender === 'FEMALE' ? 'FEMALE' : 'MALE'}
+                                isFlipped={false}
+                                flippable={false}
+                                size="sm"
+                                isAlive={p.isAlive}
+                                className={isSpeaker ? 'shadow-[0_0_40px_rgba(197,160,89,0.3)] border-2 border-[#C5A059]' : ''}
+                              />
+                              
+                              <AnimatePresence>
+                                {isSpeaker && (
+                                  <motion.div 
+                                    initial={{ opacity: 0, height: 0, scale: 0.5, y: -20 }}
+                                    animate={{ opacity: 1, height: 'auto', scale: 1, y: 0 }}
+                                    exit={{ opacity: 0, height: 0, scale: 0.5, y: -20 }}
+                                    transition={{ duration: 0.4 }}
+                                    className="mt-8 flex flex-col items-center"
+                                  >
+                                    <CircularTimer
+                                      timeRemaining={localTimeRemaining}
+                                      totalTime={discussionState.timeLimitSeconds}
+                                      size={140}
+                                      enableHeartbeat={discussionState.status === 'SPEAKING'}
+                                      enableShake={discussionState.status === 'SPEAKING'}
+                                    />
+                                    <div className="mt-4 text-[10px] font-mono tracking-[0.3em] font-bold">
+                                      {discussionState.status === 'WAITING' && <span className="text-yellow-500 animate-pulse">AWAITING COMMENCEMENT...</span>}
+                                      {discussionState.status === 'SPEAKING' && <span className="text-[#C5A059]">FLOOR IS OPEN</span>}
+                                      {discussionState.status === 'PAUSED' && <span className="text-[#8A0303] animate-pulse">FLOOR SUSPENDED</span>}
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </motion.div>
+                          );
+                        })}
+                      </AnimatePresence>
+                    </motion.div>
                   </div>
                 )}
               </>

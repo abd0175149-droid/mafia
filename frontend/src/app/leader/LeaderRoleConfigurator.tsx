@@ -79,7 +79,7 @@ export default function LeaderRoleConfigurator({ gameState, emit, setError }: Le
 
       <div className="flex flex-col gap-6 mb-8 w-full">
         {/* Mafia Column */}
-        <div className="bg-black/40 border border-[#8A0303]/30 rounded-xl p-6 backdrop-blur-sm relative">
+        <div className="bg-black/40 border border-[#8A0303]/30 rounded-xl p-6 backdrop-blur-sm relative z-20">
           <div className="absolute top-0 right-0 w-full h-[1px] bg-gradient-to-l from-transparent via-[#8A0303]/50 to-transparent rounded-t-xl" />
           <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#8A0303]/20">
             <h3 className="text-sm font-mono text-[#8A0303] uppercase tracking-[0.2em] font-bold">
@@ -90,13 +90,13 @@ export default function LeaderRoleConfigurator({ gameState, emit, setError }: Le
             </span>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+          <div className="flex flex-wrap gap-3">
             {roles.map((r, i) => {
               const isMafia = [Role.GODFATHER, Role.SILENCER, Role.CHAMELEON, Role.MAFIA_REGULAR].includes(r);
               if (!isMafia) return null;
               return (
-                <div key={i} className="bg-[#0a0a0a] border border-[#8A0303]/20 rounded-lg p-2 flex items-center gap-3 hover:border-[#8A0303]/60 transition-colors group">
-                  <div className="w-12 h-12 rounded bg-[#111] border border-[#8A0303]/30 flex items-center justify-center text-2xl grayscale opacity-70 group-hover:opacity-100 transition-opacity">
+                <div key={i} className="bg-[#0a0a0a] border border-[#8A0303]/20 rounded-lg p-2 flex items-center gap-3 hover:border-[#8A0303]/60 transition-colors group flex-1 min-w-[200px] sm:flex-none">
+                  <div className="w-12 h-12 shrink-0 rounded bg-[#111] border border-[#8A0303]/30 flex items-center justify-center text-2xl grayscale opacity-70 group-hover:opacity-100 transition-opacity">
                     {ROLE_ICONS[r]}
                   </div>
                   <div className="relative flex-1">
@@ -105,7 +105,7 @@ export default function LeaderRoleConfigurator({ gameState, emit, setError }: Le
                       className="w-full bg-transparent text-white font-mono text-xs md:text-sm px-3 py-2 cursor-pointer tracking-widest font-bold flex justify-between items-center"
                       dir="ltr"
                     >
-                      <span className="text-[#C5A059] truncate pr-2">{ROLE_NAMES[r]}</span>
+                      <span className="text-[#C5A059] pr-2 whitespace-nowrap">{ROLE_NAMES[r]}</span>
                       <span className="text-[#8A0303] text-[10px] shrink-0">▼</span>
                     </div>
 
@@ -141,7 +141,7 @@ export default function LeaderRoleConfigurator({ gameState, emit, setError }: Le
         </div>
 
         {/* Citizens Section */}
-        <div className="bg-black/40 border border-[#C5A059]/30 rounded-xl p-6 backdrop-blur-sm relative">
+        <div className="bg-black/40 border border-[#C5A059]/30 rounded-xl p-6 backdrop-blur-sm relative z-10">
           <div className="absolute top-0 right-0 w-full h-[1px] bg-gradient-to-l from-transparent via-[#C5A059]/50 to-transparent rounded-t-xl" />
           <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#2a2a2a]">
             <h3 className="text-sm font-mono text-[#C5A059] uppercase tracking-[0.2em] font-bold">
@@ -152,13 +152,13 @@ export default function LeaderRoleConfigurator({ gameState, emit, setError }: Le
             </span>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+          <div className="flex flex-wrap gap-3">
             {roles.map((r, i) => {
               const isMafia = [Role.GODFATHER, Role.SILENCER, Role.CHAMELEON, Role.MAFIA_REGULAR].includes(r);
               if (isMafia) return null;
               return (
-                <div key={i} className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg p-2 flex items-center gap-3 hover:border-[#C5A059]/50 transition-colors group">
-                  <div className="w-12 h-12 rounded bg-[#111] border border-[#333] flex items-center justify-center text-2xl grayscale opacity-60 group-hover:opacity-100 transition-opacity">
+                <div key={i} className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg p-2 flex items-center gap-3 hover:border-[#C5A059]/50 transition-colors group flex-1 min-w-[200px] sm:flex-none">
+                  <div className="w-12 h-12 shrink-0 rounded bg-[#111] border border-[#333] flex items-center justify-center text-2xl grayscale opacity-60 group-hover:opacity-100 transition-opacity">
                     {ROLE_ICONS[r]}
                   </div>
                   <div className="relative flex-1">
@@ -167,7 +167,7 @@ export default function LeaderRoleConfigurator({ gameState, emit, setError }: Le
                       className="w-full bg-transparent text-[#999] font-mono text-xs md:text-sm px-3 py-2 cursor-pointer tracking-widest font-bold flex justify-between items-center"
                       dir="ltr"
                     >
-                      <span className="text-white truncate pr-2">{ROLE_NAMES[r]}</span>
+                      <span className="text-white pr-2 whitespace-nowrap">{ROLE_NAMES[r]}</span>
                       <span className="text-[#C5A059] text-[10px] shrink-0">▼</span>
                     </div>
 
