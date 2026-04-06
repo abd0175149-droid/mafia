@@ -34,6 +34,10 @@ export function registerDayEvents(io: Server, socket: Socket) {
       io.to(data.roomId).emit('day:voting-started', {
         candidates: state.votingState.candidates,
         hiddenPlayers: state.votingState.hiddenPlayersFromVoting,
+        teamCounts: {
+          citizenAlive: state.players.filter(p => p.isAlive && p.role && !['GODFATHER','SILENCER','CHAMELEON','MAFIA_REGULAR'].includes(p.role)).length,
+          mafiaAlive: state.players.filter(p => p.isAlive && p.role && ['GODFATHER','SILENCER','CHAMELEON','MAFIA_REGULAR'].includes(p.role)).length,
+        },
       });
 
       callback({ success: true });

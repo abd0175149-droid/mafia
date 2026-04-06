@@ -89,6 +89,10 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
   const [candidates, setCandidates] = useState<any[]>([]);
   const [totalVotesCast, setTotalVotesCast] = useState(0);
   const [tieBreakerLevel, setTieBreakerLevel] = useState(0);
+  const [localTeamCounts, setLocalTeamCounts] = useState<{citizenAlive: number; mafiaAlive: number} | null>(null);
+
+  // استخدام القيمة المحلية أولاً، ثم الـ prop كـ fallback
+  const effectiveTeamCounts = localTeamCounts || teamCounts;
 
 
   // Resolution UI States
@@ -236,6 +240,10 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
       setCandidates(data.candidates);
       setTotalVotesCast(0);
       setTieBreakerLevel(data.tieBreakerLevel || 0);
+      // تحديث عدادات الفرق من البيانات القادمة من الباك اند
+      if (data.teamCounts) {
+        setLocalTeamCounts(data.teamCounts);
+      }
       setPhase('VOTING');
     };
 
@@ -544,7 +552,7 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
                     <span className="text-[#44ff44] text-lg">🏛</span>
                     <div className="flex flex-col items-center">
                       <span className="text-[8px] font-mono text-[#808080] uppercase tracking-widest">CITIZENS</span>
-                      <span className="text-2xl font-mono font-black text-[#44ff44]">{teamCounts?.citizenAlive ?? '?'}</span>
+                      <span className="text-2xl font-mono font-black text-[#44ff44]">{effectiveTeamCounts?.citizenAlive ?? '?'}</span>
                     </div>
                   </div>
                   <div className="w-[1px] h-10 bg-[#2a2a2a]" />
@@ -552,7 +560,7 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
                     <span className="text-[#ff4444] text-lg">🎭</span>
                     <div className="flex flex-col items-center">
                       <span className="text-[8px] font-mono text-[#808080] uppercase tracking-widest">MAFIA</span>
-                      <span className="text-2xl font-mono font-black text-[#ff4444]">{teamCounts?.mafiaAlive ?? '?'}</span>
+                      <span className="text-2xl font-mono font-black text-[#ff4444]">{effectiveTeamCounts?.mafiaAlive ?? '?'}</span>
                     </div>
                   </div>
                 </div>
