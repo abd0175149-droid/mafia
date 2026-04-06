@@ -127,14 +127,21 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
           setTimerPos(isNativeLeft ? 'right' : 'left');
 
           // Desired final visual positions (35% left or 65% right)
-          const desiredX = isNativeLeft ? parent.offsetWidth * 0.35 : parent.offsetWidth * 0.65;
+          let desiredX = isNativeLeft ? parent.offsetWidth * 0.35 : parent.offsetWidth * 0.65;
+          
+          // Clamp to ensure the card never cuts off!
+          const safePadding = (el.offsetWidth * S) * 0.6; 
+          desiredX = Math.max(safePadding, Math.min(parent.offsetWidth - safePadding, desiredX));
+
           const desiredY = pCy; 
 
-          // Inverse formula to find target pre-scale coordinates
-          const targetX = pCx + (desiredX - pCx) / S;
-          const targetY = pCy + (desiredY - pCy) / S;
+          // Correct Framer-Motion translation math:
+          // Visual = Center + (Original - Center) * Scale + Translate
+          // So: Translate = Desired - Center - (Original - Center) * Scale
+          const targetPanX = desiredX - pCx - (elCx - pCx) * S;
+          const targetPanY = desiredY - pCy - (elCy - pCy) * S;
 
-          setBoardPan({ x: targetX - elCx, y: targetY - elCy });
+          setBoardPan({ x: targetPanX, y: targetPanY });
         }
       }, 100); 
     } else {
