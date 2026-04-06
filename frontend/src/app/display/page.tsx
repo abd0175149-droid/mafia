@@ -505,7 +505,7 @@ export default function DisplayPage() {
             <div className="flex flex-col flex-auto lg:flex-row w-full gap-8 items-start justify-between">
               <div className="flex flex-col items-center w-full lg:w-[350px] shrink-0">
                 {/* اللوجو + MAFIA CLUB فوق كود اللعبة */}
-                <div className="flex items-center gap-4 mb-6 w-full justify-center">
+                <div className="flex items-center gap-4 mb-8 w-full justify-center" style={{ transform: 'scale(1.5)', transformOrigin: 'center center' }}>
                   <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 1 }}>
                     <Image src="/mafia_logo.png" alt="Mafia Club Logo" width={60} height={60} className="select-none w-[55px] h-[55px] drop-shadow-[0_0_20px_rgba(138,3,3,0.3)]" priority />
                   </motion.div>
