@@ -118,7 +118,7 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
         const parent = containerRef.current;
         if (el && parent) {
           // Calculate dynamic scale factor so the card never vertically exceeds the screen bounds
-          const maxAllowedHeight = window.innerHeight * 0.70; // 70% of viewport height
+          const maxAllowedHeight = window.innerHeight * 0.85; // 85% of viewport height
           const proposedS = 3;
           let S = Math.min(proposedS, maxAllowedHeight / el.offsetHeight);
           // Also protect width just in case
@@ -129,35 +129,31 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
 
           setZoomScale(S);
 
-          // Get absolute screen coordinates to make panning bulletproof
-          const parentRect = parent.getBoundingClientRect();
-          const elRect = el.getBoundingClientRect();
+          // Get absolute pristine offsets (immune to current framer transforms)
+          const elCx = el.offsetLeft + el.offsetWidth / 2;
+          const elCy = el.offsetTop + el.offsetHeight / 2;
+          const pCx = parent.offsetWidth / 2;
+          const pCy = parent.offsetHeight / 2;
 
-          const elCxScreen = elRect.left + elRect.width / 2;
-          const elCyScreen = elRect.top + elRect.height / 2;
-          const pCxScreen = parentRect.left + parentRect.width / 2;
-          const pCyScreen = parentRect.top + parentRect.height / 2;
-
-          // Determine native side relatively to screen
-          const isNativeLeft = elCxScreen < (window.innerWidth / 2);
+          // Determine native side relatively to parent center
+          const isNativeLeft = elCx < pCx;
           setTimerPos(isNativeLeft ? 'right' : 'left');
 
-          // Target screen positions
-          let desiredXScreen = isNativeLeft ? window.innerWidth * 0.35 : window.innerWidth * 0.65;
-          const desiredYScreen = window.innerHeight / 2; // Exact vertical center of screen
+          // Target positions
+          let desiredX = isNativeLeft ? parent.offsetWidth * 0.35 : parent.offsetWidth * 0.65;
+          const desiredY = pCy; // Exact vertical center of parent
 
           // Clamp X to ensure the bounded scaled width never hits the edges
-          const safePaddingX = (elRect.width * S) * 0.6; 
-          desiredXScreen = Math.max(safePaddingX, Math.min(window.innerWidth - safePaddingX, desiredXScreen));
+          const safePaddingX = (el.offsetWidth * S) * 0.6; 
+          desiredX = Math.max(safePaddingX, Math.min(parent.offsetWidth - safePaddingX, desiredX));
 
-          // Correct Framer-Motion translation math mapped from Screen Space:
-          // Visual_Screen = ParentCenter + (Original - ParentCenter) * S + Translation
-          const targetPanX = desiredXScreen - pCxScreen - (elCxScreen - pCxScreen) * S;
-          const targetPanY = desiredYScreen - pCyScreen - (elCyScreen - pCyScreen) * S;
+          // Correct Framer-Motion translation math based on local DOM coordinates
+          const targetPanX = desiredX - pCx - (elCx - pCx) * S;
+          const targetPanY = desiredY - pCy - (elCy - pCy) * S;
 
           setBoardPan({ x: targetPanX, y: targetPanY });
         }
-      }, 200); // Increased delay slightly to ensure DOM gives fully settled ClientRects
+      }, 150);
     } else {
       setBoardPan({ x: 0, y: 0 });
     }
