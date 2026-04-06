@@ -645,33 +645,50 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
           </motion.div>
         )}
 
-        {/* JUSTIFICATION PHASE - كلمة الدفاع الأخيرة */}
+        {/* JUSTIFICATION PHASE */}
         {phase === 'JUSTIFICATION' && justificationData && (
           <motion.div
             key="justification"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -30 }}
-            className="w-full text-center"
+            className="w-full"
           >
-            {/* Header */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 }}
-              className="mb-12"
-            >
-              <div className="text-8xl mb-6 opacity-80">⚖️</div>
-              <h1 className="text-6xl font-black text-white mb-4 uppercase tracking-widest" style={{ fontFamily: 'Amiri, serif' }}>
-                {justificationData.resultType === 'TIE' ? 'تعادل - كلمة الدفاع' : 'كلمة الدفاع الأخيرة'}
-              </h1>
-              <p className="text-[#808080] font-mono tracking-[0.4em] uppercase text-xl">
-                {justificationData.resultType === 'TIE' ? 'TIED DEFENDANTS HAVE THE FLOOR' : 'THE ACCUSED HAS THE FLOOR'}
-              </p>
-            </motion.div>
+            {/* ── الهيدر الموحد ── */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#2a2a2a] bg-black/40 backdrop-blur-sm rounded-t-xl mb-8">
+              {/* يسار: لوجو + اسم + المرحلة */}
+              <div className="flex items-center gap-4">
+                <Image src="/mafia_logo.png" alt="Mafia" width={44} height={44} className="w-[44px] h-[44px] drop-shadow-[0_0_15px_rgba(138,3,3,0.3)]" priority />
+                <div className="flex flex-col leading-none">
+                  <span className="text-2xl font-black tracking-tight text-[#C5A059]" style={{ fontFamily: 'Amiri, serif' }}>MAFIA</span>
+                  <span className="flex justify-between w-full text-[8px] font-light text-[#8A0303]" dir="ltr" style={{ fontFamily: 'Amiri, serif' }}>{'CLUB'.split('').map((l, i) => <span key={i}>{l}</span>)}</span>
+                </div>
+                <div className="w-[1px] h-8 bg-[#2a2a2a] mx-2" />
+                <div className="flex flex-col">
+                  <span className="text-lg font-black text-[#C5A059]" style={{ fontFamily: 'Amiri, serif' }}>
+                    {justificationData.resultType === 'TIE' ? 'تعادل - كلمة الدفاع' : 'كلمة الدفاع الأخيرة'}
+                  </span>
+                  <span className="text-[8px] font-mono text-[#808080] tracking-[0.3em] uppercase">
+                    {justificationData.resultType === 'TIE' ? 'TIED DEFENDANTS' : 'FINAL DEFENSE'}
+                  </span>
+                </div>
+              </div>
 
-            {/* Accused — MafiaCard */}
-            <div className="flex flex-wrap justify-center gap-8 mb-12">
+              {/* وسط: عدد المتهمين */}
+              <div className="flex flex-col items-center">
+                <span className="text-[8px] font-mono text-[#808080] uppercase tracking-widest">ACCUSED</span>
+                <span className="text-2xl font-mono font-black text-[#C5A059]">{justificationData.accused.length}</span>
+              </div>
+
+              {/* يمين: عدد الأصوات */}
+              <div className="flex flex-col items-center">
+                <span className="text-[8px] font-mono text-[#808080] uppercase tracking-widest">VOTES AGAINST</span>
+                <span className="text-2xl font-mono font-black text-[#8A0303]">{justificationData.topVotes}</span>
+              </div>
+            </div>
+
+            {/* ── المتهمون: تايمر يسار + كارد يمين ── */}
+            <div className="flex flex-col items-center gap-10">
               {justificationData.accused.map((acc: any, i: number) => {
                 const p = players.find(pl => pl.physicalId === acc.targetPhysicalId);
                 const isActiveJust = justTimer?.physicalId === acc.targetPhysicalId;
@@ -679,16 +696,67 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
                 return (
                   <motion.div
                     key={acc.targetPhysicalId}
-                    initial={{ opacity: 0, scale: 0.7 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.5 + i * 0.3 }}
-                    className="flex flex-col items-center gap-4"
+                    initial={{ opacity: 0, x: -40 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 + i * 0.2 }}
+                    className={`flex items-center gap-8 px-8 py-6 rounded-2xl transition-all duration-500 ${
+                      isActiveJust
+                        ? 'bg-[#C5A059]/5 border border-[#C5A059]/30 shadow-[0_0_40px_rgba(197,160,89,0.15)]'
+                        : 'border border-transparent'
+                    }`}
                   >
-                    {/* الكارد مع ring ذهبي للمتكلم */}
+                    {/* التايمر — يسار الكارد */}
+                    <div className="w-[200px] flex flex-col items-center justify-center shrink-0">
+                      {isActiveJust && justTimer ? (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.7 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="flex flex-col items-center"
+                        >
+                          <CircularTimer
+                            timeRemaining={justTimeRemaining}
+                            totalTime={justTimer.timeLimitSeconds}
+                            size={160}
+                            enableHeartbeat={true}
+                            enableShake={true}
+                          />
+                          <motion.p
+                            animate={{ opacity: [0.5, 1, 0.5] }}
+                            transition={{ duration: 1.5, repeat: Infinity }}
+                            className="text-[#C5A059] text-[10px] font-mono tracking-[0.4em] uppercase mt-3"
+                          >
+                            🎙 DEFENDING
+                          </motion.p>
+                        </motion.div>
+                      ) : isActiveJust && justTimeRemaining === 0 ? (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="flex flex-col items-center"
+                        >
+                          <div className="w-[160px] h-[160px] rounded-full border-4 border-[#8A0303] flex items-center justify-center">
+                            <span className="text-4xl font-mono font-black text-[#8A0303] animate-pulse">00</span>
+                          </div>
+                          <span className="text-[#8A0303] text-[10px] font-mono tracking-widest uppercase mt-3 animate-pulse">TIME EXPIRED</span>
+                        </motion.div>
+                      ) : (
+                        <div className="flex flex-col items-center opacity-30">
+                          <div className="w-[160px] h-[160px] rounded-full border-2 border-dashed border-[#2a2a2a] flex items-center justify-center">
+                            <span className="text-[#555] text-[10px] font-mono tracking-widest uppercase text-center px-4">
+                              {justTimer ? 'WAITING' : 'STANDBY'}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* الكارد */}
                     <div className={`relative transition-all duration-500 ${
-                      isActiveJust 
-                        ? 'ring-4 ring-[#C5A059] ring-offset-4 ring-offset-black rounded-2xl shadow-[0_0_50px_rgba(197,160,89,0.4)]' 
-                        : ''
+                      isActiveJust
+                        ? 'ring-4 ring-[#C5A059] ring-offset-4 ring-offset-black rounded-2xl shadow-[0_0_50px_rgba(197,160,89,0.4)]'
+                        : justTimer && !isActiveJust
+                          ? 'opacity-30 grayscale'
+                          : ''
                     }`}>
                       <MafiaCard
                         playerNumber={acc.targetPhysicalId}
@@ -700,61 +768,22 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
                         size="md"
                         isAlive={true}
                       />
+                      {acc.type === 'DEAL' && (
+                        <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-[#8A0303] text-white text-[8px] font-mono px-4 py-0.5 tracking-widest rounded-full z-30">DEAL</div>
+                      )}
                     </div>
-
-                    <p className="text-[#808080] text-sm font-mono tracking-[0.3em] uppercase">
-                      {justificationData.topVotes} VOTES AGAINST
-                    </p>
-
-                    {acc.type === 'DEAL' && (
-                      <span className="bg-[#8A0303] text-white text-xs font-mono px-4 py-1 tracking-widest rounded-full">DEAL</span>
-                    )}
-
-                    {isActiveJust && (
-                      <motion.p
-                        animate={{ opacity: [0.5, 1, 0.5] }}
-                        transition={{ duration: 1.5, repeat: Infinity }}
-                        className="text-[#C5A059] text-sm font-mono tracking-[0.4em] uppercase"
-                      >
-                        🎙 DEFENDING NOW
-                      </motion.p>
-                    )}
                   </motion.div>
                 );
               })}
             </div>
 
-            {/* CircularTimer */}
-            {justTimer && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex justify-center"
-              >
-                <CircularTimer
-                  timeRemaining={justTimeRemaining}
-                  totalTime={justTimer.timeLimitSeconds}
-                  size={240}
-                  enableHeartbeat={true}
-                  enableShake={true}
-                />
-              </motion.div>
-            )}
-
+            {/* رسالة الانتظار — إذا التايمر لم يبدأ بعد */}
             {!justTimer && (
-              <div className="mt-8 text-xl font-mono tracking-[0.3em] font-bold">
-                <span className="text-yellow-500 animate-pulse">AWAITING DIRECTOR TO START DEFENSE TIMER...</span>
+              <div className="mt-12 text-center">
+                <span className="text-yellow-500 text-lg font-mono tracking-[0.3em] animate-pulse uppercase">
+                  AWAITING DIRECTOR TO START DEFENSE TIMER...
+                </span>
               </div>
-            )}
-
-            {justTimer && justTimeRemaining === 0 && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="mt-8 text-xl font-mono tracking-[0.3em] font-bold"
-              >
-                <span className="text-[#8A0303] animate-pulse">TIME EXPIRED. AWAITING VERDICT...</span>
-              </motion.div>
             )}
           </motion.div>
         )}
