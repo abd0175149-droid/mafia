@@ -407,7 +407,7 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
                 <div>
                   <h3 className="text-2xl font-bold text-white" style={{ fontFamily: 'Amiri, serif' }}>{currentAccused.name || 'Unknown'}</h3>
                   <p className="text-[#808080] text-xs font-mono tracking-widest uppercase">
-                    VOTES: {gameState.justificationData?.topVotes} • DEFENSE {currentAccused.justificationCount + 1}/{maxJustifications}
+                    VOTES: {gameState.justificationData?.topVotes} • DEFENSE {currentAccused.justificationCount}/{maxJustifications}
                   </p>
                   {currentAccused.role && (
                     <p className="mt-2 text-sm font-mono font-bold px-3 py-1 inline-block border rounded" style={{

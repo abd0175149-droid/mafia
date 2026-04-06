@@ -120,7 +120,7 @@ export function registerDayEvents(io: Server, socket: Socket) {
     }
   });
 
-  // ── حسم النتيجة (ليدر يضغط resolve يدوياً - Fallback) ──
+  // ── حسم النتيجة (ليدر يضغط resolve يدوياً) ──
   socket.on('day:resolve', async (data: { roomId: string }, callback) => {
     try {
       if (socket.data.role !== 'leader') {
@@ -132,7 +132,18 @@ export function registerDayEvents(io: Server, socket: Socket) {
 
       const maxJust = state.config.maxJustifications || 2;
 
-      // بناء قائمة المتهمين مع حالة التبرير
+      // ══ احتساب نقطة تبرير لكل متهم عند الانتقال لواجهة التبرير ══
+      // هذا يُحتسب فوراً عند الـ resolve — سواء فائز واحد أو تعادل
+      for (const c of sortResult.topCandidates) {
+        const p = state.players.find(pl => pl.physicalId === c.targetPhysicalId);
+        if (p) {
+          p.justificationCount = (p.justificationCount || 0) + 1;
+        }
+      }
+      // حفظ العداد المحدّث في Redis
+      await setGameState(data.roomId, state);
+
+      // بناء قائمة المتهمين مع حالة التبرير (بعد الزيادة)
       const accusedPlayers = sortResult.topCandidates.map(c => {
         const p = state.players.find(pl => pl.physicalId === c.targetPhysicalId);
         return {
@@ -145,7 +156,7 @@ export function registerDayEvents(io: Server, socket: Socket) {
         };
       });
 
-      // فلترة: من يقدر يبرر
+      // فلترة: من يقدر يبرر (بعد احتساب الزيادة)
       const canJustifyList = accusedPlayers.filter(a => a.canJustify);
 
       await setPhase(data.roomId, Phase.DAY_JUSTIFICATION);
@@ -166,6 +177,7 @@ export function registerDayEvents(io: Server, socket: Socket) {
   });
 
   // ── بدء تايمر التبرير ──────────────────────────
+  // العداد يُحتسب في day:resolve — هنا فقط نبدأ التايمر مع حماية من الضغط المتكرر
   socket.on('day:start-justification-timer', async (data: {
     roomId: string;
     physicalId: number;
@@ -173,18 +185,6 @@ export function registerDayEvents(io: Server, socket: Socket) {
   }, callback) => {
     try {
       if (socket.data.role !== 'leader') return callback({ success: false, error: 'Only leader' });
-
-      // زيادة عداد التبرير للاعب
-      // @ts-ignore
-      const { getRoom: getR, updateRoom: updR } = await import('../game/state.js');
-      const st = await getR(data.roomId);
-      if (st) {
-        const pl = st.players.find((p: any) => p.physicalId === data.physicalId);
-        if (pl) {
-          pl.justificationCount = (pl.justificationCount || 0) + 1;
-          await updR(data.roomId, { players: st.players });
-        }
-      }
 
       io.to(data.roomId).emit('day:justification-timer-started', {
         physicalId: data.physicalId,
