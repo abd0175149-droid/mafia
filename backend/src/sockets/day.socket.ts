@@ -106,32 +106,11 @@ export function registerDayEvents(io: Server, socket: Socket) {
         totalVotesCast: state.votingState.totalVotesCast,
       });
 
-      // فحص الإقفال الآلي
+      // إشعار باكتمال التصويت — الليدر يقرر الانتقال يدوياً بضغط Resolve
       if (isVotingComplete(state)) {
-        // فرز النتائج بدون إقصاء → الانتقال لمرحلة التبرير
-        const sortResult = await getVoteResult(data.roomId);
-        await setPhase(data.roomId, Phase.DAY_JUSTIFICATION);
-
-        // إرسال بيانات التبرير (المتهمين)
-        const accusedPlayers = sortResult.topCandidates.map(c => {
-          const p = state.players.find(pl => pl.physicalId === c.targetPhysicalId);
-          return {
-            ...c,
-            name: p?.name,
-            role: p?.role,  // مكشوف لليدر فقط (الفرونت يفلترها)
-            gender: p?.gender,
-          };
-        });
-
-        io.to(data.roomId).emit('day:justification-started', {
-          resultType: sortResult.type, // 'SINGLE_WINNER' | 'TIE'
-          accused: accusedPlayers,
-          topVotes: sortResult.topVotes,
+        io.to(data.roomId).emit('day:voting-complete', {
           candidates: state.votingState.candidates,
-        });
-
-        io.to(data.roomId).emit('day:voting-locked', {
-          candidates: state.votingState.candidates,
+          totalVotesCast: state.votingState.totalVotesCast,
         });
       }
 

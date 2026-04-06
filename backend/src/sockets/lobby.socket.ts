@@ -85,11 +85,14 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
       });
 
       // إرسال حدث انضمام كل لاعب للواجهات
+      const updatedState = await getRoom(state.roomId);
       for (let i = 1; i <= maxPlayers; i++) {
+        const playerData = updatedState?.players.find(p => p.physicalId === i);
         io.to(state.roomId).emit('room:player-joined', {
           physicalId: i,
           name: `لاعب ${i}`,
           totalPlayers: i,
+          gender: playerData?.gender || 'MALE',
         });
       }
 
@@ -198,11 +201,13 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
       }
 
       // بث للجميع في الغرفة
+      const joinedPlayer = state.players.find(p => p.physicalId === data.physicalId);
       io.to(data.roomId).emit('room:player-joined', {
         physicalId: data.physicalId,
         name: data.name,
         totalPlayers: state.players.length,
         maxPlayers: state.config.maxPlayers,
+        gender: joinedPlayer?.gender || 'MALE',
       });
 
       callback({ success: true });
@@ -277,6 +282,7 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
         name: data.name,
         totalPlayers: state.players.length,
         maxPlayers: state.config.maxPlayers,
+        gender: data.gender || 'MALE',
       });
 
       console.log(`[Backend-Socket] ✅ Done adding player #${data.physicalId}`);
