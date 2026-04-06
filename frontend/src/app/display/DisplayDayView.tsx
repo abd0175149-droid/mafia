@@ -374,7 +374,7 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
                     <div className="flex items-center gap-3">
                       <div className="flex flex-col items-end leading-none">
                         <span className="text-xl font-black tracking-tight text-[#C5A059]" style={{ fontFamily: 'Amiri, serif', textShadow: '0 0 15px rgba(138,3,3,0.4)' }}>MAFIA</span>
-                        <span className="text-[10px] font-light text-[#8A0303] tracking-[0.2em] pr-0.5" style={{ fontFamily: 'Amiri, serif' }}>CLUB</span>
+                        <span className="flex justify-between w-full text-[10px] font-light text-[#8A0303] pr-0.5" dir="ltr" style={{ fontFamily: 'Amiri, serif' }}>{'CLUB'.split('').map((l, i) => <span key={i}>{l}</span>)}</span>
                       </div>
                       <Image src="/mafia_logo.png" alt="Mafia" width={36} height={36} className="w-[36px] h-[36px] drop-shadow-[0_0_12px_rgba(138,3,3,0.3)]" priority />
                     </div>
