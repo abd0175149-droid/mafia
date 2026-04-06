@@ -1,13 +1,162 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import MafiaCard from '@/components/MafiaCard';
+import Image from 'next/image';
 
 interface LeaderDayViewProps {
   gameState: any;
   emit: (event: string, payload: any) => Promise<any>;
   setError: (err: string) => void;
+}
+
+// ═══════════════════════════════════════════════════════════
+// 🗳️ VotingCard — Sub-component with smart gesture handling
+// Tap = +1 vote | Double Tap = -1 vote | Swipe = Reveal 2s
+// ═══════════════════════════════════════════════════════════
+
+interface VotingCardProps {
+  candidate: any;
+  index: number;
+  isDeal: boolean;
+  targetDetails: any;
+  initiatorDetails: any;
+  isComplete: boolean;
+  handleVote: (candidateIndex: number, delta: 1 | -1) => void;
+  revealedRoles: Set<number>;
+  setRevealedRoles: React.Dispatch<React.SetStateAction<Set<number>>>;
+}
+
+function VotingCard({ candidate, index, isDeal, targetDetails, initiatorDetails, isComplete, handleVote, revealedRoles, setRevealedRoles }: VotingCardProps) {
+  const [isFlipped, setIsFlipped] = useState(false);
+  const tapTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const tapCountRef = useRef(0);
+  const pointerStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const isSwiping = useRef(false);
+  const flipTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const physicalId = candidate.targetPhysicalId;
+
+  // ── Tap / Double-Tap Logic ──
+  const handleTapAction = useCallback(() => {
+    tapCountRef.current += 1;
+
+    if (tapCountRef.current === 1) {
+      // First tap — wait 300ms to see if double-tap follows
+      tapTimerRef.current = setTimeout(() => {
+        if (tapCountRef.current === 1 && !isSwiping.current) {
+          // Single tap confirmed → +1 vote
+          if (!isComplete) {
+            handleVote(index, 1);
+          }
+        }
+        tapCountRef.current = 0;
+      }, 300);
+    } else if (tapCountRef.current === 2) {
+      // Double tap confirmed → -1 vote
+      if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
+      tapCountRef.current = 0;
+      if (candidate.votes > 0) {
+        handleVote(index, -1);
+      }
+    }
+  }, [index, isComplete, candidate.votes, handleVote]);
+
+  // ── Swipe → Reveal for 2 seconds ──
+  const triggerReveal = useCallback(() => {
+    if (flipTimerRef.current) clearTimeout(flipTimerRef.current);
+    setIsFlipped(true);
+    flipTimerRef.current = setTimeout(() => {
+      setIsFlipped(false);
+    }, 2000);
+  }, []);
+
+  // ── Pointer Events (works for both touch + mouse) ──
+  const handlePointerDown = (e: React.PointerEvent) => {
+    pointerStartRef.current = { x: e.clientX, y: e.clientY, time: Date.now() };
+    isSwiping.current = false;
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!pointerStartRef.current) return;
+
+    const deltaX = e.clientX - pointerStartRef.current.x;
+    const deltaY = e.clientY - pointerStartRef.current.y;
+    const elapsed = Date.now() - pointerStartRef.current.time;
+
+    pointerStartRef.current = null;
+
+    // Swipe detection: horizontal movement > 50px and more horizontal than vertical
+    if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > Math.abs(deltaY) && elapsed < 500) {
+      isSwiping.current = true;
+      triggerReveal();
+      return;
+    }
+
+    // If not a swipe, treat as tap
+    if (!isSwiping.current && Math.abs(deltaX) < 15 && Math.abs(deltaY) < 15) {
+      handleTapAction();
+    }
+  };
+
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
+      if (flipTimerRef.current) clearTimeout(flipTimerRef.current);
+    };
+  }, []);
+
+  return (
+    <motion.div
+      layout
+      className="relative flex flex-col items-center"
+      style={{ touchAction: 'pan-y' }}
+    >
+      {/* DEAL Badge */}
+      {isDeal && (
+        <div className="absolute -top-2 -right-2 z-20 bg-[#8A0303] text-white text-[8px] font-mono px-2 py-0.5 uppercase tracking-widest font-bold rounded-sm shadow-[0_0_10px_rgba(138,3,3,0.5)]">
+          DEAL
+        </div>
+      )}
+
+      {/* Vote Count Badge */}
+      <div className={`absolute -top-2 -left-2 z-20 w-8 h-8 rounded-full flex items-center justify-center font-mono font-black text-sm shadow-lg ${
+        candidate.votes > 0
+          ? 'bg-[#C5A059] text-black border-2 border-[#C5A059]/80'
+          : 'bg-[#1a1a1a] text-[#555] border border-[#333]'
+      }`}>
+        {candidate.votes}
+      </div>
+
+      {/* Linked Player (for Deals) */}
+      {isDeal && initiatorDetails && (
+        <div className="absolute -bottom-3 z-20 bg-[#110505] border border-[#8A0303]/50 text-[#8A0303] text-[8px] font-mono px-2 py-0.5 tracking-widest">
+          ← #{initiatorDetails.physicalId}
+        </div>
+      )}
+
+      {/* The MafiaCard itself — with gesture handlers */}
+      <div
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        className="cursor-pointer select-none"
+      >
+        <MafiaCard
+          playerNumber={physicalId}
+          playerName={targetDetails?.name || 'Unknown'}
+          role={targetDetails?.role || null}
+          gender={targetDetails?.gender === 'FEMALE' ? 'FEMALE' : 'MALE'}
+          isFlipped={isFlipped}
+          flippable={false}
+          size="sm"
+          isAlive={true}
+          className={candidate.votes > 0 ? 'ring-2 ring-[#C5A059]/40' : ''}
+        />
+      </div>
+    </motion.div>
+  );
 }
 
 export default function LeaderDayView({ gameState, emit, setError }: LeaderDayViewProps) {
@@ -794,146 +943,104 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
   // RENDER DAY_VOTING (Live Vote Collection)
   // ==========================================
   if (gameState.phase === 'DAY_VOTING') {
-    // حساب مجموع الأصوات من كل الكروت مباشرةً (ليس من totalVotesCast)
+    // حساب مجموع الأصوات
     const totalVotes = candidates.reduce((sum: number, c: any) => sum + c.votes, 0);
-    const votingAliveCount = alivePlayers.length; // المسكت يصوت
+    const votingAliveCount = alivePlayers.length;
     const isComplete = totalVotes >= votingAliveCount;
 
+    // عداد الفرق
+    const citizenCount = alivePlayers.filter((p: any) => !['GODFATHER','SILENCER','CHAMELEON','MAFIA_REGULAR'].includes(p.role)).length;
+    const mafiaCount = alivePlayers.filter((p: any) => ['GODFATHER','SILENCER','CHAMELEON','MAFIA_REGULAR'].includes(p.role)).length;
+
+    // حالة التصويت (عادي / إعادة / حسم)
+    const votingLabel = gameState.votingState?.tieBreakerLevel >= 2 ? 'NARROWED' 
+      : gameState.votingState?.tieBreakerLevel === 1 ? 'REVOTE' : 'LIVE';
+    const votingColor = votingLabel === 'NARROWED' ? 'text-[#ff4444]' 
+      : votingLabel === 'REVOTE' ? 'text-[#C5A059]' : 'text-white';
+
     return (
-      <div>
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            {gameState.votingState?.tieBreakerLevel >= 2 ? (
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-[#8A0303]/20 border border-[#8A0303] text-[#ff4444] text-[10px] font-mono tracking-widest uppercase animate-pulse">NARROWED</span>
-                <h2 className="text-lg font-mono text-[#8A0303] uppercase tracking-widest">تصويت الحسم</h2>
-              </div>
-            ) : gameState.votingState?.tieBreakerLevel === 1 ? (
-              <div className="flex items-center gap-3">
-                <span className="px-3 py-1 bg-[#C5A059]/10 border border-[#C5A059]/50 text-[#C5A059] text-[10px] font-mono tracking-widest uppercase">REVOTE</span>
-                <h2 className="text-lg font-mono text-[#C5A059] uppercase tracking-widest">إعادة التصويت</h2>
-              </div>
-            ) : (
-              <h2 className="text-lg font-mono text-[#555] uppercase tracking-widest">Live Voting Arena</h2>
+      <div className="flex flex-col h-full">
+        {/* ═══ Unified Header ═══ */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#2a2a2a] bg-[#050505]/80 backdrop-blur-sm sticky top-0 z-40">
+          {/* Left: Logo + MAFIA CLUB */}
+          <div className="flex items-center gap-2">
+            <Image src="/mafia_logo.png" alt="Mafia" width={32} height={32} className="w-[28px] h-[28px] drop-shadow-[0_0_10px_rgba(138,3,3,0.3)]" priority />
+            <div className="flex flex-col items-start leading-none">
+              <span className="text-sm font-black tracking-tight text-[#C5A059]" style={{ fontFamily: 'Amiri, serif' }}>MAFIA</span>
+              <span className="flex justify-between w-full text-[7px] font-light text-[#8A0303]" dir="ltr" style={{ fontFamily: 'Amiri, serif' }}>{'CLUB'.split('').map((l, i) => <span key={i}>{l}</span>)}</span>
+            </div>
+          </div>
+
+          {/* Center: Team Counts */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-[#44ff44]">🏛</span>
+              <span className="text-xs font-mono font-bold text-[#44ff44]">{citizenCount}</span>
+            </div>
+            <span className="text-[#2a2a2a] text-xs">|</span>
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-[#ff4444]">🎭</span>
+              <span className="text-xs font-mono font-bold text-[#ff4444]">{mafiaCount}</span>
+            </div>
+          </div>
+
+          {/* Right: Vote Tracker */}
+          <div className="flex items-center gap-2">
+            {votingLabel !== 'LIVE' && (
+              <span className={`px-2 py-0.5 border text-[8px] font-mono tracking-widest uppercase animate-pulse ${
+                votingLabel === 'NARROWED' ? 'bg-[#8A0303]/20 border-[#8A0303] text-[#ff4444]' : 'bg-[#C5A059]/10 border-[#C5A059]/50 text-[#C5A059]'
+              }`}>{votingLabel}</span>
             )}
+            <div className="text-right">
+              <p className="text-[8px] font-mono text-[#555] uppercase tracking-widest">VOTES</p>
+              <p className={`text-lg font-black font-mono leading-none ${isComplete ? 'text-[#C5A059]' : 'text-white'}`}>
+                {totalVotes}<span className="text-xs text-[#555]">/{votingAliveCount}</span>
+              </p>
+            </div>
           </div>
-          <div className="text-right">
-            <p className="text-[#808080] text-xs font-mono uppercase">VOTES CAST</p>
-            <p className={`text-2xl font-black font-mono ${isComplete ? 'text-[#C5A059]' : 'text-white'}`}>
-              {totalVotes} / {votingAliveCount}
-            </p>
+        </div>
+
+        {/* ═══ Card Instructions ═══ */}
+        <div className="text-center py-2 border-b border-[#1a1a1a]">
+          <p className="text-[9px] font-mono text-[#555] tracking-widest">
+            TAP = +1 &nbsp;•&nbsp; DOUBLE TAP = -1 &nbsp;•&nbsp; SWIPE = REVEAL
+          </p>
+        </div>
+
+        {/* ═══ Candidate Cards Grid ═══ */}
+        <div className="flex-1 overflow-y-auto px-3 py-4">
+          <div className="flex flex-wrap justify-center gap-4">
+            {candidates.map((candidate: any, index: number) => {
+              const isDeal = candidate.type === 'DEAL';
+              const targetDetails = alivePlayers.find((p: any) => p.physicalId === candidate.targetPhysicalId);
+              const initiatorDetails = isDeal ? alivePlayers.find((p: any) => p.physicalId === candidate.initiatorPhysicalId) : null;
+
+              return (
+                <VotingCard
+                  key={index}
+                  candidate={candidate}
+                  index={index}
+                  isDeal={isDeal}
+                  targetDetails={targetDetails}
+                  initiatorDetails={initiatorDetails}
+                  isComplete={isComplete}
+                  handleVote={handleVote}
+                  revealedRoles={revealedRoles}
+                  setRevealedRoles={setRevealedRoles}
+                />
+              );
+            })}
           </div>
         </div>
 
-        {/* عداد المواطنين والمافيا */}
-        <div className="flex justify-center gap-6 mb-4 py-2 border-b border-[#2a2a2a]">
-          <span className="font-mono text-xs tracking-widest">
-            <span className="text-[#44ff44]">🏛</span> مواطنون:{' '}
-            <span className="text-[#44ff44] font-bold">{alivePlayers.filter((p: any) => !['GODFATHER','SILENCER','CHAMELEON','MAFIA_REGULAR'].includes(p.role)).length}</span>
-          </span>
-          <span className="text-[#2a2a2a]">|</span>
-          <span className="font-mono text-xs tracking-widest">
-            <span className="text-[#ff4444]">🎭</span> مافيا:{' '}
-            <span className="text-[#ff4444] font-bold">{alivePlayers.filter((p: any) => ['GODFATHER','SILENCER','CHAMELEON','MAFIA_REGULAR'].includes(p.role)).length}</span>
-          </span>
-        </div>
-
-        {/* CSS Grid for Candidates */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-12">
-          {candidates.map((candidate: any, index: number) => {
-            const isDeal = candidate.type === 'DEAL';
-            const targetDetails = alivePlayers.find((p: any) => p.physicalId === candidate.targetPhysicalId);
-            const initiatorDetails = isDeal ? alivePlayers.find((p: any) => p.physicalId === candidate.initiatorPhysicalId) : null;
-
-            return (
-              <motion.div
-                key={index}
-                layout
-                className={`flex flex-col relative ${isDeal ? 'bg-[#110505] border-[#8A0303]/40' : 'bg-[#0c0c0c] border-[#2a2a2a]'} border p-4 group`}
-              >
-                {isDeal && (
-                  <div className="absolute top-0 right-0 bg-[#8A0303] text-white text-[9px] font-mono px-2 py-1 uppercase tracking-widest font-bold">
-                    DEAL
-                  </div>
-                )}
-                
-                {/* Candidate Info */}
-                <div className="text-center mt-2 mb-4 relative">
-                  <div className={`w-14 h-14 mx-auto mb-2 flex items-center justify-center font-mono text-2xl border ${isDeal ? 'border-[#8A0303]/50 text-[#8A0303] bg-black' : 'border-[#555] text-white bg-black'}`}>
-                    {candidate.targetPhysicalId}
-                  </div>
-                  <p className="text-white font-bold text-sm truncate">{targetDetails?.name}</p>
-                  {isDeal && (
-                    <p className="text-[#8A0303] text-[10px] mt-1 font-mono">LINKED TO #{initiatorDetails?.physicalId}</p>
-                  )}
-
-                  {/* Eye Button — Hold-to-Reveal: يكشف الدور فقط أثناء الضغط المستمر */}
-                  <button
-                    onPointerDown={() => {
-                      setRevealedRoles(prev => new Set(prev).add(candidate.targetPhysicalId));
-                    }}
-                    onPointerUp={() => {
-                      setRevealedRoles(prev => { const n = new Set(prev); n.delete(candidate.targetPhysicalId); return n; });
-                    }}
-                    onPointerLeave={() => {
-                      setRevealedRoles(prev => { const n = new Set(prev); n.delete(candidate.targetPhysicalId); return n; });
-                    }}
-                    className="absolute top-0 left-0 w-7 h-7 flex items-center justify-center text-xs bg-black/70 border border-[#333] hover:border-[#C5A059] rounded-full transition-colors select-none touch-none"
-                    title="اضغط مع الاستمرار لكشف الدور"
-                  >
-                    {revealedRoles.has(candidate.targetPhysicalId) ? '🙈' : '👁'}
-                  </button>
-
-                  {/* Role Card (visible when revealed) */}
-                  {revealedRoles.has(candidate.targetPhysicalId) && targetDetails?.role && (
-                    <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/80 rounded-lg">
-                      <MafiaCard
-                        playerNumber={candidate.targetPhysicalId}
-                        playerName={targetDetails?.name || ''}
-                        role={targetDetails.role}
-                        isFlipped={true}
-                        flippable={false}
-                        size="sm"
-                        className="!w-36 !h-[13rem]"
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Vote Controls */}
-                <div className="mt-auto">
-                  <div className="flex items-center justify-between bg-[#050505] border border-[#2a2a2a] rounded overflow-hidden">
-                    <button
-                      onClick={() => handleVote(index, -1)}
-                      disabled={candidate.votes <= 0}
-                      className="w-10 h-10 text-[#555] hover:text-white hover:bg-[#2a2a2a] disabled:opacity-30 disabled:hover:bg-transparent font-mono text-xl focus:outline-none"
-                    >
-                      -
-                    </button>
-                    <div className="text-xl font-mono font-bold text-[#C5A059] flex-1 text-center border-x border-[#2a2a2a] py-1">
-                      {candidate.votes}
-                    </div>
-                    <button
-                      onClick={() => handleVote(index, 1)}
-                      disabled={isComplete}
-                      className="w-10 h-10 text-[#555] hover:text-white hover:bg-[#2a2a2a] disabled:opacity-30 disabled:hover:bg-transparent font-mono text-xl focus:outline-none"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
-
-        <div className="text-center">
+        {/* ═══ Resolve Button ═══ */}
+        <div className="text-center py-4 border-t border-[#2a2a2a] bg-[#050505]/80 backdrop-blur-sm">
           <button
             onClick={handleResolveVoting}
             disabled={!isComplete}
-            className={`btn-premium px-16 py-5 ${isComplete ? '!border-[#C5A059]' : '!border-[#2a2a2a] grayscale opacity-50'}`}
+            className={`btn-premium px-12 py-4 ${isComplete ? '!border-[#C5A059]' : '!border-[#2a2a2a] grayscale opacity-50'}`}
           >
-            <span className="text-white">RESOLVE SELECTION</span>
+            <span className="text-white tracking-widest font-mono uppercase text-sm">RESOLVE SELECTION</span>
           </button>
         </div>
       </div>
