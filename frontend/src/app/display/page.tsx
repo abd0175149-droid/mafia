@@ -501,21 +501,20 @@ export default function DisplayPage() {
             transition={{ duration: 0.8, ease: 'easeOut' }}
             className="w-full max-w-[1600px] relative z-10 flex flex-col items-center"
           >
-            {/* عنوان اللعبة واللوجو (MAFIA CLUB) أعلى اليسار */}
-            <div className="absolute top-4 left-8 flex items-center justify-start gap-4 z-50">
-               <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 1 }}>
-                 <Image src="/mafia_logo.png" alt="Mafia Club Logo" width={60} height={60} className="select-none w-[60px] h-[60px] drop-shadow-[0_0_20px_rgba(138,3,3,0.3)]" priority />
-               </motion.div>
-               <h1 className="flex flex-col items-start leading-none mt-1">
-                 <span className="block text-3xl font-black tracking-tight text-[#C5A059]" style={{ fontFamily: 'Amiri, serif', textShadow: '0 0 20px rgba(138,3,3,0.4)' }}>MAFIA</span>
-                 <span className="text-sm font-light text-[#8A0303] tracking-[0.3em] pl-1" style={{ fontFamily: 'Amiri, serif' }}>CLUB</span>
-               </h1>
-            </div>
-
+            {/* القسم الأيمن (Top-Right): QR Code والإحصائيات */}
             <div className="flex flex-col flex-auto lg:flex-row w-full gap-8 items-start justify-between">
-              
-              {/* القسم الأيمن (Top-Right): QR Code والإحصائيات */}
               <div className="flex flex-col items-center w-full lg:w-[350px] shrink-0">
+                {/* اللوجو + MAFIA CLUB فوق كود اللعبة */}
+                <div className="flex items-center gap-4 mb-6 w-full justify-center">
+                  <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 1 }}>
+                    <Image src="/mafia_logo.png" alt="Mafia Club Logo" width={60} height={60} className="select-none w-[55px] h-[55px] drop-shadow-[0_0_20px_rgba(138,3,3,0.3)]" priority />
+                  </motion.div>
+                  <h1 className="flex flex-col items-start leading-none">
+                    <span className="block text-3xl font-black tracking-tight text-[#C5A059]" style={{ fontFamily: 'Amiri, serif', textShadow: '0 0 20px rgba(138,3,3,0.4)' }}>MAFIA</span>
+                    <span className="flex justify-between w-full text-sm font-light text-[#8A0303]" dir="ltr" style={{ fontFamily: 'Amiri, serif' }}>{'CLUB'.split('').map((l, i) => <span key={i}>{l}</span>)}</span>
+                  </h1>
+                </div>
+
                 <div className="w-full text-center flex flex-col items-center">
                   <p className="text-[#808080] text-sm uppercase tracking-widest font-mono mb-2">OPERATION CODE</p>
                   <p className="text-5xl font-mono text-[#C5A059] tracking-[0.2em] mb-6">{roomCode}</p>
