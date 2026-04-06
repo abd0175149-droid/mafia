@@ -76,6 +76,99 @@ const playShiftSound = () => {
   } catch(e) {}
 };
 
+// ── مؤثرات صوتية للكشف عن الهوية ──
+const playDrumroll = () => {
+  try {
+    const AC = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+    // طبول متسارعة
+    for (let i = 0; i < 12; i++) {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(80 + i * 8, ctx.currentTime + i * 0.1);
+      g.gain.setValueAtTime(0.15 + i * 0.02, ctx.currentTime + i * 0.1);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.1 + 0.08);
+      osc.connect(g); g.connect(ctx.destination);
+      osc.start(ctx.currentTime + i * 0.1);
+      osc.stop(ctx.currentTime + i * 0.1 + 0.08);
+    }
+  } catch(e) {}
+};
+
+const playRevealMafia = () => {
+  try {
+    const AC = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+    // صوت مهيب — نغمة هابطة مع تشويه
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(200, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(50, ctx.currentTime + 1.2);
+    g.gain.setValueAtTime(0.4, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.2);
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start(); osc.stop(ctx.currentTime + 1.2);
+    // ضربة ثانية
+    const osc2 = ctx.createOscillator();
+    const g2 = ctx.createGain();
+    osc2.type = 'square';
+    osc2.frequency.setValueAtTime(60, ctx.currentTime);
+    osc2.frequency.exponentialRampToValueAtTime(30, ctx.currentTime + 0.8);
+    g2.gain.setValueAtTime(0.2, ctx.currentTime);
+    g2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+    osc2.connect(g2); g2.connect(ctx.destination);
+    osc2.start(); osc2.stop(ctx.currentTime + 0.8);
+  } catch(e) {}
+};
+
+const playRevealCitizen = () => {
+  try {
+    const AC = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+    // صوت حزين — نغمة هابطة ناعمة
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(440, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(220, ctx.currentTime + 1.0);
+    g.gain.setValueAtTime(0.3, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.0);
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start(); osc.stop(ctx.currentTime + 1.0);
+    // نغمة ثانية متأخرة
+    const osc2 = ctx.createOscillator();
+    const g2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(330, ctx.currentTime + 0.3);
+    osc2.frequency.exponentialRampToValueAtTime(165, ctx.currentTime + 1.2);
+    g2.gain.setValueAtTime(0.2, ctx.currentTime + 0.3);
+    g2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.2);
+    osc2.connect(g2); g2.connect(ctx.destination);
+    osc2.start(ctx.currentTime + 0.3); osc2.stop(ctx.currentTime + 1.2);
+  } catch(e) {}
+};
+
+const playImpactBoom = () => {
+  try {
+    const AC = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AC) return;
+    const ctx = new AC();
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(80, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(20, ctx.currentTime + 0.5);
+    g.gain.setValueAtTime(0.6, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start(); osc.stop(ctx.currentTime + 0.5);
+  } catch(e) {}
+};
 
 interface DisplayDayViewProps {
   roomId: string;
@@ -792,96 +885,36 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
         {phase === 'PENDING' && (
           <motion.div
             key="pending"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.05 }}
-            className="text-center noir-card p-16 border-[#8A0303]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, scale: 1.1 }}
+            className="text-center w-full h-[calc(100vh-2rem)] flex flex-col items-center justify-center"
           >
+            {/* خلفية حمراء نابضة */}
             <motion.div
-              animate={{ opacity: [0.3, 1, 0.3], scale: [1, 1.05, 1] }}
-              transition={{ repeat: Infinity, duration: 2 }}
-              className="text-[#C5A059] text-9xl mb-8"
-            >⏳</motion.div>
-            <h2 className="text-6xl font-black text-white mb-6 uppercase" style={{ fontFamily: 'Amiri, serif' }}>بانتظار القرار</h2>
-            <p className="text-[#808080] font-mono text-2xl tracking-[0.4em] uppercase">AWAITING DECLASSIFICATION ORDER...</p>
+              className="absolute inset-0 pointer-events-none"
+              animate={{ opacity: [0, 0.08, 0] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              style={{ background: 'radial-gradient(circle at center, rgba(138,3,3,0.4) 0%, transparent 70%)' }}
+            />
+
+            <motion.div
+              animate={{ scale: [1, 1.2, 1], opacity: [0.4, 1, 0.4] }}
+              transition={{ repeat: Infinity, duration: 1.5 }}
+              className="text-9xl mb-8"
+            >⚖️</motion.div>
+            <h2 className="text-6xl font-black text-white mb-6 uppercase tracking-widest" style={{ fontFamily: 'Amiri, serif', textShadow: '0 0 30px rgba(138,3,3,0.4)' }}>بانتظار القرار</h2>
+            <motion.p
+              animate={{ opacity: [0.3, 1, 0.3] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="text-[#808080] font-mono text-xl tracking-[0.5em] uppercase"
+            >AWAITING DECLASSIFICATION ORDER...</motion.p>
           </motion.div>
         )}
 
-        {/* REVEALED */}
+        {/* REVEALED — كشف الهوية السينمائي */}
         {phase === 'REVEALED' && (
-          <motion.div
-            key="revealed"
-            initial={{ opacity: 0, scale: 0.5, rotateX: 90 }}
-            animate={{ opacity: 1, scale: 1, rotateX: 0 }}
-            transition={{ type: 'spring', damping: 15 }}
-            className="text-center w-full max-w-5xl revealed-vignette"
-          >
-            <div className="bg-[#8A0303]/10 border-2 border-[#8A0303] p-8 md:p-12 relative overflow-hidden z-50">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-[#8A0303]/20 mix-blend-screen blur-3xl rounded-full" />
-              <div className="absolute bottom-0 left-0 w-32 h-32 bg-[#C5A059]/20 mix-blend-screen blur-3xl rounded-full" />
-              
-              <h2 className="text-4xl md:text-6xl font-black text-white mb-10 tracking-tighter" style={{ fontFamily: 'Amiri, serif' }}>تم الإقصاء</h2>
-              
-              <div className="flex flex-wrap justify-center gap-8 md:gap-12 relative z-10">
-                {revealedRoles.map((roleInfo: any, i: number) => {
-                  const p = players.find((p: any) => p.physicalId === roleInfo.physicalId);
-                  const isMafia = roleInfo.role?.includes('MAFIA') || roleInfo.role === 'GODFATHER' || roleInfo.role === 'SILENCER' || roleInfo.role === 'CHAMELEON';
-                  return (
-                    <motion.div
-                      key={roleInfo.physicalId}
-                      initial={{ opacity: 0, y: 40 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.8 + (i * 0.6) }}
-                      className="flex items-center gap-4 md:gap-6"
-                    >
-                      {/* الكارد — بشكل عادي */}
-                      <MafiaCard
-                        playerNumber={roleInfo.physicalId}
-                        playerName={p?.name || 'Unknown'}
-                        role={roleInfo.role}
-                        isFlipped={true}
-                        flippable={false}
-                        isAlive={true}
-                        size="fluid"
-                        className="w-52 h-[18rem] md:w-60 md:h-[20rem] lg:w-72 lg:h-[24rem]"
-                      />
-
-                      {/* أيقونة الفريق بجانب الكارد */}
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: 1.5 + (i * 0.6), type: 'spring', damping: 10 }}
-                        className="flex flex-col items-center gap-3"
-                      >
-                        {/* أيقونة كبيرة */}
-                        <motion.div
-                          animate={{ 
-                            scale: [1, 1.15, 1],
-                            opacity: [0.7, 1, 0.7],
-                          }}
-                          transition={{ duration: 2, repeat: Infinity }}
-                          className={`text-6xl md:text-7xl lg:text-8xl ${
-                            isMafia 
-                              ? 'drop-shadow-[0_0_20px_rgba(220,38,38,0.5)]' 
-                              : 'drop-shadow-[0_0_20px_rgba(161,161,170,0.4)]'
-                          }`}
-                        >
-                          {isMafia ? '💀' : '⚰️'}
-                        </motion.div>
-
-                        {/* نص الفريق */}
-                        <span className={`text-xs md:text-sm font-mono font-bold tracking-widest uppercase ${
-                          isMafia ? 'text-red-500' : 'text-zinc-400'
-                        }`}>
-                          {isMafia ? 'MAFIA' : 'CITIZEN'}
-                        </span>
-                      </motion.div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </div>
-          </motion.div>
+          <RevealCeremony players={players} revealedRoles={revealedRoles} revealType={revealType} />
         )}
 
         {/* TIE */}
@@ -900,5 +933,239 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
 
       </AnimatePresence>
     </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════
+// 🎬 RevealCeremony — كشف الهوية السينمائي
+// ══════════════════════════════════════════════════════
+function RevealCeremony({ players, revealedRoles, revealType }: {
+  players: any[];
+  revealedRoles: any[];
+  revealType: string;
+}) {
+  const MAFIA_ROLES = ['GODFATHER', 'SILENCER', 'CHAMELEON', 'MAFIA_REGULAR'];
+  const CARD_DELAY = 5; // ثوانٍ بين كل لاعب
+
+  // مراحل الأنيميشن لكل لاعب
+  const [revealStages, setRevealStages] = useState<Record<number, 'hidden' | 'face-down' | 'flipping' | 'revealed' | 'grayed'>>({});
+  const soundPlayedRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!revealedRoles.length) return;
+
+    const timers: NodeJS.Timeout[] = [];
+
+    revealedRoles.forEach((roleInfo, i) => {
+      const baseDelay = i * CARD_DELAY * 1000;
+
+      // المرحلة 1: ظهور الكارد بالوجه العادي
+      timers.push(setTimeout(() => {
+        setRevealStages(prev => ({ ...prev, [roleInfo.physicalId]: 'face-down' }));
+      }, baseDelay + 500));
+
+      // المرحلة 2: بدء الدرامرول + تدوير الكارد
+      timers.push(setTimeout(() => {
+        if (!soundPlayedRef.current.has(`drum-${i}`)) {
+          playDrumroll();
+          soundPlayedRef.current.add(`drum-${i}`);
+        }
+        setRevealStages(prev => ({ ...prev, [roleInfo.physicalId]: 'flipping' }));
+      }, baseDelay + 2000));
+
+      // المرحلة 3: الكارد مكشوف — صوت حسب الفريق
+      timers.push(setTimeout(() => {
+        const isMafia = MAFIA_ROLES.includes(roleInfo.role);
+        if (!soundPlayedRef.current.has(`reveal-${i}`)) {
+          if (isMafia) playRevealMafia(); else playRevealCitizen();
+          soundPlayedRef.current.add(`reveal-${i}`);
+        }
+        setRevealStages(prev => ({ ...prev, [roleInfo.physicalId]: 'revealed' }));
+      }, baseDelay + 3200));
+
+      // المرحلة 4: تحول للرمادي + أيقونة الفريق
+      timers.push(setTimeout(() => {
+        if (!soundPlayedRef.current.has(`impact-${i}`)) {
+          playImpactBoom();
+          soundPlayedRef.current.add(`impact-${i}`);
+        }
+        setRevealStages(prev => ({ ...prev, [roleInfo.physicalId]: 'grayed' }));
+      }, baseDelay + 4500));
+    });
+
+    return () => timers.forEach(clearTimeout);
+  }, [revealedRoles]);
+
+  return (
+    <motion.div
+      key="reveal-ceremony"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="w-full h-[calc(100vh-2rem)] flex flex-col items-center justify-center relative overflow-hidden"
+    >
+      {/* خلفية سينمائية */}
+      <motion.div
+        className="absolute inset-0 pointer-events-none"
+        animate={{ opacity: [0, 0.15, 0] }}
+        transition={{ duration: 3, repeat: Infinity }}
+        style={{ background: 'radial-gradient(ellipse at center, rgba(138,3,3,0.3) 0%, transparent 60%)' }}
+      />
+
+      {/* عنوان */}
+      <motion.div
+        initial={{ opacity: 0, y: -30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="text-center mb-12 z-10"
+      >
+        <h1 className="text-5xl font-black text-white uppercase tracking-widest mb-2" style={{ fontFamily: 'Amiri, serif', textShadow: '0 0 40px rgba(138,3,3,0.5)' }}>
+          تم الإقصاء
+        </h1>
+        <p className="text-[#808080] font-mono text-sm tracking-[0.5em] uppercase">
+          {revealType === 'DEAL_ELIMINATION' ? 'DEAL EXECUTION — IDENTITY REVEAL' : 'IDENTITY DECLASSIFIED'}
+        </p>
+      </motion.div>
+
+      {/* الكروت */}
+      <div className="flex items-center justify-center gap-16 z-10" style={{ transform: 'scale(1.3)', transformOrigin: 'center center' }}>
+        {revealedRoles.map((roleInfo: any, i: number) => {
+          const p = players.find((pl: any) => pl.physicalId === roleInfo.physicalId);
+          const stage = revealStages[roleInfo.physicalId] || 'hidden';
+          const isMafia = MAFIA_ROLES.includes(roleInfo.role);
+          const isFlipped = stage === 'flipping' || stage === 'revealed' || stage === 'grayed';
+          const isGrayed = stage === 'grayed';
+
+          if (stage === 'hidden') return null;
+
+          return (
+            <motion.div
+              key={roleInfo.physicalId}
+              initial={{ opacity: 0, y: 60, scale: 0.8 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ type: 'spring', damping: 15, delay: i * 0.3 }}
+              className="flex flex-col items-center relative"
+            >
+              {/* أيقونة الفريق — تظهر فوق الكارد بعد التحول للرمادي */}
+              <AnimatePresence>
+                {isGrayed && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 30, scale: 0 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ type: 'spring', damping: 12, stiffness: 200 }}
+                    className="mb-4 flex flex-col items-center"
+                  >
+                    <motion.div
+                      animate={{ scale: [1, 1.15, 1], opacity: [0.8, 1, 0.8] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className={`text-6xl ${
+                        isMafia
+                          ? 'drop-shadow-[0_0_30px_rgba(220,38,38,0.6)]'
+                          : 'drop-shadow-[0_0_20px_rgba(161,161,170,0.4)]'
+                      }`}
+                    >
+                      {isMafia ? '🩸' : '⚰️'}
+                    </motion.div>
+                    <motion.span 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.3 }}
+                      className={`text-xs font-mono font-black tracking-[0.4em] uppercase mt-1 ${
+                        isMafia ? 'text-red-500' : 'text-zinc-400'
+                      }`}
+                    >
+                      {isMafia ? 'MAFIA' : 'CITIZEN'}
+                    </motion.span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* الكارد مع CSS perspective للتدوير */}
+              <div
+                className={`relative transition-all duration-1000 ${
+                  isGrayed ? 'grayscale opacity-70' : ''
+                } ${
+                  stage === 'flipping' ? 'animate-pulse' : ''
+                }`}
+                style={{
+                  perspective: '1200px',
+                }}
+              >
+                {/* حلقة متوهجة أثناء الكشف */}
+                {(stage === 'flipping' || stage === 'revealed') && (
+                  <motion.div
+                    className="absolute -inset-3 rounded-2xl z-0"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: [0, 0.8, 0] }}
+                    transition={{ duration: 1.5, repeat: stage === 'flipping' ? Infinity : 0 }}
+                    style={{
+                      background: isMafia
+                        ? 'linear-gradient(135deg, rgba(138,3,3,0.4), rgba(220,38,38,0.2))'
+                        : 'linear-gradient(135deg, rgba(197,160,89,0.3), rgba(100,100,100,0.2))',
+                      boxShadow: isMafia
+                        ? '0 0 40px rgba(138,3,3,0.5)'
+                        : '0 0 30px rgba(197,160,89,0.3)',
+                    }}
+                  />
+                )}
+
+                {/* impact burst عند الكشف */}
+                {isGrayed && (
+                  <motion.div
+                    className="absolute -inset-6 rounded-3xl pointer-events-none z-0"
+                    initial={{ opacity: 0.6, scale: 0.9 }}
+                    animate={{ opacity: 0, scale: 1.5 }}
+                    transition={{ duration: 1.2 }}
+                    style={{
+                      background: isMafia
+                        ? 'radial-gradient(circle, rgba(138,3,3,0.6) 0%, transparent 70%)'
+                        : 'radial-gradient(circle, rgba(100,100,100,0.4) 0%, transparent 70%)',
+                    }}
+                  />
+                )}
+
+                <div className="relative z-10">
+                  <MafiaCard
+                    playerNumber={roleInfo.physicalId}
+                    playerName={p?.name || 'Unknown'}
+                    role={roleInfo.role}
+                    isFlipped={isFlipped}
+                    flippable={false}
+                    isAlive={!isGrayed}
+                    gender={p?.gender === 'FEMALE' ? 'FEMALE' : 'MALE'}
+                    size="fluid"
+                    className="w-56 h-[19rem] md:w-64 md:h-[22rem]"
+                  />
+                </div>
+              </div>
+
+              {/* اسم اللاعب */}
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: isGrayed ? 0.5 : 1 }}
+                className={`mt-4 text-sm font-mono tracking-[0.3em] uppercase ${
+                  isGrayed
+                    ? 'text-[#555] line-through'
+                    : 'text-[#808080]'
+                }`}
+              >
+                {p?.name || `OPERATIVE #${roleInfo.physicalId}`}
+              </motion.p>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* هيدر سفلي */}
+      <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-6 py-3 border-t border-[#2a2a2a]/50 bg-black/50 backdrop-blur-sm z-10">
+        <div className="flex items-center gap-3">
+          <Image src="/mafia_logo.png" alt="Mafia" width={28} height={28} className="w-[28px] h-[28px] opacity-60" priority />
+          <span className="text-sm font-black text-[#C5A059]/60" style={{ fontFamily: 'Amiri, serif' }}>MAFIA CLUB</span>
+        </div>
+        <span className="text-[#808080] text-[10px] font-mono tracking-[0.4em] uppercase">
+          {revealType === 'DEAL_ELIMINATION' ? 'DEAL EXECUTION' : 'ELIMINATION PROTOCOL'}
+        </span>
+      </div>
+    </motion.div>
   );
 }
