@@ -461,13 +461,19 @@ export default function LeaderPage() {
           roomId: game.roomId,
           roomCode: game.roomCode,
           phase: data.state.phase,
-          config: {
+          config: data.state.config || {
             gameName: game.gameName,
             maxPlayers: game.maxPlayers,
             displayPin: game.displayPin,
           },
           players: data.state.players || [],
           rolesPool: data.state.rolesPool || [],
+          // ── استعادة كل حقول الحالة عند إعادة الاتصال ──
+          votingState: data.state.votingState,
+          discussionState: data.state.discussionState,
+          justificationData: data.state.justificationData,
+          pendingResolution: data.state.pendingResolution,
+          round: data.state.round,
         });
 
         // Join socket room
@@ -504,41 +510,42 @@ export default function LeaderPage() {
   // ══════════════════════════════════════════════════
   if (gameState) {
     return (
-      <div className="display-bg min-h-screen p-8 font-sans relative overflow-hidden blood-vignette selection:bg-[#8A0303] selection:text-white">
-        <div className="relative z-10 w-full h-full">
-          {/* Minimal Navigation Bar */}
-          <div className="flex flex-row-reverse items-center justify-between mb-6 pb-4 border-b border-[#2a2a2a]/50">
-            <div className="flex items-center gap-6">
+      <div className="display-bg min-h-screen font-sans relative overflow-hidden blood-vignette selection:bg-[#8A0303] selection:text-white flex flex-col">
+        <div className="relative z-10 w-full h-full flex flex-col flex-1">
+          {/* ═══ Unified Global Header ═══ */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[#2a2a2a]/60 bg-[#050505]/70 backdrop-blur-sm shrink-0">
+            {/* Left: Logo + MAFIA CLUB */}
+            <div className="flex items-center gap-3">
+              <Image src="/mafia_logo.png" alt="Mafia" width={36} height={36} className="w-[32px] h-[32px] drop-shadow-[0_0_10px_rgba(138,3,3,0.3)]" priority />
+              <div className="flex flex-col items-start leading-none">
+                <span className="text-base font-black tracking-tight text-[#C5A059]" style={{ fontFamily: 'Amiri, serif' }}>MAFIA</span>
+                <span className="flex justify-between w-full text-[8px] font-light text-[#8A0303]" dir="ltr" style={{ fontFamily: 'Amiri, serif' }}>{'CLUB'.split('').map((l: string, i: number) => <span key={i}>{l}</span>)}</span>
+              </div>
+              <span className="mx-2 text-[#2a2a2a]">|</span>
+              <span className="text-[9px] font-mono uppercase tracking-widest text-[#555]">
+                <span className="text-[#C5A059] font-bold">{gameState.phase}</span>
+              </span>
+            </div>
+
+            {/* Right: Action Buttons */}
+            <div className="flex items-center gap-4">
               <button
                 onClick={() => setGameState(null)}
-                className="text-[#555] text-[10px] font-mono uppercase tracking-[0.2em] hover:text-white transition-colors"
+                className="text-[#555] text-[10px] font-mono uppercase tracking-[0.15em] hover:text-white transition-colors border border-[#2a2a2a] px-3 py-1.5 hover:border-[#555]"
               >
-                [ Return ]
+                ← Return
               </button>
               <button
                 onClick={handleCloseRoom}
-                className="text-[#8A0303] text-[10px] font-mono uppercase tracking-[0.2em] hover:text-red-500 transition-colors"
+                className="text-[#8A0303] text-[10px] font-mono uppercase tracking-[0.15em] hover:text-red-500 transition-colors border border-[#8A0303]/30 px-3 py-1.5 hover:border-[#8A0303]"
               >
-                [ Terminate ]
+                ✕ Terminate
               </button>
-            </div>
-            <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#555]">
-              SYSTEM PHASE: <span className="text-[#C5A059] font-bold ml-2">{gameState.phase}</span>
             </div>
           </div>
 
           {/* ── Main Content based on Phase ── */}
-          
-          <div className="flex flex-col items-center justify-center gap-3 mb-8 w-full border-b border-[#2a2a2a]/40 pb-6">
-            <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
-               <Image src="/mafia_logo.png" alt="Mafia Club Logo" width={60} height={60} className="select-none w-[50px] h-[50px] drop-shadow-[0_0_15px_rgba(138,3,3,0.3)]" priority />
-             </motion.div>
-             <h1 className="text-center">
-               <span className="block text-3xl font-black tracking-tight text-[#C5A059] mb-1" style={{ fontFamily: 'Amiri, serif', textShadow: '0 0 20px rgba(138,3,3,0.4)' }}>MAFIA</span>
-               <span className="flex justify-between text-lg font-light text-[#8A0303] w-full" dir="ltr" style={{ fontFamily: 'Amiri, serif' }}>{'CLUB'.split('').map((l: string, i: number) => <span key={i}>{l}</span>)}</span>
-             </h1>
-          </div>
-
+          <div className="flex-1 overflow-y-auto p-4">
           {gameState.phase === 'LOBBY' && (
             <LeaderLobbyView gameState={gameState} emit={emit} setError={setError} />
           )}
@@ -590,6 +597,7 @@ export default function LeaderPage() {
 
 
           {error && <p className="text-[#8A0303] mt-6 text-sm font-mono tracking-widest text-center uppercase">{error}</p>}
+          </div>
         </div>
       </div>
     );

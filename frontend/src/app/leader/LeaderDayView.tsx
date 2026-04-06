@@ -960,32 +960,25 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
 
     return (
       <div className="flex flex-col h-full">
-        {/* ═══ Unified Header ═══ */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[#2a2a2a] bg-[#050505]/80 backdrop-blur-sm sticky top-0 z-40">
-          {/* Left: Logo + MAFIA CLUB */}
-          <div className="flex items-center gap-2">
-            <Image src="/mafia_logo.png" alt="Mafia" width={32} height={32} className="w-[28px] h-[28px] drop-shadow-[0_0_10px_rgba(138,3,3,0.3)]" priority />
-            <div className="flex flex-col items-start leading-none">
-              <span className="text-sm font-black tracking-tight text-[#C5A059]" style={{ fontFamily: 'Amiri, serif' }}>MAFIA</span>
-              <span className="flex justify-between w-full text-[7px] font-light text-[#8A0303]" dir="ltr" style={{ fontFamily: 'Amiri, serif' }}>{'CLUB'.split('').map((l, i) => <span key={i}>{l}</span>)}</span>
-            </div>
-          </div>
-
-          {/* Center: Team Counts */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1">
-              <span className="text-[10px] text-[#44ff44]">🏛</span>
+        {/* ═══ Voting Info Bar (no logo — parent has it) ═══ */}
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#2a2a2a] bg-[#0a0a0a]/80">
+          {/* Team Counts */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px]">🏛</span>
               <span className="text-xs font-mono font-bold text-[#44ff44]">{citizenCount}</span>
+              <span className="text-[9px] text-[#555] font-mono">مواطن</span>
             </div>
-            <span className="text-[#2a2a2a] text-xs">|</span>
-            <div className="flex items-center gap-1">
-              <span className="text-[10px] text-[#ff4444]">🎭</span>
+            <span className="text-[#2a2a2a]">|</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px]">🎭</span>
               <span className="text-xs font-mono font-bold text-[#ff4444]">{mafiaCount}</span>
+              <span className="text-[9px] text-[#555] font-mono">مافيا</span>
             </div>
           </div>
 
-          {/* Right: Vote Tracker */}
-          <div className="flex items-center gap-2">
+          {/* Voting Status + Counter */}
+          <div className="flex items-center gap-3">
             {votingLabel !== 'LIVE' && (
               <span className={`px-2 py-0.5 border text-[8px] font-mono tracking-widest uppercase animate-pulse ${
                 votingLabel === 'NARROWED' ? 'bg-[#8A0303]/20 border-[#8A0303] text-[#ff4444]' : 'bg-[#C5A059]/10 border-[#C5A059]/50 text-[#C5A059]'
