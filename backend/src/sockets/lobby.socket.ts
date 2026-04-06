@@ -4,7 +4,7 @@
 // ══════════════════════════════════════════════════════
 
 import { Server, Socket } from 'socket.io';
-import { createRoom, addPlayer, updatePlayer, updateRoom, getRoom, getRoomByCode, bindRole, setPhase, Phase } from '../game/state.js';
+import { createRoom, addPlayer, updatePlayer, updateRoom, getRoom, getRoomByCode, bindRole, unbindRole, setPhase, Phase } from '../game/state.js';
 import { generateRoles, validateRoleDistribution, Role } from '../game/roles.js';
 
 export const activeRooms: Map<string, { roomId: string; roomCode: string; gameName: string; playerCount: number; maxPlayers: number; displayPin: string }> = new Map();
@@ -416,6 +416,24 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
       await bindRole(data.roomId, data.physicalId, data.role);
       callback({ success: true });
       console.log(`🔗 Role bound: #${data.physicalId} → ${data.role}`);
+    } catch (err: any) {
+      callback({ success: false, error: err.message });
+    }
+  });
+
+  // ── إلغاء ربط دور من لاعب (Unbind) ──────────────
+  socket.on('setup:unbind-role', async (data: {
+    roomId: string;
+    physicalId: number;
+  }, callback) => {
+    try {
+      if (socket.data.role !== 'leader') {
+        return callback({ success: false, error: 'Only leader can unbind roles' });
+      }
+
+      await unbindRole(data.roomId, data.physicalId);
+      callback({ success: true });
+      console.log(`🔓 Role unbound: #${data.physicalId}`);
     } catch (err: any) {
       callback({ success: false, error: err.message });
     }

@@ -165,7 +165,7 @@ export function registerDayEvents(io: Server, socket: Socket) {
 
       await setPhase(data.roomId, Phase.DAY_JUSTIFICATION);
 
-      io.to(data.roomId).emit('day:justification-started', {
+      const justificationData = {
         resultType: sortResult.type,
         accused: accusedPlayers,
         canJustifyList,
@@ -173,7 +173,13 @@ export function registerDayEvents(io: Server, socket: Socket) {
         topVotes: sortResult.topVotes,
         maxJustifications: maxJust,
         candidates: state.votingState?.candidates || [],
-      });
+      };
+
+      // حفظ بيانات التبرير في الـ state لاستعادتها عند إعادة الاتصال
+      state.justificationData = justificationData;
+      await setGameState(data.roomId, state);
+
+      io.to(data.roomId).emit('day:justification-started', justificationData);
       callback({ success: true, result: sortResult });
     } catch (err: any) {
       callback({ success: false, error: err.message });

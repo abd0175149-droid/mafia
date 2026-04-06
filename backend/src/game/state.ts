@@ -132,6 +132,7 @@ export interface GameState {
     type: 'ELIMINATE' | 'ACCEPT_DEAL' | 'REJECT_DEAL' | 'NONE';
   } | null;
   tiedCandidates?: Candidate[]; // In case of tie
+  justificationData?: any; // بيانات التبرير المحفوظة لاستعادتها عند إعادة الاتصال
   winner: 'MAFIA' | 'CITIZEN' | null;
   pendingWinner?: string | null; // فوز مُعلّق (ينتظر تأكيد الليدر بعد ملخص الصباح)
   createdAt: string;
@@ -316,6 +317,18 @@ export async function bindRole(roomId: string, physicalId: number, role: Role): 
   if (!player) throw new Error(`Player #${physicalId} not found`);
 
   player.role = role;
+  await setGameState(roomId, state);
+  return state;
+}
+
+export async function unbindRole(roomId: string, physicalId: number): Promise<GameState> {
+  const state = await getGameState(roomId);
+  if (!state) throw new Error(`Room ${roomId} not found`);
+
+  const player = state.players.find(p => p.physicalId === physicalId);
+  if (!player) throw new Error(`Player #${physicalId} not found`);
+
+  player.role = null;
   await setGameState(roomId, state);
   return state;
 }

@@ -290,10 +290,17 @@ export default function LeaderRoleBinding({ gameState, emit, setError }: LeaderR
           role: fromRole.role,
         });
         if (toRole) {
+          // تبديل: ربط دور الهدف بالمصدر
           await emit('setup:bind-role', {
             roomId: gameState.roomId,
             physicalId: fromPlayerId,
             role: toRole.role,
+          });
+        } else {
+          // نقل: إلغاء ربط المصدر
+          await emit('setup:unbind-role', {
+            roomId: gameState.roomId,
+            physicalId: fromPlayerId,
           });
         }
       } catch (err: any) {
@@ -338,6 +345,16 @@ export default function LeaderRoleBinding({ gameState, emit, setError }: LeaderR
     });
     setUnboundRoles(prev => [...prev, roleData]);
     setSelection({ type: 'none' });
+
+    // إرسال للباك اند
+    try {
+      await emit('setup:unbind-role', {
+        roomId: gameState.roomId,
+        physicalId: playerId,
+      });
+    } catch (err: any) {
+      setError(err.message);
+    }
   };
 
   const specialUnbound = unboundRoles.filter(r => r.role !== Role.CITIZEN);
