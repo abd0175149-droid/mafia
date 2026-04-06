@@ -186,15 +186,18 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
             <p className="text-[10px] font-mono text-[#555] mb-4 tracking-widest">🔒 LEADER EYES ONLY — INVESTIGATION RESULT</p>
 
             {/* كرت اللاعب */}
-            <div className={`border-2 p-6 mb-6 ${isMafia ? 'border-[#ff4444]/40 bg-[#ff4444]/5' : 'border-[#44ff44]/40 bg-[#44ff44]/5'}`}>
-              <div className={`w-16 h-16 mx-auto border-2 rounded-full flex items-center justify-center font-mono text-2xl font-black mb-3 ${
-                isMafia ? 'border-[#ff4444] text-[#ff4444]' : 'border-[#44ff44] text-[#44ff44]'
-              }`}>
-                {sheriffOverlay.targetPhysicalId}
-              </div>
-              <p className="text-white text-lg font-bold mb-1" style={{ fontFamily: 'Amiri, serif' }}>
-                {targetPlayer?.name || sheriffOverlay.targetName || 'Unknown'}
-              </p>
+            <div className={`flex justify-center mb-6 p-4 border rounded-xl ${isMafia ? 'border-[#ff4444]/30 bg-[#ff4444]/5' : 'border-[#44ff44]/30 bg-[#44ff44]/5'}`}>
+              <MafiaCard
+                playerNumber={sheriffOverlay.targetPhysicalId}
+                playerName={targetPlayer?.name || sheriffOverlay.targetName || 'Unknown'}
+                role={null}
+                isFlipped={false}
+                flippable={false}
+                gender={targetPlayer?.gender === 'FEMALE' ? 'FEMALE' : 'MALE'}
+                size="sm"
+                className="!w-[7rem] !h-[9.5rem]"
+                isAlive={true}
+              />
             </div>
 
             {/* النتيجة الكبيرة */}
@@ -356,14 +359,20 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
           <p className="text-[#555] font-mono text-[10px] tracking-widest uppercase mb-3 text-center">
             SURVIVING AGENTS — {alivePlayers.length} REMAINING
           </p>
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             {alivePlayers.map((p: any) => (
-              <div key={p.physicalId} className="border border-[#2a2a2a] p-2 text-center bg-black/40">
-                <div className="w-8 h-8 mx-auto border border-[#555] flex items-center justify-center font-mono text-sm text-white mb-1">
-                  {p.physicalId}
-                </div>
-                <p className="text-[#808080] text-[9px] font-mono truncate">{p.name}</p>
-              </div>
+              <MafiaCard
+                key={p.physicalId}
+                playerNumber={p.physicalId}
+                playerName={p.name}
+                role={null}
+                isFlipped={false}
+                flippable={false}
+                gender={p.gender === 'FEMALE' ? 'FEMALE' : 'MALE'}
+                size="sm"
+                className="!w-full !h-[7.5rem]"
+                isAlive={true}
+              />
             ))}
           </div>
         </div>
@@ -463,67 +472,99 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
   // RENDER: NIGHT — Queue Step — خطوة في الطابور
   // ══════════════════════════════════════════════════
   if (nightStep && meta) {
+    const performerPlayer = gameState.players?.find((p: any) => p.physicalId === nightStep.performerPhysicalId);
+
     return (
-      <div className="p-6">
+      <div className="p-4 pb-8">
         {renderSheriffOverlay()}
 
         {/* Night Header */}
-        <div className="text-center mb-8 border-b border-[#2a2a2a] pb-6">
-          <motion.div
-            className="text-5xl mb-3 grayscale opacity-60"
-            animate={{ opacity: [0.3, 0.7, 0.3] }}
-            transition={{ duration: 3, repeat: Infinity }}
-          >
-            🌑
-          </motion.div>
-          <h2 className="text-2xl font-black text-white mb-1" style={{ fontFamily: 'Amiri, serif' }}>مرحلة الليل</h2>
-          <p className="text-[#808080] font-mono uppercase text-[10px] tracking-widest">
-            ROUND {gameState.round || '?'} • NIGHTFALL OPERATIONS
-          </p>
-        </div>
-
-        {/* كرت الدور الحالي */}
-        <motion.div
-          key={nightStep.role}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`noir-card p-8 max-w-md mx-auto ${meta.bgGlow}`}
-        >
-          <div className="text-center mb-6">
+        <div className="flex items-center justify-between mb-6 border-b border-[#2a2a2a] pb-4">
+          <div className="flex items-center gap-3">
             <motion.div
-              className="text-6xl mb-3"
-              animate={{ scale: [1, 1.1, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              {meta.icon}
-            </motion.div>
-            <h3 className={`text-2xl font-black ${meta.color}`} style={{ fontFamily: 'Amiri, serif' }}>
-              {nightStep.roleName}
-            </h3>
-            <div className="flex items-center justify-center gap-2 mt-2">
-              <div className="w-8 h-8 border border-[#555] flex items-center justify-center font-mono text-sm text-white bg-black">
-                {nightStep.performerPhysicalId}
-              </div>
-              <span className="text-[#808080] text-sm font-mono">{nightStep.performerName}</span>
+              className="text-3xl grayscale opacity-50"
+              animate={{ opacity: [0.3, 0.6, 0.3] }}
+              transition={{ duration: 3, repeat: Infinity }}
+            >🌑</motion.div>
+            <div>
+              <h2 className="text-xl font-black text-white" style={{ fontFamily: 'Amiri, serif' }}>مرحلة الليل</h2>
+              <p className="text-[#808080] font-mono uppercase text-[9px] tracking-widest">
+                ROUND {gameState.round || '?'} • NIGHTFALL
+              </p>
             </div>
           </div>
 
-          {/* شبكة اختيار الهدف — MafiaCard */}
-          <div className="mb-6">
-            <label className="block text-[10px] font-mono text-[#808080] mb-3 tracking-widest uppercase text-center">
-              SELECT TARGET
+          {/* شريط التقدم */}
+          <div className="flex items-center gap-2">
+            {['GODFATHER', 'SILENCER', 'SHERIFF', 'DOCTOR', 'SNIPER'].map((role) => {
+              const roleMeta = ACTION_META[role];
+              const isCurrent = nightStep.role === role;
+              const isPast = ['GODFATHER', 'SILENCER', 'SHERIFF', 'DOCTOR', 'SNIPER'].indexOf(role) <
+                             ['GODFATHER', 'SILENCER', 'SHERIFF', 'DOCTOR', 'SNIPER'].indexOf(nightStep.role);
+              return (
+                <div key={role} className="flex flex-col items-center gap-1">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm transition-all ${
+                    isCurrent ? 'bg-[#1a1a1a] border border-[#C5A059]/50 shadow-[0_0_12px_rgba(197,160,89,0.2)]' :
+                    isPast ? 'bg-[#111] border border-[#333]' : 'bg-[#0a0a0a] border border-[#1a1a1a]'
+                  }`}>
+                    <span className={isCurrent ? '' : isPast ? 'grayscale opacity-40' : 'grayscale opacity-20'}>{roleMeta?.icon || '?'}</span>
+                  </div>
+                  {isCurrent && (
+                    <div className="w-1 h-1 rounded-full bg-[#C5A059]" />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── المحتوى الرئيسي: المؤدي يسار + الأهداف يمين ── */}
+        <div className="flex gap-6 max-w-2xl mx-auto">
+          {/* ── المؤدي (يسار) ── */}
+          <motion.div
+            key={nightStep.role}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className={`shrink-0 flex flex-col items-center gap-3 p-4 border border-[#2a2a2a] rounded-xl bg-black/40 ${meta.bgGlow}`}
+          >
+            <motion.div
+              className="text-4xl"
+              animate={{ scale: [1, 1.15, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >{meta.icon}</motion.div>
+            <h3 className={`text-base font-black ${meta.color}`} style={{ fontFamily: 'Amiri, serif' }}>
+              {nightStep.roleName}
+            </h3>
+            <MafiaCard
+              playerNumber={nightStep.performerPhysicalId}
+              playerName={nightStep.performerName}
+              role={null}
+              isFlipped={false}
+              flippable={false}
+              gender={performerPlayer?.gender === 'FEMALE' ? 'FEMALE' : 'MALE'}
+              size="sm"
+              className="!w-[7rem] !h-[9.5rem]"
+            />
+            <span className="text-[8px] font-mono text-[#555] tracking-widest uppercase">OPERATIVE</span>
+          </motion.div>
+
+          {/* ── اختيار الهدف (يمين) ── */}
+          <div className="flex-1">
+            <label className="block text-[9px] font-mono text-[#808080] mb-3 tracking-widest uppercase text-center">
+              🎯 SELECT TARGET
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-2 mb-5">
               {nightStep.availableTargets.map((target: any) => {
                 const isSelected = selectedTarget === target.physicalId;
+                const targetPlayer = gameState.players?.find((p: any) => p.physicalId === target.physicalId);
                 return (
                   <div
                     key={target.physicalId}
                     onClick={() => setSelectedTarget(target.physicalId)}
                     className={`cursor-pointer rounded-xl transition-all duration-300 ${
                       isSelected
-                        ? `ring-2 ${meta.color.replace('text-', 'ring-')} shadow-lg scale-[1.03]`
-                        : 'ring-1 ring-[#2a2a2a] hover:ring-[#555] opacity-80 hover:opacity-100'
+                        ? `ring-2 ${meta.color.replace('text-', 'ring-')} shadow-lg scale-[1.05] bg-black/60`
+                        : 'ring-1 ring-[#1a1a1a] hover:ring-[#555] opacity-70 hover:opacity-100'
                     }`}
                   >
                     <MafiaCard
@@ -532,64 +573,40 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
                       role={null}
                       isFlipped={false}
                       flippable={false}
+                      gender={targetPlayer?.gender === 'FEMALE' ? 'FEMALE' : 'MALE'}
                       size="sm"
-                      className="!w-full !h-[10rem]"
+                      className="!w-full !h-[8.5rem]"
                     />
                   </div>
                 );
               })}
             </div>
-          </div>
 
-          {/* أزرار الإجراء */}
-          <div className={`grid ${nightStep.canSkip ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
-            <button
-              onClick={handleSubmitAction}
-              disabled={selectedTarget === null || loading}
-              className={`py-4 border font-mono text-sm uppercase tracking-widest transition-all ${
-                selectedTarget !== null
-                  ? `${meta.color.replace('text-', 'border-')} text-white hover:bg-white/5`
-                  : 'border-[#2a2a2a] text-[#333] cursor-not-allowed'
-              }`}
-            >
-              {loading ? '...' : '✅ تأكيد'}
-            </button>
-
-            {nightStep.canSkip && (
+            {/* أزرار الإجراء */}
+            <div className={`grid ${nightStep.canSkip ? 'grid-cols-2' : 'grid-cols-1'} gap-3`}>
               <button
-                onClick={handleSkipAction}
-                disabled={loading}
-                className="py-4 border border-[#333] text-[#555] font-mono text-sm uppercase tracking-widest hover:border-[#555] hover:text-[#808080] transition-all"
+                onClick={handleSubmitAction}
+                disabled={selectedTarget === null || loading}
+                className={`py-3 border font-mono text-xs uppercase tracking-widest transition-all rounded-lg ${
+                  selectedTarget !== null
+                    ? `${meta.color.replace('text-', 'border-')} text-white hover:bg-white/5`
+                    : 'border-[#1a1a1a] text-[#333] cursor-not-allowed'
+                }`}
               >
-                ⏭ تخطي
+                {loading ? '...' : '✅ تأكيد'}
               </button>
-            )}
-          </div>
-        </motion.div>
 
-        {/* شريط التقدم */}
-        <div className="flex items-center justify-center gap-3 mt-8">
-          {['GODFATHER', 'SILENCER', 'SHERIFF', 'DOCTOR', 'SNIPER'].map((role) => {
-            const isCurrent = nightStep.role === role;
-            const isPast = ['GODFATHER', 'SILENCER', 'SHERIFF', 'DOCTOR', 'SNIPER'].indexOf(role) <
-                           ['GODFATHER', 'SILENCER', 'SHERIFF', 'DOCTOR', 'SNIPER'].indexOf(nightStep.role);
-            return (
-              <div key={role} className="flex flex-col items-center gap-1">
-                <div className={`w-3 h-3 rounded-full transition-all ${
-                  isCurrent ? 'bg-[#C5A059] shadow-[0_0_10px_#C5A059]' :
-                  isPast ? 'bg-[#555]' : 'bg-[#222]'
-                }`} />
-                <span className={`text-[8px] font-mono tracking-widest ${
-                  isCurrent ? 'text-[#C5A059]' : 'text-[#333]'
-                }`}>
-                  {role === 'GODFATHER' ? 'اغتيال' :
-                   role === 'SILENCER' ? 'إسكات' :
-                   role === 'SHERIFF' ? 'تحقيق' :
-                   role === 'DOCTOR' ? 'حماية' : 'قنص'}
-                </span>
-              </div>
-            );
-          })}
+              {nightStep.canSkip && (
+                <button
+                  onClick={handleSkipAction}
+                  disabled={loading}
+                  className="py-3 border border-[#333] text-[#555] font-mono text-xs uppercase tracking-widest hover:border-[#555] hover:text-[#808080] transition-all rounded-lg"
+                >
+                  ⏭ تخطي
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     );
