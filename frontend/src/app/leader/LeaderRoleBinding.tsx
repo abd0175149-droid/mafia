@@ -1,18 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import {
-  DndContext,
-  DragOverlay,
-  useDraggable,
-  useDroppable,
-  closestCenter,
-  KeyboardSensor,
-  MouseSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Role, ROLE_NAMES, ROLE_ICONS } from '@/lib/constants';
 import MafiaCard from '@/components/MafiaCard';
@@ -23,50 +11,91 @@ interface LeaderRoleBindingProps {
   setError: (err: string) => void;
 }
 
-// ── Draggable Chip ──
-function DraggableRoleChip({ role, id, isDragOverlay }: { role: Role; id: string; isDragOverlay?: boolean }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id,
-    data: { role },
-  });
+// ══════════════════════════════════════════════════════
+// حالات الاختيار (Selection State Machine)
+// ══════════════════════════════════════════════════════
+// لا شيء مختار → الضغط على تشبس → تشبس مختار (selectedChipId)
+// لا شيء مختار → الضغط على كارد فيه دور → كارد مختار (selectedPlayerId)
+// تشبس مختار → الضغط على كارد فارغ → نقل التشبس للكارد
+// تشبس مختار → الضغط على كارد فيه دور → دور الكارد يعود للقائمة + التشبس ينتقل
+// تشبس مختار → الضغط على نفس التشبس → إلغاء الاختيار
+// تشبس مختار → الضغط على تشبس آخر → تبديل الاختيار
+// كارد مختار → الضغط على كارد فارغ → نقل الدور من الكارد المختار للكارد الفارغ
+// كارد مختار → الضغط على كارد فيه دور → تبديل الأدوار بين الكارتين
+// كارد مختار → الضغط على نفس الكارد → إلغاء الاختيار
+// كارد مختار → الضغط على تشبس → إلغاء اختيار الكارد + اختيار التشبس
 
+type SelectionState =
+  | { type: 'none' }
+  | { type: 'chip'; chipId: string }
+  | { type: 'card'; playerId: number };
+
+// ── Role Chip (Clickable) ──
+function RoleChip({
+  role,
+  isSelected,
+  onClick,
+}: {
+  role: Role;
+  isSelected: boolean;
+  onClick: () => void;
+}) {
   const isMafia = [Role.GODFATHER, Role.SILENCER, Role.CHAMELEON, Role.MAFIA_REGULAR].includes(role);
 
   return (
-    <div
-      ref={setNodeRef}
-      {...listeners}
-      {...attributes}
-      className={`relative inline-flex items-center gap-2 px-4 py-2 border cursor-grab select-none shadow-lg transition-transform ${
+    <motion.button
+      onClick={onClick}
+      whileTap={{ scale: 0.95 }}
+      className={`relative inline-flex items-center gap-2 px-4 py-2 border cursor-pointer select-none shadow-lg transition-all ${
         isMafia ? 'bg-[#0f0505] border-[#8A0303] text-white' : 'bg-[#050505] border-[#555] text-white'
-      } ${isDragging && !isDragOverlay ? 'opacity-0' : 'opacity-100'}`}
-      style={{
-        transform: isDragOverlay ? 'scale(1.1) rotate(-3deg)' : 'none',
-        zIndex: isDragOverlay ? 999 : 'auto',
-      }}
+      } ${isSelected
+        ? 'ring-2 ring-[#C5A059] shadow-[0_0_15px_rgba(197,160,89,0.4)] scale-105'
+        : 'hover:brightness-125'
+      }`}
     >
       <span className="grayscale">{ROLE_ICONS[role]}</span>
       <span className="font-mono text-xs uppercase tracking-widest leading-none">{ROLE_NAMES[role]}</span>
-    </div>
+      {isSelected && (
+        <motion.div
+          layoutId="chip-indicator"
+          className="absolute -top-1 -right-1 w-3 h-3 bg-[#C5A059] rounded-full"
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+        />
+      )}
+    </motion.button>
   );
 }
 
-// ── Droppable Player Card ──
-function DroppablePlayerCard({ player, children }: { player: any; children: React.ReactNode }) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: `player-${player.physicalId}`,
-    data: { physicalId: player.physicalId },
-  });
-
+// ── Player Card Slot ──
+function PlayerCardSlot({
+  player,
+  boundRole,
+  isSelected,
+  isTarget,
+  onClick,
+}: {
+  player: any;
+  boundRole: { id: string; role: Role } | null;
+  isSelected: boolean;
+  isTarget: boolean; // true when another thing is selected and this card can receive
+  onClick: () => void;
+}) {
   const isFemale = player.gender === 'FEMALE';
+  const isMafia = boundRole
+    ? [Role.GODFATHER, Role.SILENCER, Role.CHAMELEON, Role.MAFIA_REGULAR].includes(boundRole.role)
+    : false;
 
   return (
-    <div
-      ref={setNodeRef}
-      className={`p-3 flex flex-col items-center gap-3 relative transition-all rounded-xl border ${
-        isOver 
-          ? 'border-[#C5A059] bg-[#C5A059]/10 shadow-[0_0_20px_rgba(197,160,89,0.3)]' 
-          : 'border-transparent hover:border-[#2a2a2a]/50'
+    <motion.div
+      onClick={onClick}
+      whileTap={{ scale: 0.97 }}
+      className={`p-3 flex flex-col items-center gap-3 relative transition-all rounded-xl border cursor-pointer ${
+        isSelected
+          ? 'border-[#C5A059] bg-[#C5A059]/10 shadow-[0_0_20px_rgba(197,160,89,0.4)]'
+          : isTarget
+            ? 'border-[#C5A059]/30 hover:border-[#C5A059]/60 hover:bg-[#C5A059]/5'
+            : 'border-transparent hover:border-[#2a2a2a]/50'
       }`}
     >
       <MafiaCard
@@ -80,155 +109,214 @@ function DroppablePlayerCard({ player, children }: { player: any; children: Reac
         isAlive={true}
         size="sm"
       />
-      
+
       {/* Role Placement Area */}
-      <div className={`w-full max-w-[140px] h-10 mt-1 border border-dashed rounded-md flex items-center justify-center z-10 relative overflow-hidden transition-colors ${isOver ? 'border-[#C5A059] bg-black/80' : 'border-[#555]/60 bg-[#050505]'}`}>
-        {children || <span className="text-[9px] text-[#555] font-mono tracking-widest uppercase relative z-0">DROP ROLE</span>}
+      <div className={`w-full max-w-[140px] h-10 mt-1 border border-dashed rounded-md flex items-center justify-center z-10 relative overflow-hidden transition-colors ${
+        isSelected
+          ? 'border-[#C5A059] bg-[#C5A059]/10'
+          : isTarget
+            ? 'border-[#C5A059]/40 bg-black/60'
+            : boundRole
+              ? 'border-transparent bg-[#050505]'
+              : 'border-[#555]/60 bg-[#050505]'
+      }`}>
+        <AnimatePresence mode="wait">
+          {boundRole ? (
+            <motion.div
+              key={boundRole.id}
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className={`inline-flex items-center gap-1.5 px-3 py-1 border text-xs font-mono uppercase tracking-widest ${
+                isMafia ? 'bg-[#0f0505] border-[#8A0303] text-white' : 'bg-[#050505] border-[#555] text-white'
+              }`}
+            >
+              <span className="grayscale text-sm">{ROLE_ICONS[boundRole.role]}</span>
+              <span className="leading-none">{ROLE_NAMES[boundRole.role]}</span>
+            </motion.div>
+          ) : (
+            <motion.span
+              key="empty"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className={`text-[9px] font-mono tracking-widest uppercase ${
+                isTarget ? 'text-[#C5A059]/70' : 'text-[#555]'
+              }`}
+            >
+              {isTarget ? '⬆ TAP TO ASSIGN' : 'EMPTY SLOT'}
+            </motion.span>
+          )}
+        </AnimatePresence>
       </div>
-    </div>
+
+      {/* Selected indicator */}
+      {isSelected && (
+        <motion.div
+          className="absolute -top-1 -right-1 w-5 h-5 bg-[#C5A059] rounded-full flex items-center justify-center z-30"
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+        >
+          <span className="text-black text-[10px] font-black">✓</span>
+        </motion.div>
+      )}
+    </motion.div>
   );
 }
 
 export default function LeaderRoleBinding({ gameState, emit, setError }: LeaderRoleBindingProps) {
   const [unboundRoles, setUnboundRoles] = useState<{ id: string; role: Role }[]>([]);
   const [boundPlayers, setBoundPlayers] = useState<Record<number, { id: string; role: Role }>>({});
-  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [selection, setSelection] = useState<SelectionState>({ type: 'none' });
   const [loading, setLoading] = useState(false);
-
-  const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 10 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 100, tolerance: 8 } }),
-    useSensor(KeyboardSensor)
-  );
 
   // ── Initialize State from GameState ──
   useEffect(() => {
     if (!gameState) return;
-
-    // Build the initial pool from the raw config (rolesPool)
     const pool = [...(gameState.rolesPool || [])];
-    
-    // Check which roles are already bound to players and subtract them
     const initialBounds: Record<number, { id: string; role: Role }> = {};
     let roleIdCounter = 0;
 
     gameState.players.forEach((p: any) => {
       if (p.role) {
         initialBounds[p.physicalId] = { id: `role-${roleIdCounter++}`, role: p.role };
-        // Remove one instance from pool
         const idx = pool.indexOf(p.role);
         if (idx !== -1) pool.splice(idx, 1);
       }
     });
 
     const initialUnbounds = pool.map(role => ({ id: `role-${roleIdCounter++}`, role }));
-
     setBoundPlayers(initialBounds);
     setUnboundRoles(initialUnbounds);
   }, [gameState.rolesPool, gameState.players]);
 
-  // ── Drag & Drop Handlers ──
-  const handleDragStart = (event: any) => {
-    setActiveDragId(event.active.id);
+  // ══════════════════════════════════════════════════════
+  // ── Tap Handlers (State Machine) ──
+  // ══════════════════════════════════════════════════════
+
+  const handleChipTap = (chipId: string) => {
+    if (selection.type === 'chip' && selection.chipId === chipId) {
+      // نفس التشبس → إلغاء الاختيار
+      setSelection({ type: 'none' });
+    } else {
+      // اختيار تشبس (سواء مباشرة أو تبديل من تشبس/كارد آخر)
+      setSelection({ type: 'chip', chipId });
+    }
   };
 
-  const handleDragEnd = async (event: any) => {
-    const { active, over } = event;
-
-    if (!over) {
-      // Dropped on empty space — unbind from player if applicable
-      const fromPlayerId = Object.keys(boundPlayers).find(pid => boundPlayers[Number(pid)].id === active.id);
-      if (fromPlayerId) {
-        const roleData = boundPlayers[Number(fromPlayerId)];
-        
-        // ── Optimistic Update أولاً ──
-        const newBounds = { ...boundPlayers };
-        delete newBounds[Number(fromPlayerId)];
-        setBoundPlayers(newBounds);
-        setUnboundRoles(prev => [...prev, roleData]);
+  const handleCardTap = async (playerId: number) => {
+    // ── حالة 1: لا شيء مختار ──
+    if (selection.type === 'none') {
+      if (boundPlayers[playerId]) {
+        // الكارد فيه دور → اختياره
+        setSelection({ type: 'card', playerId });
       }
-      // تأخير إخفاء DragOverlay حتى بعد تحديث الـ state
-      requestAnimationFrame(() => setActiveDragId(null));
+      // الكارد فارغ → لا شيء يحصل
       return;
     }
 
-    const targetPhysicalId = over.data.current?.physicalId;
-    if (!targetPhysicalId) {
-      requestAnimationFrame(() => setActiveDragId(null));
-      return;
-    }
-
-    // Find the dragged role
-    let draggedRoleData = unboundRoles.find(r => r.id === active.id);
-    let fromPlayerId: number | null = null;
-    
-    if (!draggedRoleData) {
-      // Must be dragging from another player
-      const pidStr = Object.keys(boundPlayers).find(pid => boundPlayers[Number(pid)].id === active.id);
-      if (pidStr) {
-        fromPlayerId = Number(pidStr);
-        draggedRoleData = boundPlayers[fromPlayerId];
+    // ── حالة 2: تشبس مختار → الضغط على كارد ──
+    if (selection.type === 'chip') {
+      const chipData = unboundRoles.find(r => r.id === selection.chipId);
+      if (!chipData) {
+        setSelection({ type: 'none' });
+        return;
       }
-    }
 
-    if (!draggedRoleData) {
-      requestAnimationFrame(() => setActiveDragId(null));
-      return;
-    }
+      const existingRole = boundPlayers[playerId];
 
-    // Target might already have a role (Swap)
-    const existingTargetRole = boundPlayers[targetPhysicalId];
-
-    // ══════════════════════════════════════════════════════
-    // Optimistic Update — تحديث الواجهة فوراً قبل الـ backend
-    // ══════════════════════════════════════════════════════
-    
-    // 1. تحديث الكروت المربوطة
-    setBoundPlayers(prev => ({
-      ...prev,
-      [targetPhysicalId]: draggedRoleData!,
-      ...(fromPlayerId && existingTargetRole ? { [fromPlayerId]: existingTargetRole } : {}),
-      ...(fromPlayerId && !existingTargetRole ? (() => { const n = {...prev}; delete n[fromPlayerId!]; return n; })() : {}),
-    }));
-
-    // 2. تحديث التشبس غير المربوطة
-    if (!fromPlayerId) {
+      // تحديث محلي فوري
+      setBoundPlayers(prev => ({ ...prev, [playerId]: chipData }));
       setUnboundRoles(prev => {
-        let updated = prev.filter(r => r.id !== active.id);
-        if (existingTargetRole) {
-          updated = [...updated, existingTargetRole];
+        let updated = prev.filter(r => r.id !== chipData.id);
+        if (existingRole) updated = [...updated, existingRole]; // دور الكارد يعود للقائمة
+        return updated;
+      });
+      setSelection({ type: 'none' });
+
+      // إرسال للباك اند
+      try {
+        await emit('setup:bind-role', {
+          roomId: gameState.roomId,
+          physicalId: playerId,
+          role: chipData.role,
+        });
+      } catch (err: any) {
+        setError(err.message);
+      }
+      return;
+    }
+
+    // ── حالة 3: كارد مختار → الضغط على كارد آخر ──
+    if (selection.type === 'card') {
+      const fromPlayerId = selection.playerId;
+
+      // نفس الكارد → إلغاء الاختيار
+      if (fromPlayerId === playerId) {
+        setSelection({ type: 'none' });
+        return;
+      }
+
+      const fromRole = boundPlayers[fromPlayerId];
+      if (!fromRole) {
+        setSelection({ type: 'none' });
+        return;
+      }
+
+      const toRole = boundPlayers[playerId]; // قد يكون null (كارد فارغ)
+
+      // تحديث محلي فوري
+      setBoundPlayers(prev => {
+        const updated = { ...prev };
+        // نقل الدور من الكارد المصدر للكارد الهدف
+        updated[playerId] = fromRole;
+        if (toRole) {
+          // تبديل: دور الهدف يذهب للمصدر
+          updated[fromPlayerId] = toRole;
+        } else {
+          // نقل فقط: المصدر يصبح فارغ
+          delete updated[fromPlayerId];
         }
         return updated;
       });
-    }
+      setSelection({ type: 'none' });
 
-    // 3. إخفاء DragOverlay بعد تحديث الـ state
-    requestAnimationFrame(() => setActiveDragId(null));
-
-    // ══════════════════════════════════════════════════════
-    // ثم إرسال للـ Backend بشكل غير متزامن
-    // ══════════════════════════════════════════════════════
-    try {
-      await emit('setup:bind-role', { roomId: gameState.roomId, physicalId: targetPhysicalId, role: draggedRoleData.role });
-      
-      if (fromPlayerId && existingTargetRole) {
-        await emit('setup:bind-role', { roomId: gameState.roomId, physicalId: fromPlayerId, role: existingTargetRole.role });
+      // إرسال للباك اند
+      try {
+        await emit('setup:bind-role', {
+          roomId: gameState.roomId,
+          physicalId: playerId,
+          role: fromRole.role,
+        });
+        if (toRole) {
+          await emit('setup:bind-role', {
+            roomId: gameState.roomId,
+            physicalId: fromPlayerId,
+            role: toRole.role,
+          });
+        }
+      } catch (err: any) {
+        setError(err.message);
       }
-    } catch (err: any) {
-      setError(err.message);
-      // في حال فشل — يمكن عمل Rollback هنا لاحقاً
+      return;
+    }
+  };
+
+  // ── إلغاء الاختيار بالضغط على الخلفية ──
+  const handleBackgroundTap = (e: React.MouseEvent) => {
+    // فقط إذا الضغط على الخلفية نفسها وليس على عنصر داخلي
+    if (e.target === e.currentTarget) {
+      setSelection({ type: 'none' });
     }
   };
 
   const handleStartGame = async () => {
-    // Cannot start if there are essential roles left unbound
     const essentialUnbound = unboundRoles.filter(r => r.role !== Role.CITIZEN);
-    
     if (essentialUnbound.length > 0) {
       setError('يجب توزيع جميع الأدوار الخاصة قبل البدء (تم استثناء دور المواطن)');
       return;
     }
-    
     setLoading(true);
     try {
       await emit('setup:binding-complete', { roomId: gameState.roomId });
@@ -238,91 +326,124 @@ export default function LeaderRoleBinding({ gameState, emit, setError }: LeaderR
     }
   };
 
-  // Find dragged item for Overlay
-  const draggedItem = activeDragId 
-    ? [...unboundRoles, ...Object.values(boundPlayers)].find(r => r.id === activeDragId) 
-    : null;
+  // ── إلغاء ربط دور (إعادته للقائمة) ──
+  const handleUnbindRole = async (playerId: number) => {
+    const roleData = boundPlayers[playerId];
+    if (!roleData) return;
+
+    setBoundPlayers(prev => {
+      const updated = { ...prev };
+      delete updated[playerId];
+      return updated;
+    });
+    setUnboundRoles(prev => [...prev, roleData]);
+    setSelection({ type: 'none' });
+  };
 
   const specialUnbound = unboundRoles.filter(r => r.role !== Role.CITIZEN);
+  const hasSelection = selection.type !== 'none';
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="flex flex-col h-[calc(100vh-56px)] w-full max-w-6xl mx-auto">
+    <div className="mb-10 w-full max-w-6xl mx-auto" onClick={handleBackgroundTap}>
 
-        {/* ═══ Fixed Top: Header + Chips ═══ */}
-        <div className="shrink-0 z-30">
-          {/* Header */}
-          <div className="bg-black/30 border border-[#2a2a2a] rounded-xl p-6 mb-4 backdrop-blur-sm relative overflow-hidden text-center">
-            <div className="absolute left-0 top-0 w-1 h-full bg-[#C5A059]/40" />
-            <h2 className="text-2xl font-black text-white" style={{ fontFamily: 'Amiri, serif' }}>توزيع الأدوار والسِّريّة</h2>
-            <p className="text-[#808080] font-mono tracking-[0.3em] mt-2 uppercase text-[10px]">ROLE SYNC AUTHORIZATION & CLASSIFICATION</p>
-          </div>
+      {/* ═══ Header ═══ */}
+      <div className="bg-black/30 border border-[#2a2a2a] rounded-xl p-6 mb-4 backdrop-blur-sm relative overflow-hidden text-center">
+        <div className="absolute left-0 top-0 w-1 h-full bg-[#C5A059]/40" />
+        <h2 className="text-2xl font-black text-white" style={{ fontFamily: 'Amiri, serif' }}>توزيع الأدوار والسِّريّة</h2>
+        <p className="text-[#808080] font-mono tracking-[0.3em] mt-2 uppercase text-[10px]">
+          TAP A CHIP → THEN TAP A CARD TO ASSIGN
+        </p>
+      </div>
 
-          {/* Chips Pool */}
-          <div className="bg-black/40 border border-[#8A0303]/30 rounded-xl p-4 mb-4 backdrop-blur-sm min-h-[80px] relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-full h-[1px] bg-gradient-to-l from-transparent via-[#8A0303]/50 to-transparent" />
-            <h3 className="text-[10px] font-mono text-[#C5A059] uppercase tracking-[0.2em] mb-3 font-bold border-b border-[#2a2a2a] pb-2">
-              Unassigned Action Chips ({specialUnbound.length})
-            </h3>
-            <div className="flex flex-wrap gap-3 items-center">
-              {specialUnbound.map(r => (
-                <DraggableRoleChip key={r.id} id={r.id} role={r.role} />
-              ))}
-              {specialUnbound.length === 0 && (
-                <p className="text-[#808080] font-mono text-xs w-full text-center">ALL ACTION CHIPS ASSIGNED</p>
-              )}
-            </div>
-          </div>
+      {/* ═══ Chips Pool ═══ */}
+      <div className="bg-black/40 border border-[#8A0303]/30 rounded-xl p-4 mb-6 backdrop-blur-sm min-h-[80px] relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-full h-[1px] bg-gradient-to-l from-transparent via-[#8A0303]/50 to-transparent" />
+        <div className="flex items-center justify-between mb-3 border-b border-[#2a2a2a] pb-2">
+          <h3 className="text-[10px] font-mono text-[#C5A059] uppercase tracking-[0.2em] font-bold">
+            Unassigned Chips ({specialUnbound.length})
+          </h3>
+          {selection.type !== 'none' && (
+            <button
+              onClick={() => setSelection({ type: 'none' })}
+              className="text-[10px] font-mono text-[#808080] hover:text-white uppercase tracking-widest transition-colors"
+            >
+              ✕ CANCEL
+            </button>
+          )}
         </div>
-
-        {/* ═══ Scrollable Cards Area ═══ */}
-        <div className="flex-1 overflow-y-auto min-h-0 pb-4">
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-6">
-            {gameState.players.map((player: any) => {
-              const boundRoleData = boundPlayers[player.physicalId];
-              return (
-                <DroppablePlayerCard key={player.physicalId} player={player}>
-                  <AnimatePresence>
-                    {boundRoleData && (
-                      <motion.div
-                        key={boundRoleData.id}
-                        initial={{ scale: 0, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0, opacity: 0 }}
-                        transition={{ duration: 0.15 }}
-                        className="absolute inset-0 flex items-center justify-center w-full h-full bg-[#050505] z-20"
-                      >
-                        <DraggableRoleChip id={boundRoleData.id} role={boundRoleData.role} />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </DroppablePlayerCard>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* ═══ Fixed Bottom: Start Button ═══ */}
-        <div className="shrink-0 text-center py-4 border-t border-[#2a2a2a] bg-[#050505]/80 backdrop-blur-sm">
-          <button
-            onClick={handleStartGame}
-            disabled={specialUnbound.length > 0 || loading}
-            className="btn-premium px-12 py-4 disabled:opacity-50 disabled:grayscale transition-all"
-          >
-            <span className="text-white">{loading ? 'INITIALIZING...' : 'LOCK IDENTITIES & COMMENCE DAY'}</span>
-          </button>
-          {specialUnbound.length > 0 && (
-            <p className="text-[#8A0303] text-[10px] font-mono mt-3 uppercase tracking-[0.2em] animate-pulse">
-              WARNING: {specialUnbound.length} ACTION CHIPS UNASSIGNED
-            </p>
+        <div className="flex flex-wrap gap-3 items-center">
+          <AnimatePresence>
+            {specialUnbound.map(r => (
+              <motion.div
+                key={r.id}
+                layout
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <RoleChip
+                  role={r.role}
+                  isSelected={selection.type === 'chip' && selection.chipId === r.id}
+                  onClick={() => handleChipTap(r.id)}
+                />
+              </motion.div>
+            ))}
+          </AnimatePresence>
+          {specialUnbound.length === 0 && (
+            <p className="text-[#808080] font-mono text-xs w-full text-center">ALL ACTION CHIPS ASSIGNED ✅</p>
           )}
         </div>
       </div>
 
-      {/* Drag Overlay for smooth animation */}
-      <DragOverlay zIndex={1000}>
-        {draggedItem ? <DraggableRoleChip id={draggedItem.id} role={draggedItem.role} isDragOverlay /> : null}
-      </DragOverlay>
-    </DndContext>
+      {/* ═══ Player Cards Grid ═══ */}
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-6 mb-8" onClick={handleBackgroundTap}>
+        {gameState.players.map((player: any) => {
+          const boundRole = boundPlayers[player.physicalId] || null;
+          const isSelected = selection.type === 'card' && selection.playerId === player.physicalId;
+          const isTarget = hasSelection && !isSelected; // أي كارد غير المختار يمكن أن يكون هدف
+
+          return (
+            <div key={player.physicalId} className="relative">
+              <PlayerCardSlot
+                player={player}
+                boundRole={boundRole}
+                isSelected={isSelected}
+                isTarget={isTarget}
+                onClick={() => handleCardTap(player.physicalId)}
+              />
+
+              {/* زر إلغاء الربط — يظهر فقط عند اختيار الكارد */}
+              {isSelected && boundRole && (
+                <motion.button
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  onClick={(e) => { e.stopPropagation(); handleUnbindRole(player.physicalId); }}
+                  className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-30 bg-[#1a0505] border border-[#8A0303]/60 text-[#ff4444] text-[9px] font-mono px-3 py-1 tracking-widest uppercase hover:bg-[#8A0303]/20 transition-colors rounded-full"
+                >
+                  ✕ UNBIND
+                </motion.button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ═══ Start Button ═══ */}
+      <div className="text-center mb-10">
+        <button
+          onClick={handleStartGame}
+          disabled={specialUnbound.length > 0 || loading}
+          className="btn-premium px-12 py-4 disabled:opacity-50 disabled:grayscale transition-all"
+        >
+          <span className="text-white">{loading ? 'INITIALIZING...' : 'LOCK IDENTITIES & COMMENCE DAY'}</span>
+        </button>
+        {specialUnbound.length > 0 && (
+          <p className="text-[#8A0303] text-[10px] font-mono mt-3 uppercase tracking-[0.2em] animate-pulse">
+            WARNING: {specialUnbound.length} ACTION CHIPS UNASSIGNED
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
