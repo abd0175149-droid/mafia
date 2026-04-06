@@ -609,8 +609,18 @@ export default function DisplayPage() {
                </h1>
             </div>
 
+            {/* رسالة الانتظار — أعلى الكروت */}
+            <motion.div
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="text-center border-b border-[#2a2a2a]/40 pb-4 mb-4 w-full max-w-3xl"
+            >
+              <h2 className="text-3xl font-black text-[#C5A059] tracking-widest uppercase mb-2" style={{ fontFamily: 'Amiri, serif', textShadow: '0 0 15px rgba(197,160,89,0.3)' }}>في انتظار بدء اللعبة</h2>
+              <p className="text-[#808080] font-mono tracking-[0.4em] text-sm uppercase">AWAITING OPERATION COMMENCEMENT...</p>
+            </motion.div>
+
             {/* شبكة الكروت (لاعبين) - زيادة الحجم وعدم التمرير */}
-            <div className="w-full mb-8 pt-8">
+            <div className="w-full pt-2">
                <div className="flex flex-wrap justify-center gap-8 w-full max-w-[1700px] mx-auto px-4 overflow-visible">
                  <AnimatePresence mode="popLayout">
                    {players.slice().reverse().map((p: any, i: number) => (
@@ -637,16 +647,6 @@ export default function DisplayPage() {
                  </AnimatePresence>
                </div>
             </div>
-
-            {/* رسالة الانتظار */}
-            <motion.div
-              animate={{ opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="mt-8 text-center border-t border-[#2a2a2a]/40 pt-8 w-full max-w-3xl"
-            >
-              <h2 className="text-3xl font-black text-[#C5A059] tracking-widest uppercase mb-4" style={{ fontFamily: 'Amiri, serif', textShadow: '0 0 15px rgba(197,160,89,0.3)' }}>في انتظار بدء الجيم</h2>
-              <p className="text-[#808080] font-mono tracking-[0.4em] text-sm uppercase">AWAITING OPERATION COMMENCEMENT...</p>
-            </motion.div>
           </motion.div>
         )}
 
