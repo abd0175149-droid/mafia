@@ -105,6 +105,43 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
   const [localTimeRemaining, setLocalTimeRemaining] = useState<number>(initialDiscussionState?.timeRemaining || 0);
   const prevTimeRef = useRef<number>(initialDiscussionState?.timeRemaining || 0);
 
+  // Cinematic Panning States
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [boardPan, setBoardPan] = useState({ x: 0, y: 0 });
+  const [timerPos, setTimerPos] = useState<'left' | 'right'>('right');
+
+  useEffect(() => {
+    if (discussionState && discussionState.currentSpeakerId) {
+      setTimeout(() => {
+        const el = document.getElementById(`speaker-card-${discussionState.currentSpeakerId}`);
+        const parent = containerRef.current;
+        if (el && parent) {
+          const S = 3; // Final scale factor (Zooooooom!)
+          const elCx = el.offsetLeft + el.offsetWidth / 2;
+          const elCy = el.offsetTop + el.offsetHeight / 2;
+          const pCx = parent.offsetWidth / 2;
+          const pCy = parent.offsetHeight / 2;
+
+          // Determine native side logically
+          const isNativeLeft = elCx < pCx;
+          setTimerPos(isNativeLeft ? 'right' : 'left');
+
+          // Desired final visual positions (35% left or 65% right)
+          const desiredX = isNativeLeft ? parent.offsetWidth * 0.35 : parent.offsetWidth * 0.65;
+          const desiredY = pCy; 
+
+          // Inverse formula to find target pre-scale coordinates
+          const targetX = pCx + (desiredX - pCx) / S;
+          const targetY = pCy + (desiredY - pCy) / S;
+
+          setBoardPan({ x: targetX - elCx, y: targetY - elCy });
+        }
+      }, 100); 
+    } else {
+      setBoardPan({ x: 0, y: 0 });
+    }
+  }, [discussionState?.currentSpeakerId, phase]);
+
   // Timer Tick Effect
   useEffect(() => {
     if (!discussionState || discussionState.status !== 'SPEAKING' || discussionState.startTime === null) {
@@ -305,82 +342,84 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
 
             {!silencedPlayerId && (
               <>
-                {!discussionState || discussionState.isFinished ? (
-                  <div className="flex flex-col items-center justify-center">
-                    <div className="text-8xl mb-8 grayscale opacity-70">⚖️</div>
-                    <h1 className="text-6xl font-black text-[#C5A059] mb-6 uppercase tracking-widest" style={{ fontFamily: 'Amiri, serif' }}>ساحة النقاش</h1>
-                    <p className="text-[#808080] font-mono tracking-[0.4em] uppercase text-xl">
-                      {!discussionState ? 'AWAITING DIRECTOR INITIALIZATION...' : 'ALL REGULAR DISCUSSIONS COMPLETE. AWAITING DEALS...'}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="w-full flex justify-center items-center h-full mb-10">
-                    <div className="flex flex-wrap justify-center items-end gap-10 md:gap-14 w-full max-w-[1600px] mx-auto px-10">
-                      {players.map((p) => {
-                        if (!p.isAlive) return null;
-                        
-                        const isSpeaker = p.physicalId === discussionState.currentSpeakerId;
-                        const isSomeoneSpeaking = !!discussionState.currentSpeakerId;
-                        
-                        return (
-                          <motion.div
-                            key={p.physicalId}
-                            animate={{ 
-                              opacity: isSpeaker ? 1 : isSomeoneSpeaking ? 0.25 : 1,
-                              scale: isSpeaker ? 1.25 : isSomeoneSpeaking ? 0.9 : 1,
-                              filter: isSpeaker ? 'blur(0px) grayscale(0%)' : isSomeoneSpeaking ? 'blur(4px) grayscale(60%)' : 'blur(0px) grayscale(0%)',
-                              zIndex: isSpeaker ? 50 : 10
-                            }}
-                            transition={{ duration: 0.6, ease: "easeInOut" }}
-                            className="flex flex-col items-center relative transform-origin-bottom"
-                            style={{ transformOrigin: 'bottom center' }}
-                          >
-                            {/* Spotlight Effect for Active Speaker */}
-                            {isSpeaker && (
-                              <div 
-                                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[500px] bg-[#C5A059]/20 blur-[80px] rounded-full pointer-events-none -z-10"
-                              />
-                            )}
-
-                            <MafiaCard
-                              playerNumber={p.physicalId}
-                              playerName={p.name}
-                              role={null}
-                              gender={p.gender === 'FEMALE' ? 'FEMALE' : 'MALE'}
-                              isFlipped={false}
-                              flippable={false}
-                              size="sm"
-                              isAlive={p.isAlive}
-                              className={isSpeaker ? 'shadow-[0_0_40px_rgba(197,160,89,0.3)] border-2 border-[#C5A059]' : ''}
+                <div className="w-full flex justify-center items-center h-full mb-10 overflow-visible">
+                  {/* Cinematic Virtual Camera Wrapper */}
+                  <motion.div 
+                    ref={containerRef}
+                    animate={{
+                      scale: discussionState?.currentSpeakerId ? 3 : 1,
+                      x: discussionState?.currentSpeakerId ? boardPan.x : 0,
+                      y: discussionState?.currentSpeakerId ? boardPan.y : 0,
+                    }}
+                    transition={{ duration: 1.2, type: 'spring', damping: 25, stiffness: 100 }}
+                    style={{ transformOrigin: 'center center' }}
+                    className="flex flex-wrap justify-center items-center gap-10 md:gap-14 w-full max-w-[1600px] mx-auto px-10 relative"
+                  >
+                    {players.map((p) => {
+                      if (!p.isAlive) return null;
+                      
+                      const isSpeaker = p.physicalId === discussionState?.currentSpeakerId;
+                      const isSomeoneSpeaking = !!discussionState?.currentSpeakerId;
+                      
+                      return (
+                        <motion.div
+                          key={p.physicalId}
+                          id={`speaker-card-${p.physicalId}`}
+                          animate={{ 
+                            opacity: isSpeaker ? 1 : isSomeoneSpeaking ? 0.2 : 1,
+                            scale: isSpeaker ? 1.05 : isSomeoneSpeaking ? 0.95 : 1,
+                            filter: isSpeaker ? 'blur(0px) grayscale(0%)' : isSomeoneSpeaking ? 'blur(4px) grayscale(70%)' : 'blur(0px) grayscale(0%)',
+                            zIndex: isSpeaker ? 50 : 10
+                          }}
+                          transition={{ duration: 0.8, ease: "easeInOut" }}
+                          className="flex flex-col items-center relative"
+                        >
+                          {/* Spotlight Effect for Active Speaker */}
+                          {isSpeaker && (
+                            <div 
+                              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[250px] h-[350px] bg-[#C5A059]/30 blur-[50px] rounded-full pointer-events-none -z-10"
                             />
-                            
-                            {/* Timer container logic */}
-                            {isSpeaker && (
-                                <motion.div 
-                                  initial={{ opacity: 0, y: -20 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  className="mt-8 flex flex-col items-center absolute top-full pt-4"
-                                >
-                                  <CircularTimer
-                                    timeRemaining={localTimeRemaining}
-                                    totalTime={discussionState.timeLimitSeconds}
-                                    size={140}
-                                    enableHeartbeat={discussionState.status === 'SPEAKING'}
-                                    enableShake={discussionState.status === 'SPEAKING'}
-                                  />
-                                  <div className="mt-4 text-[10px] whitespace-nowrap font-mono tracking-[0.3em] font-bold">
-                                    {discussionState.status === 'WAITING' && <span className="text-yellow-500 animate-pulse">AWAITING COMMENCEMENT...</span>}
-                                    {discussionState.status === 'SPEAKING' && <span className="text-[#C5A059]">FLOOR IS OPEN</span>}
-                                    {discussionState.status === 'PAUSED' && <span className="text-[#8A0303] animate-pulse">FLOOR SUSPENDED</span>}
-                                  </div>
-                                </motion.div>
-                            )}
-                          </motion.div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
+                          )}
+
+                          <MafiaCard
+                            playerNumber={p.physicalId}
+                            playerName={p.name}
+                            role={null}
+                            gender={p.gender === 'FEMALE' ? 'FEMALE' : 'MALE'}
+                            isFlipped={false}
+                            flippable={false}
+                            size="sm"
+                            isAlive={p.isAlive}
+                            className={isSpeaker ? 'shadow-[0_0_50px_rgba(197,160,89,0.4)] border-2 border-[#C5A059]' : ''}
+                          />
+                          
+                          {/* Dynamic Timer Placement */}
+                          {isSpeaker && discussionState && (
+                              <motion.div 
+                                initial={{ opacity: 0, x: timerPos === 'right' ? -40 : 40 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.5, duration: 0.5 }}
+                                className={`absolute top-1/2 -translate-y-1/2 flex flex-col items-center justify-center ${timerPos === 'right' ? 'left-[130%]' : 'right-[130%]'}`}
+                              >
+                                <CircularTimer
+                                  timeRemaining={localTimeRemaining}
+                                  totalTime={discussionState.timeLimitSeconds}
+                                  size={100}
+                                  enableHeartbeat={discussionState.status === 'SPEAKING'}
+                                  enableShake={discussionState.status === 'SPEAKING'}
+                                />
+                                <div className="mt-4 text-[7px] text-center whitespace-nowrap font-mono tracking-[0.3em] font-bold">
+                                  {discussionState.status === 'WAITING' && <span className="text-yellow-500 animate-pulse">AWAITING COMMENCEMENT...</span>}
+                                  {discussionState.status === 'SPEAKING' && <span className="text-[#C5A059]">FLOOR IS OPEN</span>}
+                                  {discussionState.status === 'PAUSED' && <span className="text-[#8A0303] animate-pulse">FLOOR SUSPENDED</span>}
+                                </div>
+                              </motion.div>
+                          )}
+                        </motion.div>
+                      );
+                    })}
+                  </motion.div>
+                </div>
               </>
             )}
           </motion.div>
