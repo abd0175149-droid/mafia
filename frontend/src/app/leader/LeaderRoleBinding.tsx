@@ -8,7 +8,6 @@ import {
   useDroppable,
   closestCenter,
   KeyboardSensor,
-  PointerSensor,
   MouseSensor,
   TouchSensor,
   useSensor,
@@ -134,34 +133,30 @@ export default function LeaderRoleBinding({ gameState, emit, setError }: LeaderR
   };
 
   const handleDragEnd = async (event: any) => {
-    setActiveDragId(null);
     const { active, over } = event;
 
     if (!over) {
-      // Dropped on empty space
-      // If it came from a player, we unbind it
+      // Dropped on empty space — unbind from player if applicable
       const fromPlayerId = Object.keys(boundPlayers).find(pid => boundPlayers[Number(pid)].id === active.id);
       if (fromPlayerId) {
         const roleData = boundPlayers[Number(fromPlayerId)];
         
-        try {
-          // Emit unbind if backend supports it, but backend mostly overwrites. 
-          // Not critical unless we prevent starting, but we can set it to normal citizen or just leave it.
-          // Better yet, prevent unbinding! Only swap or bind.
-          // For now, let's allow unbinding locally. In actual production we might want to ensure they rebind it.
-          const newBounds = { ...boundPlayers };
-          delete newBounds[Number(fromPlayerId)];
-          setBoundPlayers(newBounds);
-          setUnboundRoles(prev => [...prev, roleData]);
-        } catch (err: any) {
-          setError(err.message);
-        }
+        // ── Optimistic Update أولاً ──
+        const newBounds = { ...boundPlayers };
+        delete newBounds[Number(fromPlayerId)];
+        setBoundPlayers(newBounds);
+        setUnboundRoles(prev => [...prev, roleData]);
       }
+      // تأخير إخفاء DragOverlay حتى بعد تحديث الـ state
+      requestAnimationFrame(() => setActiveDragId(null));
       return;
     }
 
     const targetPhysicalId = over.data.current?.physicalId;
-    if (!targetPhysicalId) return;
+    if (!targetPhysicalId) {
+      requestAnimationFrame(() => setActiveDragId(null));
+      return;
+    }
 
     // Find the dragged role
     let draggedRoleData = unboundRoles.find(r => r.id === active.id);
@@ -176,36 +171,52 @@ export default function LeaderRoleBinding({ gameState, emit, setError }: LeaderR
       }
     }
 
-    if (!draggedRoleData) return;
+    if (!draggedRoleData) {
+      requestAnimationFrame(() => setActiveDragId(null));
+      return;
+    }
 
     // Target might already have a role (Swap)
     const existingTargetRole = boundPlayers[targetPhysicalId];
 
-    try {
-      // Bind to backend
-      await emit('setup:bind-role', { roomId: gameState.roomId, physicalId: targetPhysicalId, role: draggedRoleData.role });
+    // ══════════════════════════════════════════════════════
+    // Optimistic Update — تحديث الواجهة فوراً قبل الـ backend
+    // ══════════════════════════════════════════════════════
+    
+    // 1. تحديث الكروت المربوطة
+    setBoundPlayers(prev => ({
+      ...prev,
+      [targetPhysicalId]: draggedRoleData!,
+      ...(fromPlayerId && existingTargetRole ? { [fromPlayerId]: existingTargetRole } : {}),
+      ...(fromPlayerId && !existingTargetRole ? (() => { const n = {...prev}; delete n[fromPlayerId!]; return n; })() : {}),
+    }));
 
-      // Update Local State
-      setBoundPlayers(prev => ({
-        ...prev,
-        [targetPhysicalId]: draggedRoleData,
-        ...(fromPlayerId ? { [fromPlayerId]: existingTargetRole } : {}) // Swap if needed
-      }));
-
-      if (!fromPlayerId) {
-        setUnboundRoles(prev => prev.filter(r => r.id !== active.id));
+    // 2. تحديث التشبس غير المربوطة
+    if (!fromPlayerId) {
+      setUnboundRoles(prev => {
+        let updated = prev.filter(r => r.id !== active.id);
         if (existingTargetRole) {
-          setUnboundRoles(prev => [...prev, existingTargetRole]);
+          updated = [...updated, existingTargetRole];
         }
-      }
+        return updated;
+      });
+    }
 
-      // If Swap, theoretically we need to update the backend for the fromPlayerId too
+    // 3. إخفاء DragOverlay بعد تحديث الـ state
+    requestAnimationFrame(() => setActiveDragId(null));
+
+    // ══════════════════════════════════════════════════════
+    // ثم إرسال للـ Backend بشكل غير متزامن
+    // ══════════════════════════════════════════════════════
+    try {
+      await emit('setup:bind-role', { roomId: gameState.roomId, physicalId: targetPhysicalId, role: draggedRoleData.role });
+      
       if (fromPlayerId && existingTargetRole) {
         await emit('setup:bind-role', { roomId: gameState.roomId, physicalId: fromPlayerId, role: existingTargetRole.role });
       }
-
     } catch (err: any) {
       setError(err.message);
+      // في حال فشل — يمكن عمل Rollback هنا لاحقاً
     }
   };
 
@@ -232,76 +243,86 @@ export default function LeaderRoleBinding({ gameState, emit, setError }: LeaderR
     ? [...unboundRoles, ...Object.values(boundPlayers)].find(r => r.id === activeDragId) 
     : null;
 
-  return (
-    <div className="mb-10 w-full max-w-6xl mx-auto">
-      {/* Header Container */}
-      <div className="bg-black/30 border border-[#2a2a2a] rounded-xl p-8 mb-8 backdrop-blur-sm relative overflow-hidden text-center">
-        <div className="absolute left-0 top-0 w-1 h-full bg-[#C5A059]/40" />
-        <h2 className="text-3xl font-black text-white" style={{ fontFamily: 'Amiri, serif' }}>توزيع الأدوار والسِّريّة</h2>
-        <p className="text-[#808080] font-mono tracking-[0.3em] mt-3 uppercase text-xs">ROLE SYNC AUTHORIZATION & CLASSIFICATION</p>
-      </div>
+  const specialUnbound = unboundRoles.filter(r => r.role !== Role.CITIZEN);
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        {/* Unbound Roles Pool */}
-        <div className="bg-black/40 border border-[#8A0303]/30 rounded-xl p-6 mb-8 backdrop-blur-sm min-h-[140px] relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-full h-[1px] bg-gradient-to-l from-transparent via-[#8A0303]/50 to-transparent" />
-          <h3 className="text-xs font-mono text-[#C5A059] uppercase tracking-[0.2em] mb-4 font-bold border-b border-[#2a2a2a] pb-3">
-            Unassigned Action Chips ({unboundRoles.filter(r => r.role !== Role.CITIZEN).length})
-          </h3>
-          <div className="flex flex-wrap gap-3 items-center">
-            {unboundRoles.filter(r => r.role !== Role.CITIZEN).map(r => (
-              <DraggableRoleChip key={r.id} id={r.id} role={r.role} />
-            ))}
-            {unboundRoles.filter(r => r.role !== Role.CITIZEN).length === 0 && (
-              <p className="text-[#808080] font-mono text-xs w-full text-center">ALL ACTION CHIPS ASSIGNED</p>
-            )}
+  return (
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <div className="flex flex-col h-[calc(100vh-56px)] w-full max-w-6xl mx-auto">
+
+        {/* ═══ Fixed Top: Header + Chips ═══ */}
+        <div className="shrink-0 z-30">
+          {/* Header */}
+          <div className="bg-black/30 border border-[#2a2a2a] rounded-xl p-6 mb-4 backdrop-blur-sm relative overflow-hidden text-center">
+            <div className="absolute left-0 top-0 w-1 h-full bg-[#C5A059]/40" />
+            <h2 className="text-2xl font-black text-white" style={{ fontFamily: 'Amiri, serif' }}>توزيع الأدوار والسِّريّة</h2>
+            <p className="text-[#808080] font-mono tracking-[0.3em] mt-2 uppercase text-[10px]">ROLE SYNC AUTHORIZATION & CLASSIFICATION</p>
+          </div>
+
+          {/* Chips Pool */}
+          <div className="bg-black/40 border border-[#8A0303]/30 rounded-xl p-4 mb-4 backdrop-blur-sm min-h-[80px] relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-full h-[1px] bg-gradient-to-l from-transparent via-[#8A0303]/50 to-transparent" />
+            <h3 className="text-[10px] font-mono text-[#C5A059] uppercase tracking-[0.2em] mb-3 font-bold border-b border-[#2a2a2a] pb-2">
+              Unassigned Action Chips ({specialUnbound.length})
+            </h3>
+            <div className="flex flex-wrap gap-3 items-center">
+              {specialUnbound.map(r => (
+                <DraggableRoleChip key={r.id} id={r.id} role={r.role} />
+              ))}
+              {specialUnbound.length === 0 && (
+                <p className="text-[#808080] font-mono text-xs w-full text-center">ALL ACTION CHIPS ASSIGNED</p>
+              )}
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-6 mb-12">
-          {gameState.players.map((player: any) => {
-            const boundRoleData = boundPlayers[player.physicalId];
-            return (
-              <DroppablePlayerCard key={player.physicalId} player={player}>
-                <AnimatePresence>
-                  {boundRoleData && (
-                    <motion.div
-                      key={boundRoleData.id}
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0, opacity: 0 }}
-                      className="absolute inset-0 flex items-center justify-center w-full h-full bg-[#050505] z-20"
-                    >
-                      <DraggableRoleChip id={boundRoleData.id} role={boundRoleData.role} />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </DroppablePlayerCard>
-            );
-          })}
+        {/* ═══ Scrollable Cards Area ═══ */}
+        <div className="flex-1 overflow-y-auto min-h-0 pb-4">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-6">
+            {gameState.players.map((player: any) => {
+              const boundRoleData = boundPlayers[player.physicalId];
+              return (
+                <DroppablePlayerCard key={player.physicalId} player={player}>
+                  <AnimatePresence>
+                    {boundRoleData && (
+                      <motion.div
+                        key={boundRoleData.id}
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0, opacity: 0 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute inset-0 flex items-center justify-center w-full h-full bg-[#050505] z-20"
+                      >
+                        <DraggableRoleChip id={boundRoleData.id} role={boundRoleData.role} />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </DroppablePlayerCard>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Drag Overlay for smooth animation */}
-        <DragOverlay zIndex={1000}>
-          {draggedItem ? <DraggableRoleChip id={draggedItem.id} role={draggedItem.role} isDragOverlay /> : null}
-        </DragOverlay>
-      </DndContext>
-
-      {/* Start Button */}
-      <div className="text-center">
-        <button
-          onClick={handleStartGame}
-          disabled={unboundRoles.filter(r => r.role !== Role.CITIZEN).length > 0 || loading}
-          className="btn-premium px-12 py-4 disabled:opacity-50 disabled:grayscale transition-all"
-        >
-          <span className="text-white">{loading ? 'INITIALIZING...' : 'LOCK IDENTITIES & COMMENCE DAY'}</span>
-        </button>
-        {unboundRoles.filter(r => r.role !== Role.CITIZEN).length > 0 && (
-          <p className="text-[#8A0303] text-[10px] font-mono mt-4 uppercase tracking-[0.2em] animate-pulse">
-            WARNING: {unboundRoles.filter(r => r.role !== Role.CITIZEN).length} ACTION CHIPS UNASSIGNED
-          </p>
-        )}
+        {/* ═══ Fixed Bottom: Start Button ═══ */}
+        <div className="shrink-0 text-center py-4 border-t border-[#2a2a2a] bg-[#050505]/80 backdrop-blur-sm">
+          <button
+            onClick={handleStartGame}
+            disabled={specialUnbound.length > 0 || loading}
+            className="btn-premium px-12 py-4 disabled:opacity-50 disabled:grayscale transition-all"
+          >
+            <span className="text-white">{loading ? 'INITIALIZING...' : 'LOCK IDENTITIES & COMMENCE DAY'}</span>
+          </button>
+          {specialUnbound.length > 0 && (
+            <p className="text-[#8A0303] text-[10px] font-mono mt-3 uppercase tracking-[0.2em] animate-pulse">
+              WARNING: {specialUnbound.length} ACTION CHIPS UNASSIGNED
+            </p>
+          )}
+        </div>
       </div>
-    </div>
+
+      {/* Drag Overlay for smooth animation */}
+      <DragOverlay zIndex={1000}>
+        {draggedItem ? <DraggableRoleChip id={draggedItem.id} role={draggedItem.role} isDragOverlay /> : null}
+      </DragOverlay>
+    </DndContext>
   );
 }
