@@ -129,31 +129,35 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
 
           setZoomScale(S);
 
-          const elCx = el.offsetLeft + el.offsetWidth / 2;
-          const elCy = el.offsetTop + el.offsetHeight / 2;
-          const pCx = parent.offsetWidth / 2;
-          const pCy = parent.offsetHeight / 2;
+          // Get absolute screen coordinates to make panning bulletproof
+          const parentRect = parent.getBoundingClientRect();
+          const elRect = el.getBoundingClientRect();
 
-          // Determine native side logically
-          const isNativeLeft = elCx < pCx;
+          const elCxScreen = elRect.left + elRect.width / 2;
+          const elCyScreen = elRect.top + elRect.height / 2;
+          const pCxScreen = parentRect.left + parentRect.width / 2;
+          const pCyScreen = parentRect.top + parentRect.height / 2;
+
+          // Determine native side relatively to screen
+          const isNativeLeft = elCxScreen < (window.innerWidth / 2);
           setTimerPos(isNativeLeft ? 'right' : 'left');
 
-          // Desired final visual positions (35% left or 65% right)
-          let desiredX = isNativeLeft ? parent.offsetWidth * 0.35 : parent.offsetWidth * 0.65;
-          
-          // Clamp to ensure the bounding box never cuts off!
-          const safePadding = (el.offsetWidth * S) * 0.6; 
-          desiredX = Math.max(safePadding, Math.min(parent.offsetWidth - safePadding, desiredX));
+          // Target screen positions
+          let desiredXScreen = isNativeLeft ? window.innerWidth * 0.35 : window.innerWidth * 0.65;
+          const desiredYScreen = window.innerHeight / 2; // Exact vertical center of screen
 
-          const desiredY = pCy; 
+          // Clamp X to ensure the bounded scaled width never hits the edges
+          const safePaddingX = (elRect.width * S) * 0.6; 
+          desiredXScreen = Math.max(safePaddingX, Math.min(window.innerWidth - safePaddingX, desiredXScreen));
 
-          // Correct Framer-Motion translation math:
-          const targetPanX = desiredX - pCx - (elCx - pCx) * S;
-          const targetPanY = desiredY - pCy - (elCy - pCy) * S;
+          // Correct Framer-Motion translation math mapped from Screen Space:
+          // Visual_Screen = ParentCenter + (Original - ParentCenter) * S + Translation
+          const targetPanX = desiredXScreen - pCxScreen - (elCxScreen - pCxScreen) * S;
+          const targetPanY = desiredYScreen - pCyScreen - (elCyScreen - pCyScreen) * S;
 
           setBoardPan({ x: targetPanX, y: targetPanY });
         }
-      }, 100); 
+      }, 200); // Increased delay slightly to ensure DOM gives fully settled ClientRects
     } else {
       setBoardPan({ x: 0, y: 0 });
     }
@@ -318,7 +322,7 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
   }, [totalVotesCast, currentOrderStr, phase]);
 
   return (
-    <div className="w-full max-w-7xl mx-auto flex flex-col items-center justify-center p-8">
+    <div className="w-full mx-auto flex flex-col items-center justify-center px-4 py-8">
       <AnimatePresence mode="wait">
         
         {/* DISCUSSION AREA */}
@@ -370,7 +374,7 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
                     }}
                     transition={{ duration: 1.2, type: 'spring', damping: 25, stiffness: 100 }}
                     style={{ transformOrigin: 'center center' }}
-                    className="flex flex-wrap justify-center items-center gap-10 md:gap-14 w-full max-w-[1600px] mx-auto px-10 relative"
+                    className="flex flex-wrap justify-center items-center gap-10 md:gap-14 w-full max-w-[2000px] mx-auto px-4 relative"
                   >
                     {players.map((p) => {
                       if (!p.isAlive) return null;
