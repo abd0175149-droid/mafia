@@ -289,194 +289,208 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
     });
 
     return (
-      <div className="p-6">
+      <div className="h-full flex flex-col p-4 overflow-hidden">
         {renderSheriffOverlay()}
 
-        {/* Header */}
-        <div className="text-center mb-8 border-b border-[#2a2a2a] pb-6">
-          <motion.div
-            className="text-6xl mb-3 grayscale opacity-70"
-            animate={{ opacity: [0.5, 0.8, 0.5] }}
-            transition={{ duration: 3, repeat: Infinity }}
-          >
-            ☀️
-          </motion.div>
-          <h2 className="text-3xl font-black text-white mb-2" style={{ fontFamily: 'Amiri, serif' }}>ملخص الليلة</h2>
-          <p className="text-[#808080] font-mono uppercase text-xs tracking-widest">MORNING INTELLIGENCE BRIEFING</p>
+        {/* ── Header ── */}
+        <div className="flex items-center justify-between border-b border-[#2a2a2a] pb-3 mb-4 shrink-0">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">☀️</span>
+            <div>
+              <h2 className="text-xl font-black text-white" style={{ fontFamily: 'Amiri, serif' }}>ملخص الليلة</h2>
+              <p className="text-[#808080] font-mono text-[8px] tracking-widest uppercase">MORNING INTELLIGENCE BRIEFING</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 opacity-60">
+            <span className="text-[#C5A059] font-mono text-[9px] tracking-widest uppercase">MAFIA CLUB</span>
+            <span className="text-xl">🎭</span>
+          </div>
         </div>
 
-        {morningEvents.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-[#555] font-mono text-sm tracking-widest uppercase">لا أحداث هذه الليلة</p>
-            <p className="text-[#333] font-mono text-xs mt-2">NO CASUALTIES REPORTED</p>
-          </div>
-        ) : (
-          <div className="space-y-4 max-w-xl mx-auto mb-8">
-            {morningEvents.map((event: any, index: number) => {
-              const evMeta = EVENT_META[event.type] || { icon: '❓', title: event.type, color: 'text-[#808080]', displayable: true };
-              const isRevealed = revealedEvents.has(index);
-              const isSheriff = event.type === 'SHERIFF_RESULT';
-              const isBlocked = event.type === 'ASSASSINATION_BLOCKED';
+        {/* ── Two Columns ── */}
+        <div className="flex-1 flex gap-4 overflow-hidden min-h-0">
 
-              return (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.15 }}
-                  className={`border p-5 bg-black/60 relative overflow-hidden ${
-                    isRevealed ? 'border-[#333] opacity-60' :
-                    isSheriff ? 'border-[#C5A059]/40' : 'border-[#2a2a2a]'
-                  }`}
-                >
-                  <div className={`absolute top-0 left-0 w-1 h-full ${evMeta.color.replace('text-', 'bg-')}`} />
+          {/* ═══ العمود الأيمن: أحداث الليل ═══ */}
+          <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+            <p className="text-[#808080] font-mono text-[8px] tracking-widest uppercase mb-3 text-center">
+              📋 NIGHT EVENTS — {morningEvents.length} REPORT{morningEvents.length !== 1 ? 'S' : ''}
+            </p>
 
-                  <div className="flex items-center gap-4 pl-3">
-                    <div className="text-3xl shrink-0">{evMeta.icon}</div>
-                    <div className="flex-1">
-                      <h3 className={`font-bold text-sm ${evMeta.color}`} style={{ fontFamily: 'Amiri, serif' }}>
-                        {evMeta.title}
-                      </h3>
+            {morningEvents.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="text-center">
+                  <p className="text-[#555] font-mono text-sm tracking-widest uppercase">لا أحداث هذه الليلة</p>
+                  <p className="text-[#333] font-mono text-xs mt-2">NO CASUALTIES REPORTED</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3 mb-4">
+                {morningEvents.map((event: any, index: number) => {
+                  const evMeta = EVENT_META[event.type] || { icon: '❓', title: event.type, color: 'text-[#808080]', displayable: true };
+                  const isRevealed = revealedEvents.has(index);
+                  const isSheriff = event.type === 'SHERIFF_RESULT';
+                  const isBlocked = event.type === 'ASSASSINATION_BLOCKED';
 
-                      {/* الاغتيال + القنص — يعرض الاسم */}
-                      {event.type === 'ASSASSINATION' && (
-                        <p className="text-white text-xs font-mono mt-1">#{event.targetPhysicalId} — {event.targetName}</p>
-                      )}
+                  return (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.15 }}
+                      className={`border p-4 bg-black/60 relative overflow-hidden rounded-lg ${
+                        isRevealed ? 'border-[#333] opacity-60' :
+                        isSheriff ? 'border-[#C5A059]/40' : 'border-[#2a2a2a]'
+                      }`}
+                    >
+                      <div className={`absolute top-0 left-0 w-1 h-full ${evMeta.color.replace('text-', 'bg-')}`} />
 
-                      {/* الحماية الناجحة — لا يعرض اسم المحمي */}
-                      {isBlocked && (
-                        <p className="text-[#2E5C31] text-xs font-mono mt-1">تم إنقاذ أحد اللاعبين من الاغتيال</p>
-                      )}
+                      <div className="flex items-center gap-3 pl-2">
+                        <div className="text-2xl shrink-0">{evMeta.icon}</div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className={`font-bold text-sm ${evMeta.color}`} style={{ fontFamily: 'Amiri, serif' }}>
+                            {evMeta.title}
+                          </h3>
 
-                      {/* قنص مافيا — نجح */}
-                      {event.type === 'SNIPE_MAFIA' && (
-                        <p className="text-[#C5A059] text-xs font-mono mt-1">خرج عضو مافيا من اللعبة</p>
-                      )}
+                          {event.type === 'ASSASSINATION' && (
+                            <p className="text-white text-xs font-mono mt-1">#{event.targetPhysicalId} — {event.targetName}</p>
+                          )}
+                          {isBlocked && (
+                            <p className="text-[#2E5C31] text-xs font-mono mt-1">تم إنقاذ أحد اللاعبين</p>
+                          )}
+                          {event.type === 'SNIPE_MAFIA' && (
+                            <p className="text-[#C5A059] text-xs font-mono mt-1">خرج عضو مافيا</p>
+                          )}
+                          {event.type === 'SNIPE_CITIZEN' && (
+                            <p className="text-[#8A0303] text-xs font-mono mt-1">خرج لاعبان (القناص + الهدف)</p>
+                          )}
+                          {event.type === 'SILENCED' && (
+                            <p className="text-[#888] text-xs font-mono mt-1">#{event.targetPhysicalId} — {event.targetName}</p>
+                          )}
 
-                      {/* قنص مواطن — فشل */}
-                      {event.type === 'SNIPE_CITIZEN' && (
-                        <p className="text-[#8A0303] text-xs font-mono mt-1">خرج لاعبان من اللعبة (القناص + الهدف)</p>
-                      )}
-
-                      {/* الإسكات */}
-                      {event.type === 'SILENCED' && (
-                        <p className="text-[#888] text-xs font-mono mt-1">#{event.targetPhysicalId} — {event.targetName}</p>
-                      )}
-
-                      {/* نتيجة الشريف */}
-                      {isSheriff && event.extra && (
-                        <div className={`mt-3 p-3 border rounded text-center ${
-                          event.extra.result === 'MAFIA'
-                            ? 'border-[#ff4444]/50 bg-[#ff4444]/10'
-                            : 'border-[#44ff44]/50 bg-[#44ff44]/10'
-                        }`}>
-                          <p className="text-[10px] font-mono text-[#555] mb-1 tracking-widest">🔒 LEADER EYES ONLY</p>
-                          <p className={`text-2xl font-black ${
-                            event.extra.result === 'MAFIA' ? 'text-[#ff4444]' : 'text-[#44ff44]'
-                          }`} style={{ fontFamily: 'Amiri, serif' }}>
-                            {event.extra.result === 'MAFIA' ? '🎭 مافيا' : '🏛 مواطن'}
-                          </p>
-                          <p className="text-[#808080] text-[10px] font-mono mt-1">
-                            #{event.targetPhysicalId} — {event.targetName}
-                          </p>
+                          {isSheriff && event.extra && (
+                            <div className={`mt-2 p-2 border rounded text-center ${
+                              event.extra.result === 'MAFIA'
+                                ? 'border-[#ff4444]/50 bg-[#ff4444]/10'
+                                : 'border-[#44ff44]/50 bg-[#44ff44]/10'
+                            }`}>
+                              <p className="text-[9px] font-mono text-[#555] mb-1 tracking-widest">🔒 LEADER ONLY</p>
+                              <p className={`text-xl font-black ${
+                                event.extra.result === 'MAFIA' ? 'text-[#ff4444]' : 'text-[#44ff44]'
+                              }`} style={{ fontFamily: 'Amiri, serif' }}>
+                                {event.extra.result === 'MAFIA' ? '🎭 مافيا' : '🏛 مواطن'}
+                              </p>
+                              <p className="text-[#808080] text-[9px] font-mono mt-1">
+                                #{event.targetPhysicalId} — {event.targetName}
+                              </p>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
 
-                    {/* زر العرض */}
-                    {evMeta.displayable && (
-                      <button
-                        onClick={() => handleDisplayEvent(index)}
-                        disabled={isRevealed}
-                        className={`shrink-0 px-4 py-2 border font-mono text-xs uppercase tracking-widest transition-all ${
-                          isRevealed
-                            ? 'border-[#333] text-[#333] cursor-not-allowed'
-                            : 'border-[#C5A059]/50 text-[#C5A059] hover:bg-[#C5A059]/10 hover:border-[#C5A059]'
-                        }`}
-                      >
-                        {isRevealed ? '✓' : '👁 عرض'}
-                      </button>
-                    )}
+                        {evMeta.displayable && (
+                          <button
+                            onClick={() => handleDisplayEvent(index)}
+                            disabled={isRevealed}
+                            className={`shrink-0 px-3 py-1.5 border font-mono text-[10px] uppercase tracking-widest transition-all rounded ${
+                              isRevealed
+                                ? 'border-[#333] text-[#333] cursor-not-allowed'
+                                : 'border-[#C5A059]/50 text-[#C5A059] hover:bg-[#C5A059]/10 hover:border-[#C5A059]'
+                            }`}
+                          >
+                            {isRevealed ? '✓' : '👁 عرض'}
+                          </button>
+                        )}
 
-                    {isSheriff && (
-                      <div className="shrink-0 px-3 py-2 border border-[#C5A059]/30 text-[#C5A059] font-mono text-[9px] tracking-widest">
-                        سري
+                        {isSheriff && (
+                          <div className="shrink-0 px-2 py-1 border border-[#C5A059]/30 text-[#C5A059] font-mono text-[8px] tracking-widest rounded">
+                            سري
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </motion.div>
-              );
-            })}
-          </div>
-        )}
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
 
-        {/* كروت اللاعبين الأحياء بعد أحداث الليل */}
-        <div className="max-w-xl mx-auto mb-8 border-t border-[#2a2a2a] pt-6">
-          <p className="text-[#555] font-mono text-[10px] tracking-widest uppercase mb-3 text-center">
-            SURVIVING AGENTS — {alivePlayers.length} REMAINING
-          </p>
-          <div className="grid grid-cols-4 gap-2">
-            {alivePlayers.map((p: any) => (
-              <MafiaCard
-                key={p.physicalId}
-                playerNumber={p.physicalId}
-                playerName={p.name}
-                role={null}
-                isFlipped={false}
-                flippable={false}
-                gender={p.gender === 'FEMALE' ? 'FEMALE' : 'MALE'}
-                size="sm"
-                className="!w-full !h-[7.5rem]"
-                isAlive={true}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* زر بدء النهار أو إنهاء اللعبة */}
-        <div className="text-center mt-8">
-          {gameState.pendingWinner ? (
-            /* ── شاشة فوز معلقة ── */
-            <div className="noir-card p-8 border-[#C5A059]/40 max-w-md mx-auto">
-              <div className="text-6xl mb-4">{gameState.pendingWinner === 'MAFIA' ? '🩸' : '⚖️'}</div>
-              <h3 className="text-2xl font-black text-white mb-2" style={{ fontFamily: 'Amiri, serif' }}>
-                {gameState.pendingWinner === 'MAFIA' ? 'المافيا انتصرت!' : 'المدينة انتصرت!'}
-              </h3>
-              <p className="text-[#808080] font-mono text-xs tracking-widest uppercase mb-6">
-                {gameState.pendingWinner === 'MAFIA' ? 'THE SYNDICATE HAS PREVAILED' : 'THE CITY HAS BEEN CLEANSED'}
-              </p>
-              <button
-                onClick={handleConfirmEnd}
-                disabled={loading || (!allRevealed && displayableEvents.length > 0)}
-                className="btn-premium px-10 py-4 !text-base w-full !border-[#C5A059]"
-              >
-                <span>🏁 عرض النتائج وإنهاء اللعبة</span>
-              </button>
-              {!allRevealed && displayableEvents.length > 0 && (
-                <p className="text-[#555] font-mono text-[9px] mt-3 tracking-widest">اعرض جميع الأحداث أولاً</p>
+            {/* زر بدء النهار أو إنهاء اللعبة */}
+            <div className="mt-auto pt-4 border-t border-[#2a2a2a]">
+              {gameState.pendingWinner ? (
+                <div className="text-center">
+                  <div className="text-4xl mb-2">{gameState.pendingWinner === 'MAFIA' ? '🩸' : '⚖️'}</div>
+                  <h3 className="text-lg font-black text-white mb-1" style={{ fontFamily: 'Amiri, serif' }}>
+                    {gameState.pendingWinner === 'MAFIA' ? 'المافيا انتصرت!' : 'المدينة انتصرت!'}
+                  </h3>
+                  <button
+                    onClick={handleConfirmEnd}
+                    disabled={loading || (!allRevealed && displayableEvents.length > 0)}
+                    className="btn-premium px-8 py-3 !text-sm w-full !border-[#C5A059] mt-3"
+                  >
+                    <span>🏁 عرض النتائج</span>
+                  </button>
+                  {!allRevealed && displayableEvents.length > 0 && (
+                    <p className="text-[#555] font-mono text-[8px] mt-2 tracking-widest">اعرض جميع الأحداث أولاً</p>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center">
+                  <button
+                    onClick={handleStartDay}
+                    disabled={loading || (!allRevealed && displayableEvents.length > 0)}
+                    className={`btn-premium px-8 py-3 !text-sm w-full group ${
+                      allRevealed || displayableEvents.length === 0
+                        ? '!border-[#C5A059]'
+                        : '!border-[#2a2a2a] grayscale opacity-50'
+                    }`}
+                  >
+                    <span className="text-white group-hover:tracking-[0.15em] transition-all">
+                      ☀️ بدء نقاش اليوم الجديد
+                    </span>
+                  </button>
+                  {!allRevealed && displayableEvents.length > 0 && (
+                    <p className="text-[#555] font-mono text-[8px] mt-2 tracking-widest">اعرض جميع الأحداث أولاً</p>
+                  )}
+                </div>
               )}
             </div>
-          ) : (
-            /* ── زر بدء النهار العادي ── */
-            <>
-              <button
-                onClick={handleStartDay}
-                disabled={loading || (!allRevealed && displayableEvents.length > 0)}
-                className={`btn-premium px-12 py-5 !text-lg group ${
-                  allRevealed || displayableEvents.length === 0
-                    ? '!border-[#C5A059]'
-                    : '!border-[#2a2a2a] grayscale opacity-50'
-                }`}
-              >
-                <span className="text-white group-hover:tracking-[0.2em] transition-all">
-                  ☀️ بدء نقاش اليوم الجديد
-                </span>
-              </button>
-              {!allRevealed && displayableEvents.length > 0 && (
-                <p className="text-[#555] font-mono text-[9px] mt-3 tracking-widest">اعرض جميع الأحداث أولاً</p>
-              )}
-            </>
-          )}
+          </div>
+
+          {/* ═══ العمود الأيسر: كروت اللاعبين الأحياء ═══ */}
+          <div className="w-[45%] shrink-0 flex flex-col overflow-y-auto border-r border-[#2a2a2a] pr-4">
+            <p className="text-[#555] font-mono text-[8px] tracking-widest uppercase mb-3 text-center">
+              🎴 SURVIVING AGENTS — {alivePlayers.length} REMAINING
+            </p>
+            <div className="flex flex-wrap justify-center gap-2 content-start">
+              {alivePlayers.map((p: any) => {
+                const isPeeked = peekedCard === p.physicalId;
+                return (
+                  <div
+                    key={p.physicalId}
+                    onPointerDown={() => handleCardPressStart(p.physicalId)}
+                    onPointerUp={() => handleCardPressEnd(p.physicalId)}
+                    onPointerLeave={() => {
+                      if (longPressTimerRef.current) {
+                        clearTimeout(longPressTimerRef.current);
+                        longPressTimerRef.current = null;
+                      }
+                    }}
+                    className="cursor-pointer select-none"
+                  >
+                    <MafiaCard
+                      playerNumber={p.physicalId}
+                      playerName={p.name}
+                      role={p.role || null}
+                      isFlipped={isPeeked}
+                      flippable={false}
+                      gender={p.gender === 'FEMALE' ? 'FEMALE' : 'MALE'}
+                      size="sm"
+                      isAlive={true}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
         </div>
       </div>
     );
