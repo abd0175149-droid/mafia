@@ -100,7 +100,7 @@ export interface NightActions {
 }
 
 export interface MorningEvent {
-  type: 'ASSASSINATION' | 'ASSASSINATION_BLOCKED' | 'SNIPE_MAFIA' | 'SNIPE_CITIZEN' | 'SILENCED' | 'SHERIFF_RESULT';
+  type: 'ASSASSINATION' | 'ASSASSINATION_BLOCKED' | 'PROTECTION_FAILED' | 'SNIPE_MAFIA' | 'SNIPE_CITIZEN' | 'SILENCED' | 'SHERIFF_RESULT';
   targetPhysicalId: number;
   targetName: string;
   extra?: Record<string, unknown>;

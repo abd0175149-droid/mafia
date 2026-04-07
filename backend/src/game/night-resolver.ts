@@ -96,6 +96,19 @@ export async function resolveNight(roomId: string): Promise<NightResolution> {
           extra: { targetRole: assassinTarget.role },
           revealed: false,
         });
+
+        // إذا الطبيب/الممرضة حمى شخص آخر → حماية فاشلة (للليدر فقط)
+        if (protectedId !== null) {
+          const protectedPlayer = state.players.find(p => p.physicalId === protectedId);
+          if (protectedPlayer) {
+            events.push({
+              type: 'PROTECTION_FAILED',
+              targetPhysicalId: protectedPlayer.physicalId,
+              targetName: protectedPlayer.name,
+              revealed: false,
+            });
+          }
+        }
       }
     }
   }
