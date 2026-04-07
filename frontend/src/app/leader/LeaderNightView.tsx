@@ -23,8 +23,8 @@ const ACTION_META: Record<string, { icon: string; color: string; bgGlow: string 
 // أيقونة أحداث الصباح
 const EVENT_META: Record<string, { icon: string; title: string; color: string; displayable: boolean }> = {
   ASSASSINATION:        { icon: '🩸', title: 'اغتيال ناجح',       color: 'text-[#8A0303]', displayable: true },
-  ASSASSINATION_BLOCKED:{ icon: '🛡️', title: 'حماية ناجحة',       color: 'text-[#2E5C31]', displayable: true },
-  SILENCED:             { icon: '🤐', title: 'تم إسكات لاعب',     color: 'text-[#888]',    displayable: true },
+  ASSASSINATION_BLOCKED:{ icon: '🛡️', title: 'حماية ناجحة',       color: 'text-[#2E5C31]', displayable: false },
+  SILENCED:             { icon: '🤐', title: 'تم إسكات لاعب',     color: 'text-[#888]',    displayable: false },
   SNIPE_MAFIA:          { icon: '🎯', title: 'القناص نجح',        color: 'text-[#C5A059]', displayable: true },
   SNIPE_CITIZEN:        { icon: '💀', title: 'القناص فشل',        color: 'text-[#8A0303]', displayable: true },
   SHERIFF_RESULT:       { icon: '🔍', title: 'نتيجة التحقيق',     color: 'text-[#C5A059]', displayable: false },
