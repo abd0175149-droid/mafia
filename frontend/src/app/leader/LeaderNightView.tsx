@@ -216,15 +216,25 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.7, opacity: 0 }}
             transition={{ type: 'spring', damping: 20 }}
-            className={`p-10 border-2 max-w-sm w-full mx-4 text-center bg-[#0a0a0a] ${
+            className={`p-8 border-2 max-w-sm w-full mx-4 text-center bg-[#0a0a0a] rounded-xl ${
               isMafia ? 'border-[#ff4444]/60' : 'border-[#44ff44]/60'
             }`}
             onClick={e => e.stopPropagation()}
           >
             <p className="text-[10px] font-mono text-[#555] mb-4 tracking-widest">🔒 LEADER EYES ONLY — INVESTIGATION RESULT</p>
 
+            {/* النتيجة فوق الكارد */}
+            <motion.div
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className={`text-4xl font-black mb-5 ${isMafia ? 'text-[#ff4444]' : 'text-[#44ff44]'}`}
+              style={{ fontFamily: 'Amiri, serif' }}
+            >
+              {isMafia ? '🎭 مافيا' : '🏛 مواطن'}
+            </motion.div>
+
             {/* كرت اللاعب */}
-            <div className={`flex justify-center mb-6 p-4 border rounded-xl ${isMafia ? 'border-[#ff4444]/30 bg-[#ff4444]/5' : 'border-[#44ff44]/30 bg-[#44ff44]/5'}`}>
+            <div className="flex justify-center mb-6">
               <MafiaCard
                 playerNumber={sheriffOverlay.targetPhysicalId}
                 playerName={targetPlayer?.name || sheriffOverlay.targetName || 'Unknown'}
@@ -232,25 +242,14 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
                 isFlipped={false}
                 flippable={false}
                 gender={targetPlayer?.gender === 'FEMALE' ? 'FEMALE' : 'MALE'}
-                size="sm"
-                className="!w-[7rem] !h-[9.5rem]"
+                size="md"
                 isAlive={true}
               />
             </div>
 
-            {/* النتيجة الكبيرة */}
-            <motion.div
-              animate={{ scale: [1, 1.05, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className={`text-5xl font-black mb-4 ${isMafia ? 'text-[#ff4444]' : 'text-[#44ff44]'}`}
-              style={{ fontFamily: 'Amiri, serif' }}
-            >
-              {isMafia ? '🎭 مافيا' : '🏛 مواطن'}
-            </motion.div>
-
             <button
               onClick={() => setSheriffOverlay(null)}
-              className="mt-4 px-8 py-3 border border-[#555] text-[#808080] font-mono text-xs uppercase tracking-widest hover:text-white hover:border-white transition-all"
+              className="px-8 py-3 border border-[#555] text-[#808080] font-mono text-xs uppercase tracking-widest hover:text-white hover:border-white transition-all rounded-lg"
             >
               ✓ فهمت
             </button>
