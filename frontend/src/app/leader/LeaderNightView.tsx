@@ -582,10 +582,10 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
           🎯 اختر الهدف — SELECT TARGET
           <span className="block text-[7px] text-[#555] mt-1">اضغط مطولاً على الكارد لكشف الدور</span>
         </label>
-        <div className={`grid gap-3 mb-5 ${
-          nightStep.availableTargets.length <= 4 ? 'grid-cols-2' :
-          nightStep.availableTargets.length <= 9 ? 'grid-cols-3' : 'grid-cols-4'
-        }`}>
+        <div
+          className="grid gap-2 mb-5"
+          style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))' }}
+        >
           {nightStep.availableTargets.map((target: any) => {
             const isSelected = selectedTarget === target.physicalId;
             const targetPlayer = gameState.players?.find((p: any) => p.physicalId === target.physicalId);
@@ -602,6 +602,7 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
                   }
                 }}
                 className="cursor-pointer select-none"
+                style={{ aspectRatio: '3/4' }}
               >
                 <MafiaCard
                   playerNumber={target.physicalId}
@@ -610,7 +611,7 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
                   isFlipped={isPeeked}
                   flippable={false}
                   gender={targetPlayer?.gender === 'FEMALE' ? 'FEMALE' : 'MALE'}
-                  size="sm"
+                  size="fluid"
                   isAlive={true}
                   className={`transition-all duration-300 ${
                     isSelected
