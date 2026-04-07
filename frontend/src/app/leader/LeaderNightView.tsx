@@ -311,7 +311,7 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
         <div className="flex-1 flex gap-4 overflow-hidden min-h-0">
 
           {/* ═══ العمود الأيمن: أحداث الليل ═══ */}
-          <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+          <div className="w-[35%] shrink-0 flex flex-col min-w-0 overflow-y-auto">
             <p className="text-[#808080] font-mono text-[8px] tracking-widest uppercase mb-3 text-center">
               📋 NIGHT EVENTS — {morningEvents.length} REPORT{morningEvents.length !== 1 ? 'S' : ''}
             </p>
@@ -455,7 +455,7 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
           </div>
 
           {/* ═══ العمود الأيسر: كروت اللاعبين الأحياء ═══ */}
-          <div className="w-[45%] shrink-0 flex flex-col overflow-y-auto border-r border-[#2a2a2a] pr-4">
+          <div className="flex-1 flex flex-col overflow-y-auto border-r border-[#2a2a2a] pr-4">
             <p className="text-[#555] font-mono text-[8px] tracking-widest uppercase mb-3 text-center">
               🎴 SURVIVING AGENTS — {alivePlayers.length} REMAINING
             </p>
