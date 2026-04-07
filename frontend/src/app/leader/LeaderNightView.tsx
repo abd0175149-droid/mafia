@@ -246,7 +246,7 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
                   }`}
                   style={{
                     fontFamily: 'Amiri, serif',
-                    transform: 'rotate(-35deg)',
+                    transform: 'rotate(35deg)',
                     boxShadow: isMafia
                       ? '0 0 30px rgba(138,3,3,0.6)'
                       : '0 0 30px rgba(46,92,49,0.6)',
