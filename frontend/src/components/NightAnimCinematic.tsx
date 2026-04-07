@@ -433,7 +433,7 @@ function MorningAssassinationAnim({ data }: NightAnimProps) {
             role={targetRole}
             isFlipped={true}
             flippable={false}
-            isAlive={false}
+            isAlive={true}
             size="fluid"
             className="w-48 h-[16rem] md:w-56 md:h-[19rem]"
           />
@@ -531,7 +531,7 @@ function MorningSnipeAnim({ data, success }: NightAnimProps & { success: boolean
             role={targetRole}
             isFlipped={true}
             flippable={false}
-            isAlive={false}
+            isAlive={true}
             size="fluid"
             className="w-48 h-[16rem] md:w-56 md:h-[19rem]"
           />
@@ -546,6 +546,61 @@ function MorningSnipeAnim({ data, success }: NightAnimProps & { success: boolean
           {success ? 'خرج عضو مافيا من اللعبة' : 'خرج لاعبان من اللعبة (القناص + الهدف)'}
         </motion.p>
       )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════
+// 🤐 Morning: Silenced Player
+// ══════════════════════════════════════════
+function MorningSilencedAnim({ data }: NightAnimProps) {
+  useEffect(() => { playImpactSound('silence'); }, []);
+
+  return (
+    <div className="text-center py-4">
+      <motion.div
+        className="text-8xl mb-4 drop-shadow-[0_0_30px_rgba(100,100,100,0.6)]"
+        initial={{ scale: 0.8 }}
+        animate={{ scale: [0.8, 1.2, 1] }}
+        transition={{ duration: 0.6 }}
+      >
+        🤐
+      </motion.div>
+      <motion.p
+        className="text-3xl md:text-4xl font-black text-[#888] tracking-widest mb-3"
+        style={{ fontFamily: 'Amiri, serif' }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.3 }}
+      >
+        تم إسكات لاعب
+      </motion.p>
+      {data.targetName && (
+        <motion.div
+          className="flex justify-center mt-6"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8, type: 'spring', damping: 12 }}
+        >
+          <MafiaCard
+            playerNumber={data.targetPhysicalId!}
+            playerName={data.targetName}
+            role={null}
+            isFlipped={false}
+            flippable={false}
+            isAlive={true}
+            isSilenced={true}
+            size="fluid"
+            className="w-48 h-[16rem] md:w-56 md:h-[19rem]"
+          />
+        </motion.div>
+      )}
+      <motion.div
+        className="w-64 h-[2px] bg-gradient-to-r from-transparent via-[#555] to-transparent mx-auto mt-6"
+        initial={{ scaleX: 0 }}
+        animate={{ scaleX: 1 }}
+        transition={{ delay: 0.5, duration: 0.6 }}
+      />
     </div>
   );
 }
@@ -573,6 +628,8 @@ export default function NightAnimCinematic({ data }: NightAnimProps) {
       return <MorningAssassinationAnim data={data} />;
     case 'ASSASSINATION_BLOCKED':
       return <MorningProtectionAnim />;
+    case 'SILENCED':
+      return <MorningSilencedAnim data={data} />;
     case 'SNIPE_MAFIA':
       return <MorningSnipeAnim data={data} success={true} />;
     case 'SNIPE_CITIZEN':

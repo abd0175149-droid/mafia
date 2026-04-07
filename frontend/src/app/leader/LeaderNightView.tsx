@@ -24,6 +24,7 @@ const ACTION_META: Record<string, { icon: string; color: string; bgGlow: string 
 const EVENT_META: Record<string, { icon: string; title: string; color: string; displayable: boolean }> = {
   ASSASSINATION:        { icon: '🩸', title: 'اغتيال ناجح',       color: 'text-[#8A0303]', displayable: true },
   ASSASSINATION_BLOCKED:{ icon: '🛡️', title: 'حماية ناجحة',       color: 'text-[#2E5C31]', displayable: true },
+  SILENCED:             { icon: '🤐', title: 'تم إسكات لاعب',     color: 'text-[#888]',    displayable: true },
   SNIPE_MAFIA:          { icon: '🎯', title: 'القناص نجح',        color: 'text-[#C5A059]', displayable: true },
   SNIPE_CITIZEN:        { icon: '💀', title: 'القناص فشل',        color: 'text-[#8A0303]', displayable: true },
   SHERIFF_RESULT:       { icon: '🔍', title: 'نتيجة التحقيق',     color: 'text-[#C5A059]', displayable: false },
@@ -79,12 +80,19 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
     }
   }, [gameState.phase]);
 
-  // عند وصول نتيجة الشريف → فتح الـ overlay الكبير
+  // عند وصول نتيجة الشريف → فتح الـ overlay الكبير (فقط في مرحلة الليل)
   useEffect(() => {
-    if (gameState.sheriffResult) {
+    if (gameState.sheriffResult && gameState.phase === 'NIGHT') {
       setSheriffOverlay(gameState.sheriffResult);
     }
-  }, [gameState.sheriffResult]);
+  }, [gameState.sheriffResult, gameState.phase]);
+
+  // مسح overlay الشريف عند دخول ليل جديد
+  useEffect(() => {
+    if (gameState.phase === 'NIGHT') {
+      setSheriffOverlay(null);
+    }
+  }, [gameState.round]);
 
   const nightStep = gameState.nightStep;
   const nightComplete = gameState.nightComplete;
@@ -337,6 +345,11 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
                         <p className="text-[#8A0303] text-xs font-mono mt-1">خرج لاعبان من اللعبة (القناص + الهدف)</p>
                       )}
 
+                      {/* الإسكات */}
+                      {event.type === 'SILENCED' && (
+                        <p className="text-[#888] text-xs font-mono mt-1">#{event.targetPhysicalId} — {event.targetName}</p>
+                      )}
+
                       {/* نتيجة الشريف */}
                       {isSheriff && event.extra && (
                         <div className={`mt-3 p-3 border rounded text-center ${
@@ -569,7 +582,10 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
           🎯 اختر الهدف — SELECT TARGET
           <span className="block text-[7px] text-[#555] mt-1">اضغط مطولاً على الكارد لكشف الدور</span>
         </label>
-        <div className="grid grid-cols-3 gap-3 mb-5">
+        <div className={`grid gap-3 mb-5 ${
+          nightStep.availableTargets.length <= 4 ? 'grid-cols-2' :
+          nightStep.availableTargets.length <= 9 ? 'grid-cols-3' : 'grid-cols-4'
+        }`}>
           {nightStep.availableTargets.map((target: any) => {
             const isSelected = selectedTarget === target.physicalId;
             const targetPlayer = gameState.players?.find((p: any) => p.physicalId === target.physicalId);
