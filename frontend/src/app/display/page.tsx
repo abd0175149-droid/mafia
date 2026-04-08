@@ -264,6 +264,10 @@ export default function DisplayPage() {
     const onGameOver = (data: any) => {
       setWinner(data.winner);
       setPhase(Phase.GAME_OVER);
+      // تحديث بيانات اللاعبين (تحتوي على الأدوار المكشوفة)
+      if (data.players) {
+        setPlayers(data.players);
+      }
       // تشغيل المؤثر الصوتي
       playWinSound(data.winner === 'MAFIA');
     };
@@ -813,7 +817,7 @@ export default function DisplayPage() {
             <motion.div key="gameover" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1.2 }} className="text-center relative z-10 w-full max-w-6xl">
               
               {/* ═══ أنيميشن Lottie خلفي — ملء الشاشة ═══ */}
-              <div className="fixed inset-0 z-0 pointer-events-none flex items-center justify-center">
+              <div className="fixed inset-0 z-0 pointer-events-none flex items-center justify-center" style={{ mixBlendMode: 'screen' }}>
                 {isMafiaWin ? (
                   <dotlottie-player
                     src="/animations/winner.lottie"
@@ -821,7 +825,7 @@ export default function DisplayPage() {
                     loop
                     speed="0.8"
                     background="transparent"
-                    style={{ width: '100%', height: '100%', opacity: 0.25 }}
+                    style={{ width: '100%', height: '100%', opacity: 0.4 }}
                   />
                 ) : (
                   <dotlottie-player
@@ -830,7 +834,7 @@ export default function DisplayPage() {
                     loop
                     speed="1"
                     background="transparent"
-                    style={{ width: '100%', height: '100%', opacity: 0.35 }}
+                    style={{ width: '100%', height: '100%', opacity: 0.5 }}
                   />
                 )}
               </div>
@@ -849,7 +853,7 @@ export default function DisplayPage() {
                 />
 
                 {/* أنيميشن منصة التتويج — Prize Podium */}
-                <div className="flex justify-center mb-2 relative z-10">
+                <div className="flex justify-center mb-2 relative z-10" style={{ mixBlendMode: 'screen' }}>
                   <dotlottie-player
                     src="/animations/prize-podium.lottie"
                     autoplay
