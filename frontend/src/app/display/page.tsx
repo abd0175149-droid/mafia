@@ -820,7 +820,7 @@ export default function DisplayPage() {
               <div className="fixed inset-0 z-0 pointer-events-none flex items-center justify-center" style={{ mixBlendMode: 'screen' }}>
                 {isMafiaWin ? (
                   <dotlottie-player
-                    src="/animations/winner.lottie"
+                    src="/animations/fireworks.lottie"
                     autoplay
                     loop
                     speed="0.8"
