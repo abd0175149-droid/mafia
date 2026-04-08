@@ -77,6 +77,7 @@ export default function LeaderPage() {
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
+  const [showAdminEliminate, setShowAdminEliminate] = useState(false);
 
   // ── Auth Check ──
   useEffect(() => {
@@ -570,6 +571,15 @@ export default function LeaderPage() {
 
             {/* Right: Action Buttons */}
             <div className="flex items-center gap-4">
+              {/* زر الإقصاء الإداري — يظهر فقط أثناء اللعبة */}
+              {gameState.phase !== 'LOBBY' && gameState.phase !== 'GAME_OVER' && (
+                <button
+                  onClick={() => setShowAdminEliminate(true)}
+                  className="text-[#C5A059] text-[10px] font-mono uppercase tracking-[0.15em] hover:text-yellow-400 transition-colors border border-[#C5A059]/30 px-3 py-1.5 hover:border-[#C5A059]"
+                >
+                  ⚡ إقصاء
+                </button>
+              )}
               <button
                 onClick={() => setGameState(null)}
                 className="text-[#555] text-[10px] font-mono uppercase tracking-[0.15em] hover:text-white transition-colors border border-[#2a2a2a] px-3 py-1.5 hover:border-[#555]"
@@ -584,6 +594,84 @@ export default function LeaderPage() {
               </button>
             </div>
           </div>
+
+          {/* ═══ مودال الإقصاء الإداري ═══ */}
+          <AnimatePresence>
+            {showAdminEliminate && (
+              <motion.div
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowAdminEliminate(false)}
+              >
+                <motion.div
+                  className="noir-card p-6 mx-4 w-full max-w-md border-[#C5A059]/30 relative"
+                  initial={{ scale: 0.9, y: 20 }}
+                  animate={{ scale: 1, y: 0 }}
+                  exit={{ scale: 0.9, y: 20 }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#C5A059]/40 to-transparent" />
+                  
+                  <h3 className="text-xl font-black text-[#C5A059] mb-1 text-center" style={{ fontFamily: 'Amiri, serif' }}>
+                    إقصاء إداري
+                  </h3>
+                  <p className="text-[#555] text-[10px] font-mono tracking-widest uppercase text-center mb-6">
+                    ADMIN ELIMINATION
+                  </p>
+
+                  {/* شبكة أرقام اللاعبين */}
+                  <div className="grid grid-cols-5 gap-3 mb-6">
+                    {gameState.players
+                      .filter((p: any) => p.isAlive)
+                      .map((p: any) => (
+                        <button
+                          key={p.physicalId}
+                          onClick={async () => {
+                            if (!confirm(`هل أنت متأكد من إقصاء ${p.name} (#${p.physicalId})؟`)) return;
+                            try {
+                              const res = await emit('admin:eliminate', {
+                                roomId: gameState.roomId,
+                                physicalId: p.physicalId,
+                              });
+                              // تحديث اللاعب محلياً
+                              setGameState(prev => {
+                                if (!prev) return prev;
+                                return {
+                                  ...prev,
+                                  players: prev.players.map((pl: any) =>
+                                    pl.physicalId === p.physicalId ? { ...pl, isAlive: false } : pl
+                                  ),
+                                } as any;
+                              });
+                              setShowAdminEliminate(false);
+                            } catch (err: any) {
+                              setError(err.message);
+                            }
+                          }}
+                          className="flex flex-col items-center gap-1 p-3 bg-[#111] border border-[#2a2a2a] rounded-lg hover:border-[#8A0303] hover:bg-[#8A0303]/10 transition-all group"
+                        >
+                          <span className="text-2xl font-black text-white group-hover:text-[#8A0303] transition-colors font-mono">
+                            {p.physicalId}
+                          </span>
+                          <span className="text-[8px] text-[#555] font-mono truncate max-w-full group-hover:text-[#8A0303]/60">
+                            {p.name}
+                          </span>
+                        </button>
+                      ))}
+                  </div>
+
+                  <button
+                    onClick={() => setShowAdminEliminate(false)}
+                    className="w-full py-2 text-[#555] text-xs font-mono uppercase tracking-widest hover:text-white transition-colors border border-[#2a2a2a] hover:border-[#555]"
+                  >
+                    إلغاء
+                  </button>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* ── Main Content based on Phase ── */}
           <div className="flex-1 overflow-y-auto p-4">

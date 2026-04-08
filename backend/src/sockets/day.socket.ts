@@ -535,4 +535,52 @@ export function registerDayEvents(io: Server, socket: Socket) {
       callback({ success: false, error: err.message });
     }
   });
+
+  // ── إقصاء إداري (متاح في أي وقت) ──────────────
+  socket.on('admin:eliminate', async (data: {
+    roomId: string;
+    physicalId: number;
+  }, callback) => {
+    try {
+      if (socket.data.role !== 'leader') {
+        return callback({ success: false, error: 'Only leader' });
+      }
+
+      const state = await getGameState(data.roomId);
+      if (!state) return callback({ success: false, error: 'Room not found' });
+
+      const player = state.players.find((p: any) => p.physicalId === data.physicalId);
+      if (!player) return callback({ success: false, error: 'Player not found' });
+      if (!player.isAlive) return callback({ success: false, error: 'Player already dead' });
+
+      // إقصاء اللاعب
+      player.isAlive = false;
+      await setGameState(data.roomId, state);
+
+      // بث الإقصاء للجميع
+      io.to(data.roomId).emit('admin:player-eliminated', {
+        physicalId: data.physicalId,
+        playerName: player.name,
+        role: player.role,
+      });
+
+      // فحص شرط الفوز
+      const winResult = checkWinCondition(state);
+      if (winResult !== WinResult.GAME_CONTINUES) {
+        const winner = winResult === WinResult.MAFIA_WIN ? 'MAFIA' : 'CITIZEN';
+        state.winner = winner;
+        await setGameState(data.roomId, state);
+        await setPhase(data.roomId, Phase.GAME_OVER);
+        io.to(data.roomId).emit('game:over', {
+          winner,
+          players: state.players,
+        });
+      }
+
+      console.log(`⚠️ Admin eliminated player #${data.physicalId} (${player.name})`);
+      callback({ success: true, role: player.role });
+    } catch (err: any) {
+      callback({ success: false, error: err.message });
+    }
+  });
 }
