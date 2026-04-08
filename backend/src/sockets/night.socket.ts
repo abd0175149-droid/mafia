@@ -409,7 +409,13 @@ export function registerNightEvents(io: Server, socket: Socket) {
         sheriffResult: null,
         lastProtectedTarget: null,
       };
-      state.votingState = null;
+      state.votingState = {
+        totalVotesCast: 0,
+        deals: [],
+        candidates: [],
+        hiddenPlayersFromVoting: [],
+        tieBreakerLevel: 0,
+      };
       state.discussionState = null;
       state.winner = null;
       state.pendingWinner = null;
