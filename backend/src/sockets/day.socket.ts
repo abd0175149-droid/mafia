@@ -451,31 +451,11 @@ export function registerDayEvents(io: Server, socket: Socket) {
         // ═══ فحص الإسكات: إذا المتحدث مسكت → أنيميشن + تخطي ═══
         const currentPlayer = state.players.find((p: any) => p.physicalId === ds.currentSpeakerId);
         if (currentPlayer?.isSilenced) {
-          // بث أنيميشن الإسكات
+          // بث أنيميشن الإسكات فقط — الليدر يضغط NEXT يدوياً للانتقال
           io.to(data.roomId).emit('day:show-silenced', {
             physicalId: ds.currentSpeakerId,
             playerName: currentPlayer.name,
           });
-
-          // نقل المسكت لقائمة المنتهين
-          if (ds.currentSpeakerId !== null) ds.hasSpoken.push(ds.currentSpeakerId);
-
-          // الانتقال للتالي
-          const nextId = ds.speakingQueue.length > 0 ? ds.speakingQueue.shift()! : null;
-          if (nextId !== null) {
-            ds.currentSpeakerId = nextId;
-            ds.timeRemaining = ds.timeLimitSeconds;
-            ds.startTime = null;
-            ds.status = SpeakerStatus.WAITING;
-          } else {
-            ds.currentSpeakerId = null;
-            ds.isFinished = true;
-            ds.startTime = null;
-            ds.status = SpeakerStatus.WAITING;
-          }
-
-          await updateRoom(data.roomId, { discussionState: ds });
-          io.to(data.roomId).emit('day:discussion-updated', { discussionState: ds });
 
           return callback({ success: true, silenced: true });
         }

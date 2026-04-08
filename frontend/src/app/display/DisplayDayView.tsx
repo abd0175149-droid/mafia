@@ -372,13 +372,13 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
     const onDiscussionUpdated = (data: { discussionState: any }) => {
       setDiscussionState(data.discussionState);
       setLocalTimeRemaining(data.discussionState.timeRemaining);
+      // إخفاء أنيميشن الإسكات عند انتقال المتحدث (الليدر ضغط NEXT)
+      setSilencedPlayerId(null);
     };
 
     const onShowSilenced = (data: { physicalId: number }) => {
       setSilencedPlayerId(data.physicalId);
-      setTimeout(() => {
-        setSilencedPlayerId(null);
-      }, 4000); // Show animation for 4 seconds
+      // يبقى ظاهراً حتى الليدر يضغط NEXT — يختفي عند تغيّر currentSpeakerId عبر discussion-updated
     };
 
     const onJustificationStarted = (data: any) => {
