@@ -197,6 +197,9 @@ export async function resetNightActions(roomId: string): Promise<GameState> {
   // إزالة الإسكات من الجولة السابقة
   state.players.forEach(p => { p.isSilenced = false; });
 
+  // تصفير حالة تفعيل الممرضة
+  state.nurseActivated = false;
+
   await setGameState(roomId, state);
   return state;
 }

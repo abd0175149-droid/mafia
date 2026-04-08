@@ -134,6 +134,7 @@ export interface GameState {
   justificationData?: any; // بيانات التبرير المحفوظة لاستعادتها عند إعادة الاتصال
   winner: 'MAFIA' | 'CITIZEN' | null;
   pendingWinner?: string | null; // فوز مُعلّق (ينتظر تأكيد الليدر بعد ملخص الصباح)
+  nurseActivated?: boolean; // هل الليدر فعّل الممرضة في بداية هذا الليل
   createdAt: string;
 }
 

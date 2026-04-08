@@ -168,6 +168,7 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
   const [discussionTimeLimit, setDiscussionTimeLimit] = useState<number>(30);
   const [localTimeRemaining, setLocalTimeRemaining] = useState<number>(0);
   const [showDealsUI, setShowDealsUI] = useState(false);
+  const [showNursePrompt, setShowNursePrompt] = useState(false);
 
   const localVoteTotalRef = useRef(0);
   const [revealedRoles, setRevealedRoles] = useState<Set<number>>(new Set());
@@ -597,13 +598,68 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
     const handleStartNight = async () => {
       setLoading(true);
       try {
-        await emit('night:start', { roomId: gameState.roomId });
+        const result = await emit('night:start', { roomId: gameState.roomId });
+        if (result?.nurseAvailable) {
+          setShowNursePrompt(true);
+        }
       } catch (err: any) {
         setError(err.message);
       } finally {
         setLoading(false);
       }
     };
+
+    const handleNurseDecision = async (activate: boolean) => {
+      setLoading(true);
+      try {
+        await emit('night:begin-queue', { roomId: gameState.roomId, activateNurse: activate });
+        setShowNursePrompt(false);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // ── شاشة سؤال تفعيل الممرضة ──
+    if (showNursePrompt) {
+      return (
+        <div className="flex flex-col items-center justify-center p-12 text-center">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="noir-card p-10 border-[#2E5C31] max-w-md w-full"
+          >
+            <div className="text-6xl mb-4">⚕️</div>
+            <h2 className="text-2xl font-black text-[#2E5C31] mb-3" style={{ fontFamily: 'Amiri, serif' }}>
+              الطبيب خارج اللعبة
+            </h2>
+            <p className="text-[#808080] font-mono uppercase text-xs tracking-widest mb-8">
+              DOCTOR IS ELIMINATED • NURSE AVAILABLE FOR ACTIVATION
+            </p>
+            <p className="text-white text-lg mb-8">
+              هل تريد تفعيل دور الممرضة كبديل للطبيب في هذا الليل؟
+            </p>
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                onClick={() => handleNurseDecision(true)}
+                disabled={loading}
+                className="bg-[#2E5C31]/20 border-2 border-[#2E5C31] text-[#2E5C31] p-4 font-bold text-lg hover:bg-[#2E5C31]/40 transition-colors"
+              >
+                ⚕️ تفعيل الممرضة
+              </button>
+              <button
+                onClick={() => handleNurseDecision(false)}
+                disabled={loading}
+                className="bg-[#111] border-2 border-[#555] text-white p-4 font-bold text-lg hover:border-white transition-colors"
+              >
+                ❌ تخطي
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      );
+    }
 
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center">

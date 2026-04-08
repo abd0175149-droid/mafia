@@ -186,15 +186,6 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
     }
   };
 
-  // ── تفعيل الممرضة ──
-  const handleActivateNurse = async () => {
-    try {
-      await emit('night:activate-nurse', { roomId: gameState.roomId });
-    } catch (err: any) {
-      setError(err.message);
-    }
-  };
-
   // ══════════════════════════════════════════════════
   // OVERLAY: نتيجة الشريف — كارد كبير مستقل
   // ══════════════════════════════════════════════════
@@ -504,10 +495,6 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
   // RENDER: NIGHT — Queue Complete — انتهى الطابور
   // ══════════════════════════════════════════════════
   if (nightComplete) {
-    const doctor = gameState.players?.find((p: any) => p.role === 'DOCTOR');
-    const nurse = gameState.players?.find((p: any) => p.role === 'NURSE' && p.isAlive);
-    const showNurseButton = doctor && !doctor.isAlive && nurse;
-
     return (
       <div className="flex flex-col items-center justify-center p-12 text-center">
         {renderSheriffOverlay()}
@@ -524,12 +511,6 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
         <p className="text-[#808080] font-mono uppercase text-xs tracking-widest mb-8">
           ALL NIGHT ACTIONS REGISTERED • READY FOR RESOLUTION
         </p>
-
-        {showNurseButton && (
-          <button onClick={handleActivateNurse} className="btn-premium px-8 py-4 !border-[#2E5C31]/50 mb-6">
-            <span className="text-[#2E5C31]">⚕️ تفعيل الممرضة (بدل الطبيب)</span>
-          </button>
-        )}
 
         <button
           onClick={handleResolve}

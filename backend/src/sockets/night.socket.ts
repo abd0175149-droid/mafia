@@ -59,6 +59,18 @@ export function registerNightEvents(io: Server, socket: Socket) {
       // إرسال أنيميشن الليل لشاشة العرض
       io.to(data.roomId).emit('display:night-started');
 
+      // ── فحص: هل الطبيب ميت والممرضة حية؟ ──
+      const doctor = state.players.find((p: any) => p.role === Role.DOCTOR);
+      const nurse = state.players.find((p: any) => p.role === Role.NURSE && p.isAlive);
+      const nurseAvailable = doctor && !doctor.isAlive && !!nurse;
+
+      if (nurseAvailable) {
+        // إيقاف مؤقت — الليدر يقرر تفعيل الممرضة أو لا
+        state.round += 1;
+        await setGameState(data.roomId, state);
+        return callback({ success: true, round: state.round, nurseAvailable: true });
+      }
+
       // تحديد أول دور نشط حي
       const firstStep = getNextQueueStep(state, -1);
       if (firstStep) {
@@ -71,7 +83,38 @@ export function registerNightEvents(io: Server, socket: Socket) {
       state.round += 1;
       await setGameState(data.roomId, state);
 
-      callback({ success: true, round: state.round });
+      callback({ success: true, round: state.round, nurseAvailable: false });
+    } catch (err: any) {
+      callback({ success: false, error: err.message });
+    }
+  });
+
+  // ── بدء طابور الليل (بعد قرار الممرضة) ──────────
+  socket.on('night:begin-queue', async (data: { roomId: string; activateNurse: boolean }, callback) => {
+    try {
+      if (socket.data.role !== 'leader') {
+        return callback({ success: false, error: 'Only leader' });
+      }
+
+      const state = await getGameState(data.roomId);
+      if (!state) return callback({ success: false, error: 'Room not found' });
+
+      if (data.activateNurse) {
+        // تفعيل الممرضة — إضافتها للطابور بعد الطبيب (الخانة 4)
+        // الممرضة ستُعالج كخطوة إضافية
+        state.nurseActivated = true;
+        await setGameState(data.roomId, state);
+      }
+
+      // تحديد أول دور نشط حي
+      const firstStep = getNextQueueStep(state, -1);
+      if (firstStep) {
+        socket.emit('night:queue-step', firstStep);
+      } else {
+        socket.emit('night:queue-complete');
+      }
+
+      callback({ success: true });
     } catch (err: any) {
       callback({ success: false, error: err.message });
     }
@@ -464,6 +507,27 @@ function getNextQueueStep(state: any, currentIndex: number): QueueStep | null {
       for (const inheritRole of ASSASSINATION_INHERITANCE) {
         performer = state.players.find((p: any) => p.role === inheritRole && p.isAlive);
         if (performer) break;
+      }
+    } else if (actionRole === Role.DOCTOR) {
+      // ── الطبيب أو الممرضة (بديلة) ──
+      performer = state.players.find((p: any) => p.role === Role.DOCTOR && p.isAlive);
+      if (!performer && state.nurseActivated) {
+        // الطبيب ميت والممرضة مفعّلة → استبدال بالممرضة
+        performer = state.players.find((p: any) => p.role === Role.NURSE && p.isAlive);
+        if (performer) {
+          const targets = getAvailableTargets(state, Role.NURSE);
+          return {
+            role: Role.NURSE,
+            roleName: 'حماية الممرضة',
+            performerPhysicalId: performer.physicalId,
+            performerName: performer.name,
+            availableTargets: targets.map((id: number) => {
+              const p = state.players.find((pl: any) => pl.physicalId === id);
+              return { physicalId: id, name: p?.name || '' };
+            }),
+            canSkip: false,
+          };
+        }
       }
     } else {
       // باقي الأدوار: صاحب الدور نفسه
