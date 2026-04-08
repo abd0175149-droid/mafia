@@ -653,8 +653,10 @@ export function registerDayEvents(io: Server, socket: Socket) {
         role: player.role,
       });
 
-      // ═══ فحص شرط الفوز ═══
-      const winResult = checkWinCondition(state);
+      // ═══ فحص شرط الفوز (فقط بعد اعتماد الأدوار) ═══
+      const phase = state.phase;
+      const rolesAssigned = phase !== Phase.LOBBY && phase !== Phase.ROLE_GENERATION && phase !== Phase.ROLE_BINDING;
+      const winResult = rolesAssigned ? checkWinCondition(state) : WinResult.GAME_CONTINUES;
       if (winResult !== WinResult.GAME_CONTINUES) {
         const winner = winResult === WinResult.MAFIA_WIN ? 'MAFIA' : 'CITIZEN';
         state.winner = winner;
