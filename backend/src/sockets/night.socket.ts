@@ -51,13 +51,6 @@ export function registerNightEvents(io: Server, socket: Socket) {
       }
 
       const state = await resetNightActions(data.roomId);
-      await setPhase(data.roomId, Phase.NIGHT);
-
-      // إبلاغ جميع الأطراف بتغير المرحلة
-      io.to(data.roomId).emit('game:phase-changed', { phase: Phase.NIGHT });
-
-      // إرسال أنيميشن الليل لشاشة العرض
-      io.to(data.roomId).emit('display:night-started');
 
       // ── فحص: هل الطبيب ميت والممرضة حية؟ ──
       const doctor = state.players.find((p: any) => p.role === Role.DOCTOR);
@@ -65,18 +58,22 @@ export function registerNightEvents(io: Server, socket: Socket) {
       const nurseAvailable = doctor && !doctor.isAlive && !!nurse;
 
       if (nurseAvailable) {
-        // إيقاف مؤقت — الليدر يقرر تفعيل الممرضة أو لا
+        // لا نغيّر المرحلة — الليدر يبقى في الشاشة الحالية ليرى سؤال الممرضة
         state.round += 1;
         await setGameState(data.roomId, state);
         return callback({ success: true, round: state.round, nurseAvailable: true });
       }
+
+      // لا يوجد سؤال ممرضة — ننتقل للّيل مباشرة
+      await setPhase(data.roomId, Phase.NIGHT);
+      io.to(data.roomId).emit('game:phase-changed', { phase: Phase.NIGHT });
+      io.to(data.roomId).emit('display:night-started');
 
       // تحديد أول دور نشط حي
       const firstStep = getNextQueueStep(state, -1);
       if (firstStep) {
         socket.emit('night:queue-step', firstStep);
       } else {
-        // لا يوجد أي دور نشط حي — مباشرة للمعالجة
         socket.emit('night:queue-complete');
       }
 
@@ -100,11 +97,15 @@ export function registerNightEvents(io: Server, socket: Socket) {
       if (!state) return callback({ success: false, error: 'Room not found' });
 
       if (data.activateNurse) {
-        // تفعيل الممرضة — إضافتها للطابور بعد الطبيب (الخانة 4)
-        // الممرضة ستُعالج كخطوة إضافية
         state.nurseActivated = true;
-        await setGameState(data.roomId, state);
       }
+
+      // الآن ننتقل رسمياً لمرحلة الليل
+      await setPhase(data.roomId, Phase.NIGHT);
+      io.to(data.roomId).emit('game:phase-changed', { phase: Phase.NIGHT });
+      io.to(data.roomId).emit('display:night-started');
+
+      await setGameState(data.roomId, state);
 
       // تحديد أول دور نشط حي
       const firstStep = getNextQueueStep(state, -1);
