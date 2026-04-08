@@ -532,7 +532,7 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
       const state = await getRoom(data.roomId);
       if (!state) return callback({ success: false, error: 'Room not found' });
 
-      const unboundPlayers = state.players.filter(p => !p.role);
+      const unboundPlayers = state.players.filter(p => !p.role && p.isAlive !== false);
       if (unboundPlayers.length > 0) {
         // Calculate remaining roles in the pool
         const pool = [...(state.rolesPool || [])];
