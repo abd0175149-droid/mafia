@@ -106,6 +106,7 @@ export default function DisplayPage() {
   const [phase, setPhase] = useState<Phase>(Phase.LOBBY);
   const [winner, setWinner] = useState<string | null>(null);
   const [animation, setAnimation] = useState<any>(null);
+  const animTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [discussionState, setDiscussionState] = useState<any>(null);
   const [teamCounts, setTeamCounts] = useState<{citizenAlive: number; mafiaAlive: number}>({citizenAlive: 0, mafiaAlive: 0});
 
@@ -166,6 +167,9 @@ export default function DisplayPage() {
 
     const onPhaseChanged = async (data: any) => {
       setPhase(data.phase);
+      // تنظيف أي أنيميشن متبقية من المرحلة السابقة
+      if (animTimerRef.current) { clearTimeout(animTimerRef.current); animTimerRef.current = null; }
+      setAnimation(null);
       // تحديث بيانات اللاعبين عند تغير المرحلة
       try {
         const res = await fetch(`/api/game/state/${currentRoomId}`);
@@ -189,8 +193,9 @@ export default function DisplayPage() {
     };
 
     const onNightAnimation = (data: any) => {
+      if (animTimerRef.current) { clearTimeout(animTimerRef.current); animTimerRef.current = null; }
       setAnimation(data);
-      setTimeout(() => setAnimation(null), 5000);
+      animTimerRef.current = setTimeout(() => setAnimation(null), 5000);
     };
 
     const onGameOver = (data: any) => {
@@ -203,9 +208,10 @@ export default function DisplayPage() {
     };
 
     const onMorningEvent = (data: any) => {
+      if (animTimerRef.current) { clearTimeout(animTimerRef.current); animTimerRef.current = null; }
       setAnimation(data);
-      // أحداث الصباح تبقى أطول على الشاشة
-      setTimeout(() => setAnimation(null), 7000);
+      // أحداث الصباح تبقى 10 ثوانٍ على الشاشة
+      animTimerRef.current = setTimeout(() => setAnimation(null), 10000);
     };
 
     const onNightStarted = () => {

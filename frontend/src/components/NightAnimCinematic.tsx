@@ -498,6 +498,8 @@ function MorningProtectionAnim() {
 function MorningSnipeAnim({ data, success }: NightAnimProps & { success: boolean }) {
   useEffect(() => { playImpactSound('snipe'); }, []);
   const targetRole = data.extra?.targetRole || null;
+  const sniperPhysicalId = data.extra?.sniperPhysicalId as number | undefined;
+  const sniperName = data.extra?.sniperName as string | undefined;
 
   return (
     <div className="text-center py-4">
@@ -518,7 +520,46 @@ function MorningSnipeAnim({ data, success }: NightAnimProps & { success: boolean
       >
         {success ? 'القناص نجح' : 'القناص فشل'}
       </motion.p>
-      {targetRole ? (
+
+      {/* القنص الفاشل — عرض كارد القناص + كارد الهدف */}
+      {!success && sniperPhysicalId && targetRole ? (
+        <motion.div
+          className="flex justify-center items-end gap-6 mt-6"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8, type: 'spring', damping: 12 }}
+        >
+          {/* كارد القناص */}
+          <div className="flex flex-col items-center">
+            <p className="text-[#C5A059] text-xs font-mono mb-2 tracking-widest">القناص</p>
+            <MafiaCard
+              playerNumber={sniperPhysicalId}
+              playerName={sniperName || 'Unknown'}
+              role="SNIPER"
+              isFlipped={true}
+              flippable={false}
+              isAlive={true}
+              size="fluid"
+              className="w-40 h-[14rem] md:w-48 md:h-[16rem]"
+            />
+          </div>
+          {/* كارد الهدف */}
+          <div className="flex flex-col items-center">
+            <p className="text-[#8A0303] text-xs font-mono mb-2 tracking-widest">الهدف</p>
+            <MafiaCard
+              playerNumber={data.targetPhysicalId!}
+              playerName={data.targetName || 'Unknown'}
+              role={targetRole}
+              isFlipped={true}
+              flippable={false}
+              isAlive={true}
+              size="fluid"
+              className="w-40 h-[14rem] md:w-48 md:h-[16rem]"
+            />
+          </div>
+        </motion.div>
+      ) : targetRole ? (
+        /* القنص الناجح — عرض كارد الهدف فقط */
         <motion.div
           className="flex justify-center mt-6"
           initial={{ opacity: 0, y: 30 }}
