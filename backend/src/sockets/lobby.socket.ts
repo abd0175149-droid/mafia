@@ -465,7 +465,8 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
       const state = await getRoom(data.roomId);
       if (!state) return callback({ success: false, error: 'Room not found' });
 
-      const validation = validateRoleDistribution(data.roles, state.players.length);
+      const aliveCount = state.players.filter((p: any) => p.isAlive !== false).length;
+      const validation = validateRoleDistribution(data.roles, aliveCount);
       if (!validation.valid) {
         return callback({ success: false, error: validation.error });
       }
