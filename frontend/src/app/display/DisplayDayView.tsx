@@ -465,29 +465,60 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
             exit={{ opacity: 0, scale: 1.1 }}
             className="text-center w-full"
           >
-            {/* Silenced Animation Block */}
+            {/* Silenced Animation Block — with Lottie */}
             <AnimatePresence>
               {silencedPlayerId && (
                 <motion.div
-                  initial={{ opacity: 0, y: 50 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
-                  className="absolute inset-0 flex flex-col items-center justify-center z-50 bg-[#050505]/90 backdrop-blur-sm"
+                  className="absolute inset-0 flex flex-col items-center justify-center z-50 bg-[#050505]/95 backdrop-blur-md"
                 >
-                  <motion.div 
-                    animate={{ rotate: [-2, 2, -2, 2, 0] }}
-                    transition={{ duration: 0.4, repeat: Infinity }}
-                    className="w-48 h-48 bg-[#111] border-4 border-[#8A0303] text-[#8A0303] rounded-full flex flex-col items-center justify-center shadow-[0_0_50px_rgba(138,3,3,0.5)] mb-8"
+                  {/* Lottie Animation */}
+                  <motion.div
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
+                    className="w-64 h-64 mb-6"
                   >
-                    <span className="text-6xl mb-2">🔇</span>
-                    <span className="text-4xl font-black font-mono">{silencedPlayerId}</span>
+                    {/* @ts-ignore */}
+                    <dotlottie-player
+                      src="/animations/sound-off.lottie"
+                      autoplay
+                      loop
+                      style={{ width: '100%', height: '100%' }}
+                    />
                   </motion.div>
-                  <h2 className="text-5xl font-black text-[#8A0303] uppercase tracking-[0.2em] bg-black px-8 py-3 border-y-2 border-[#8A0303] glitch-text" data-text="SILENCED BY SYNDICATE">
+
+                  {/* Player Number Badge */}
+                  <motion.div
+                    initial={{ y: 30, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    className="w-24 h-24 bg-[#111] border-4 border-[#8A0303] text-[#8A0303] rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(138,3,3,0.5)] mb-6"
+                  >
+                    <span className="text-5xl font-black font-mono">{silencedPlayerId}</span>
+                  </motion.div>
+
+                  {/* Title */}
+                  <motion.h2
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                    className="text-5xl font-black text-[#8A0303] uppercase tracking-[0.2em] bg-black px-8 py-3 border-y-2 border-[#8A0303]"
+                  >
                     SILENCED BY SYNDICATE
-                  </h2>
-                  <p className="mt-6 text-[#ffccd5] font-mono text-xl tracking-widest uppercase">
+                  </motion.h2>
+
+                  {/* Player Name */}
+                  <motion.p
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.7 }}
+                    className="mt-6 text-[#ffccd5] font-mono text-xl tracking-widest uppercase"
+                  >
                     {players.find(p => p.physicalId === silencedPlayerId)?.name || 'UNKNOWN'} IS MUZZLED
-                  </p>
+                  </motion.p>
                 </motion.div>
               )}
             </AnimatePresence>

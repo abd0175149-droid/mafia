@@ -838,6 +838,7 @@ export default function LeaderPage() {
                   type="number"
                   value={maxPlayers}
                   onChange={(e) => setMaxPlayers(Math.min(27, Math.max(6, parseInt(e.target.value) || 6)))}
+                  dir="ltr"
                   className="w-16 p-2 bg-[#050505] border-b border-[#2a2a2a] text-white text-center text-xl font-mono focus:border-[#C5A059] focus:outline-none"
                   min={6} max={27}
                 />
@@ -864,6 +865,7 @@ export default function LeaderPage() {
               value={displayPin}
               onChange={(e) => setDisplayPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
               placeholder="AUTO-GENERATED"
+              dir="ltr"
               className="w-full p-4 bg-[#050505] border border-[#2a2a2a] text-[#C5A059] text-center font-mono text-xl tracking-[0.4em] focus:border-[#C5A059] focus:outline-none placeholder-[#222]"
               maxLength={6}
             />

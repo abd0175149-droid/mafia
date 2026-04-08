@@ -16,6 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta httpEquiv="Expires" content="0" />
         <meta name="theme-color" content="#050505" />
         <meta name="version" content="2.0.0" />
+        <script src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs" type="module" />
       </head>
       <body className="min-h-screen bg-[#050505] text-[#808080] font-sans antialiased">
         {children}

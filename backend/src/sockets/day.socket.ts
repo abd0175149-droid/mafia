@@ -410,10 +410,6 @@ export function registerDayEvents(io: Server, socket: Socket) {
       for (let i = 0; i < startIndex; i++) speakingQueue.push(alivePlayers[i].physicalId);
 
       const currentSpeakerId = speakingQueue.shift() || null;
-      
-      const upcomingSilencedId = speakingQueue.length > 0 
-        ? (state.players.find(p => p.physicalId === speakingQueue[0])?.isSilenced ? speakingQueue[0] : null)
-        : null;
 
       const discussionState = {
         currentSpeakerId,
@@ -424,7 +420,6 @@ export function registerDayEvents(io: Server, socket: Socket) {
         speakingQueue,
         hasSpoken: [],
         isFinished: false,
-        upcomingSilencedId,
       };
 
       await updateRoom(data.roomId, { discussionState });
@@ -453,6 +448,38 @@ export function registerDayEvents(io: Server, socket: Socket) {
       if (ds.isFinished) return callback({ success: false, error: 'Discussion is finished' });
 
       if (data.action === 'START' || data.action === 'RESUME') {
+        // ═══ فحص الإسكات: إذا المتحدث مسكت → أنيميشن + تخطي ═══
+        const currentPlayer = state.players.find((p: any) => p.physicalId === ds.currentSpeakerId);
+        if (currentPlayer?.isSilenced) {
+          // بث أنيميشن الإسكات
+          io.to(data.roomId).emit('day:show-silenced', {
+            physicalId: ds.currentSpeakerId,
+            playerName: currentPlayer.name,
+          });
+
+          // نقل المسكت لقائمة المنتهين
+          if (ds.currentSpeakerId !== null) ds.hasSpoken.push(ds.currentSpeakerId);
+
+          // الانتقال للتالي
+          const nextId = ds.speakingQueue.length > 0 ? ds.speakingQueue.shift()! : null;
+          if (nextId !== null) {
+            ds.currentSpeakerId = nextId;
+            ds.timeRemaining = ds.timeLimitSeconds;
+            ds.startTime = null;
+            ds.status = SpeakerStatus.WAITING;
+          } else {
+            ds.currentSpeakerId = null;
+            ds.isFinished = true;
+            ds.startTime = null;
+            ds.status = SpeakerStatus.WAITING;
+          }
+
+          await updateRoom(data.roomId, { discussionState: ds });
+          io.to(data.roomId).emit('day:discussion-updated', { discussionState: ds });
+
+          return callback({ success: true, silenced: true });
+        }
+
         ds.status = SpeakerStatus.SPEAKING;
         ds.startTime = Date.now();
       } else if (data.action === 'PAUSE') {
@@ -492,34 +519,14 @@ export function registerDayEvents(io: Server, socket: Socket) {
       const ds = state.discussionState;
       if (ds.currentSpeakerId) ds.hasSpoken.push(ds.currentSpeakerId);
 
-      // Function to recursively find the next valid speaker (skipping silenced ones and emitting animation)
-      const popNextValidSpeaker = (): number | null => {
-        while (ds.speakingQueue.length > 0) {
-          const nextId = ds.speakingQueue.shift()!;
-          const player = state.players.find(p => p.physicalId === nextId);
-          if (player?.isSilenced) {
-            // Signal to clients to play animation for this specific silenced player
-            io.to(data.roomId).emit('day:show-silenced', { physicalId: nextId });
-            ds.hasSpoken.push(nextId);
-            continue;
-          }
-          return nextId;
-        }
-        return null;
-      };
-
-      const nextSpeakerId = popNextValidSpeaker();
+      // المسكت يدخل الدور عادياً — التخطي يحدث عند محاولة START في day:timer-action
+      const nextSpeakerId = ds.speakingQueue.length > 0 ? ds.speakingQueue.shift()! : null;
 
       if (nextSpeakerId !== null) {
         ds.currentSpeakerId = nextSpeakerId;
         ds.timeRemaining = ds.timeLimitSeconds;
         ds.startTime = null;
         ds.status = SpeakerStatus.WAITING;
-        
-        // Find if the one after this is silenced
-        ds.upcomingSilencedId = ds.speakingQueue.length > 0 
-          ? (state.players.find(p => p.physicalId === ds.speakingQueue[0])?.isSilenced ? ds.speakingQueue[0] : null)
-          : null;
       } else {
         ds.currentSpeakerId = null;
         ds.isFinished = true;

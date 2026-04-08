@@ -735,6 +735,7 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
     if (!ds.isFinished) {
       // ── ACTIVE DISCUSSION CONTROL PANEL ──
       const activePlayer = alivePlayers.find((p: any) => p.physicalId === ds.currentSpeakerId);
+      const isCurrentSilenced = activePlayer?.isSilenced === true;
       
       return (
         <div className="flex flex-col h-full bg-[#050505]">
@@ -747,35 +748,44 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
           </div>
           
           <div className="flex-1 flex flex-col items-center justify-center max-w-lg mx-auto w-full px-4">
-            {/* Warning for next player if silenced */}
-            {ds.upcomingSilencedId && (
-              <div className="w-full mb-4 bg-[#8A0303]/20 border border-[#8A0303] text-[#ffccd5] p-3 text-center text-sm font-bold uppercase tracking-widest animate-pulse">
-                ⚠️ التنبيه القادم: اللاعب #{ds.upcomingSilencedId} مُسكَت!
-              </div>
-            )}
-
             {/* Current Player Status */}
-            <div className={`w-full noir-card p-8 flex flex-col items-center gap-4 transition-all duration-300 ${ds.status === 'SPEAKING' ? 'border-[#C5A059] bg-[#C5A059]/5' : ds.status === 'PAUSED' ? 'border-[#8A0303] bg-[#8A0303]/5' : 'border-[#2a2a2a]'}`}>
-              <div className="w-20 h-20 bg-[#111] border border-[#555] rounded-full flex items-center justify-center text-4xl text-white font-mono">
+            <div className={`w-full noir-card p-8 flex flex-col items-center gap-4 transition-all duration-300 ${isCurrentSilenced ? 'border-[#8A0303] bg-[#8A0303]/10' : ds.status === 'SPEAKING' ? 'border-[#C5A059] bg-[#C5A059]/5' : ds.status === 'PAUSED' ? 'border-[#8A0303] bg-[#8A0303]/5' : 'border-[#2a2a2a]'}`}>
+              <div className={`w-20 h-20 rounded-full flex items-center justify-center text-4xl font-mono relative ${isCurrentSilenced ? 'bg-[#8A0303]/20 border-2 border-[#8A0303] text-[#8A0303]' : 'bg-[#111] border border-[#555] text-white'}`}>
                 {ds.currentSpeakerId}
+                {isCurrentSilenced && (
+                  <div className="absolute -top-2 -right-2 w-8 h-8 bg-[#8A0303] rounded-full flex items-center justify-center text-white text-lg animate-pulse">
+                    🔇
+                  </div>
+                )}
               </div>
               <p className="text-2xl text-white font-bold">{activePlayer?.name || 'مجهول'}</p>
               
-              <div className="text-center mt-4">
-                <p className="font-mono text-xs text-[#808080] tracking-widest uppercase mb-1">Status</p>
-                <div className="text-lg font-mono font-bold">
-                  {ds.status === 'WAITING' && <span className="text-yellow-500">AWAITING START</span>}
-                  {ds.status === 'SPEAKING' && <span className="text-green-500">{localTimeRemaining > 0 ? 'LIVE (MIC OPEN)' : 'TIME EXPIRED'}</span>}
-                  {ds.status === 'PAUSED' && <span className="text-[#8A0303]">PAUSED (MIC MUTED)</span>}
+              {/* تنبيه الإسكات */}
+              {isCurrentSilenced && (
+                <div className="w-full bg-[#8A0303]/20 border border-[#8A0303] text-[#ffccd5] p-3 text-center text-sm font-bold uppercase tracking-widest animate-pulse">
+                  🔇 هذا اللاعب مُسكَت — اضغط START للتخطي
                 </div>
-              </div>
-              
-              <div className="text-center mt-4 border-t border-[#2a2a2a] pt-4 w-full">
-                 <span className={`text-6xl font-black font-mono transition-colors duration-300 ${localTimeRemaining <= 10 && ds.status === 'SPEAKING' ? 'text-[#8A0303] animate-pulse' : 'text-white'}`}>
-                   {localTimeRemaining}
-                 </span>
-                 <span className="text-sm text-[#808080] font-mono tracking-widest uppercase ml-2">SEC</span>
-              </div>
+              )}
+
+              {!isCurrentSilenced && (
+                <>
+                  <div className="text-center mt-4">
+                    <p className="font-mono text-xs text-[#808080] tracking-widest uppercase mb-1">Status</p>
+                    <div className="text-lg font-mono font-bold">
+                      {ds.status === 'WAITING' && <span className="text-yellow-500">AWAITING START</span>}
+                      {ds.status === 'SPEAKING' && <span className="text-green-500">{localTimeRemaining > 0 ? 'LIVE (MIC OPEN)' : 'TIME EXPIRED'}</span>}
+                      {ds.status === 'PAUSED' && <span className="text-[#8A0303]">PAUSED (MIC MUTED)</span>}
+                    </div>
+                  </div>
+                  
+                  <div className="text-center mt-4 border-t border-[#2a2a2a] pt-4 w-full">
+                     <span className={`text-6xl font-black font-mono transition-colors duration-300 ${localTimeRemaining <= 10 && ds.status === 'SPEAKING' ? 'text-[#8A0303] animate-pulse' : 'text-white'}`}>
+                       {localTimeRemaining}
+                     </span>
+                     <span className="text-sm text-[#808080] font-mono tracking-widest uppercase ml-2">SEC</span>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Controls */}
@@ -783,9 +793,9 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
               {ds.status !== 'SPEAKING' ? (
                 <button
                   onClick={async () => await emit('day:timer-action', { roomId: gameState.roomId, action: ds.status === 'WAITING' ? 'START' : 'RESUME' })}
-                  className="bg-green-900 border border-green-500 text-white p-4 font-mono uppercase tracking-widest hover:bg-green-800 transition-colors text-sm"
+                  className={`p-4 font-mono uppercase tracking-widest transition-colors text-sm border ${isCurrentSilenced ? 'bg-[#8A0303]/30 border-[#8A0303] text-[#ffccd5] hover:bg-[#8A0303]/50 animate-pulse' : 'bg-green-900 border-green-500 text-white hover:bg-green-800'}`}
                 >
-                  ▶ {ds.status === 'WAITING' ? 'START' : 'RESUME'}
+                  {isCurrentSilenced ? '🔇 SKIP' : `▶ ${ds.status === 'WAITING' ? 'START' : 'RESUME'}`}
                 </button>
               ) : (
                 <button
