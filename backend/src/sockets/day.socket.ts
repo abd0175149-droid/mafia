@@ -277,21 +277,25 @@ export function registerDayEvents(io: Server, socket: Socket) {
 
       const result = data.result;
       
+      // حفظ حالة الفوز المعلقة — الليدر يضغط زر "عرض النتيجة" لبثها
+      let pendingWinner: string | null = null;
+      if (result.winResult !== WinResult.GAME_CONTINUES) {
+        const state = await getGameState(data.roomId);
+        if (state) {
+          const winnerValue: 'MAFIA' | 'CITIZEN' = result.winResult === WinResult.MAFIA_WIN ? 'MAFIA' : 'CITIZEN';
+          state.pendingWinner = winnerValue;
+          state.winner = winnerValue;
+          pendingWinner = winnerValue;
+          await setGameState(data.roomId, state);
+        }
+      }
+
       io.to(data.roomId).emit('day:elimination-revealed', {
         eliminated: result.eliminated,
         revealedRoles: result.revealedRoles,
         type: result.type,
+        pendingWinner,
       });
-
-      // فحص نهاية اللعبة
-      if (result.winResult !== WinResult.GAME_CONTINUES) {
-        const state = await getRoom(data.roomId);
-        io.to(data.roomId).emit('game:over', {
-          winner: result.winResult === WinResult.MAFIA_WIN ? 'MAFIA' : 'CITIZEN',
-          players: state?.players,
-        });
-        await setPhase(data.roomId, Phase.GAME_OVER);
-      }
 
       callback({ success: true });
     } catch (err: any) {
@@ -347,25 +351,21 @@ export function registerDayEvents(io: Server, socket: Socket) {
           await setGameState(data.roomId, state);
         }
 
-        // بث الإقصاء
+        // فحص شرط الفوز — حفظ معلق بدل بث فوري
+        const winResult = checkWinCondition(state);
+        if (winResult !== WinResult.GAME_CONTINUES) {
+          state.winner = winResult === WinResult.MAFIA_WIN ? 'MAFIA' : 'CITIZEN';
+          state.pendingWinner = state.winner;
+          await setGameState(data.roomId, state);
+        }
+
+        // بث الإقصاء مع نتيجة الفوز
         io.to(data.roomId).emit('day:elimination-pending', {
           eliminated,
           revealedRoles,
           type: 'ELIMINATE_ALL',
-          winResult: WinResult.GAME_CONTINUES,
+          winResult,
         });
-
-        // فحص شرط الفوز
-        const winResult = checkWinCondition(state);
-        if (winResult !== WinResult.GAME_CONTINUES) {
-          state.winner = winResult === WinResult.MAFIA_WIN ? 'MAFIA' : 'CITIZEN';
-          await setGameState(data.roomId, state);
-          io.to(data.roomId).emit('game:over', {
-            winner: winResult === WinResult.MAFIA_WIN ? 'MAFIA' : 'CITIZEN',
-            players: state.players,
-          });
-          await setPhase(data.roomId, Phase.GAME_OVER);
-        }
       } else {
         await setPhase(data.roomId, Phase.DAY_VOTING);
         io.to(data.roomId).emit('day:voting-started', {

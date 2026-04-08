@@ -311,6 +311,7 @@ export default function LeaderPage() {
           ...prev,
           phase: 'DAY_REVEALED',
           revealedData: data,
+          pendingWinner: data.pendingWinner || (prev as any).pendingWinner || null,
         } as any;
       });
     });

@@ -736,7 +736,7 @@ export default function DisplayPage() {
         )}
 
         {/* ═══ نهاية اللعبة ═══ */}
-        {step === 'lobby' && phase === Phase.GAME_OVER && winner && (() => {
+        {phase === Phase.GAME_OVER && winner && (() => {
           // تصفية الفريق الفائز فقط
           const winningTeamPlayers = players.filter((p: any) => {
             const roleStr = p.role || null;
@@ -750,6 +750,30 @@ export default function DisplayPage() {
 
           return (
             <motion.div key="gameover" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1.2 }} className="text-center relative z-10 w-full max-w-6xl">
+              
+              {/* ═══ أنيميشن Lottie خلفي — ملء الشاشة ═══ */}
+              <div className="fixed inset-0 z-0 pointer-events-none flex items-center justify-center">
+                {isMafiaWin ? (
+                  /* فوز المافيا — أنيميشن winner.lottie أحمر داكن */
+                  <dotlottie-player
+                    src="/animations/winner.lottie"
+                    autoplay
+                    loop
+                    speed="0.8"
+                    style={{ width: '100%', height: '100%', opacity: 0.3, filter: 'hue-rotate(-10deg) saturate(1.5)' }}
+                  />
+                ) : (
+                  /* فوز المواطنين — ألعاب نارية */
+                  <dotlottie-player
+                    src="/animations/fireworks.lottie"
+                    autoplay
+                    loop
+                    speed="1"
+                    style={{ width: '100%', height: '100%', opacity: 0.4 }}
+                  />
+                )}
+              </div>
+
               <div className="noir-card p-8 md:p-16 relative overflow-hidden" style={{
                 borderColor: isMafiaWin ? 'rgba(138,3,3,0.4)' : 'rgba(197,160,89,0.4)',
               }}>
@@ -777,19 +801,28 @@ export default function DisplayPage() {
                   transition={{ duration: 3, repeat: Infinity }}
                 />
 
-                {/* أيقونة الفائز */}
-                <motion.div
-                  className="text-7xl md:text-9xl mb-6"
-                  initial={{ scale: 0, rotate: -20 }}
-                  animate={{ scale: [0, 1.3, 1], rotate: [20, -5, 0] }}
-                  transition={{ duration: 1, type: 'spring', damping: 10 }}
-                >
-                  {isMafiaWin ? '🩸' : '⚖️'}
-                </motion.div>
+                {/* أنيميشن Lottie صغير — منصة التتويج أو الكأس */}
+                <div className="flex justify-center mb-4 relative z-10">
+                  {isMafiaWin ? (
+                    <dotlottie-player
+                      src="/animations/winner.lottie"
+                      autoplay
+                      loop
+                      style={{ width: '180px', height: '180px' }}
+                    />
+                  ) : (
+                    <dotlottie-player
+                      src="/animations/prize-podium.lottie"
+                      autoplay
+                      loop
+                      style={{ width: '200px', height: '200px' }}
+                    />
+                  )}
+                </div>
 
                 {/* عنوان الفائز */}
                 <motion.h1
-                  className="text-4xl md:text-7xl font-black uppercase tracking-tighter mb-2"
+                  className="text-4xl md:text-7xl font-black uppercase tracking-tighter mb-2 relative z-10"
                   style={{
                     fontFamily: 'Amiri, serif',
                     color: isMafiaWin ? '#8A0303' : '#C5A059',
@@ -804,7 +837,7 @@ export default function DisplayPage() {
                   {isMafiaWin ? 'انتصار المافيا' : 'تطهير المدينة'}
                 </motion.h1>
                 <motion.p
-                  className="text-[#808080] font-mono mb-10 tracking-[0.4em] uppercase text-sm"
+                  className="text-[#808080] font-mono mb-10 tracking-[0.4em] uppercase text-sm relative z-10"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.8 }}
@@ -813,7 +846,7 @@ export default function DisplayPage() {
                 </motion.p>
 
                 {/* شبكة كروت الفريق الفائز — مكشوفة مباشرة */}
-                <div className="flex flex-wrap justify-center gap-4 md:gap-6">
+                <div className="flex flex-wrap justify-center gap-4 md:gap-6 relative z-10">
                   {sorted.map((p: any, i: number) => (
                     <motion.div
                       key={p.physicalId}

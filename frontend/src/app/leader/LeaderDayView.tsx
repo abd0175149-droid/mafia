@@ -689,15 +689,38 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
           })}
         </div>
 
-        {/* زر بدء الليل */}
-        <button
-          onClick={handleStartNight}
-          disabled={loading}
-          className="btn-premium px-16 py-6 !text-xl !border-[#C5A059] group"
-        >
-          <span className="text-white group-hover:tracking-[0.3em] transition-all">🌙 بدء مرحلة الليل</span>
-        </button>
-        <p className="text-[#555] font-mono text-[10px] mt-4 tracking-widest uppercase">COMMENCE NIGHTFALL OPERATIONS</p>
+        {/* زر بدء الليل أو عرض النتيجة */}
+        {gameState.pendingWinner ? (
+          <button
+            onClick={async () => {
+              setLoading(true);
+              try {
+                await emit('game:confirm-end', { roomId: gameState.roomId });
+              } catch (err: any) {
+                setError(err.message);
+              } finally {
+                setLoading(false);
+              }
+            }}
+            disabled={loading}
+            className="btn-premium px-16 py-6 !text-xl !border-[#C5A059] group animate-pulse"
+          >
+            <span className="text-white group-hover:tracking-[0.3em] transition-all">
+              🏁 عرض النتيجة على الشاشة
+            </span>
+          </button>
+        ) : (
+          <button
+            onClick={handleStartNight}
+            disabled={loading}
+            className="btn-premium px-16 py-6 !text-xl !border-[#C5A059] group"
+          >
+            <span className="text-white group-hover:tracking-[0.3em] transition-all">🌙 بدء مرحلة الليل</span>
+          </button>
+        )}
+        <p className="text-[#555] font-mono text-[10px] mt-4 tracking-widest uppercase">
+          {gameState.pendingWinner ? 'BROADCAST WINNER TO DISPLAY' : 'COMMENCE NIGHTFALL OPERATIONS'}
+        </p>
       </div>
     );
   }
