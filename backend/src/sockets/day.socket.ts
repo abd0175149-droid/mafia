@@ -603,11 +603,6 @@ export function registerDayEvents(io: Server, socket: Socket) {
             ds.startTime = null;
             ds.status = SpeakerStatus.WAITING;
           }
-
-          // تحديث التنبيه للمسكت القادم
-          ds.upcomingSilencedId = ds.speakingQueue.length > 0
-            ? (state.players.find((p: any) => p.physicalId === ds.speakingQueue[0])?.isSilenced ? ds.speakingQueue[0] : null)
-            : null;
         }
 
         io.to(data.roomId).emit('day:discussion-updated', { discussionState: ds });

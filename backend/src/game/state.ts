@@ -75,7 +75,6 @@ export interface DiscussionState {
   speakingQueue: number[];         // مصفوفة من اللاعبين المتبقين للتحدث (بما فيهم المسكتون)
   hasSpoken: number[];             // مصفوفة من اللاعبين الذين انتهوا
   isFinished: boolean;             // يعلن انتهاء مرحلة النقاش
-  upcomingSilencedId: number | null; // للتنبيه إذا كان القادم مسكتاً
 }
 
 export type Candidate = PlayerCandidate | DealCandidate;
