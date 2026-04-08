@@ -669,12 +669,12 @@ export default function DisplayPage() {
         {/* ═══ الليل ═══ */}
         {step === 'lobby' && phase === Phase.NIGHT && (
           <motion.div key="night" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-center relative z-10 w-full">
-            {/* Header Bar — MAFIA CLUB */}
-            <div className="absolute top-0 left-0 right-0 z-20 flex items-center gap-4 px-8 py-4 bg-black/40 border-b border-[#C5A059]/20">
-              <Image src="/mafia_logo.png" alt="Mafia Club" width={56} height={56} className="shrink-0" />
+            {/* Header Bar — MAFIA CLUB (fixed at top) */}
+            <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-4 px-8 py-4 bg-black/60 backdrop-blur-sm border-b border-[#C5A059]/20">
+              <Image src="/mafia_logo.png" alt="Mafia Club" width={52} height={52} className="shrink-0 drop-shadow-[0_0_12px_rgba(197,160,89,0.3)]" />
               <div className="leading-none">
                 <div className="text-[#C5A059] font-black text-3xl tracking-[0.3em] uppercase" style={{ fontFamily: 'Amiri, serif' }}>MAFIA</div>
-                <div className="text-[#C5A059] font-black text-3xl tracking-[0.82em] uppercase" style={{ fontFamily: 'Amiri, serif' }}>CLUB</div>
+                <div className="flex justify-between w-full text-[#C5A059] font-black text-xl uppercase px-0.5" style={{ fontFamily: 'Amiri, serif' }}>{'CLUB'.split('').map((l, i) => <span key={i}>{l}</span>)}</div>
               </div>
             </div>
             <motion.div className="text-9xl mb-8 grayscale opacity-50" animate={{ opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 4, repeat: Infinity }}>🌑</motion.div>
