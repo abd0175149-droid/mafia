@@ -330,7 +330,7 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: index * 0.15 }}
                       className={`border p-4 bg-black/60 relative overflow-hidden rounded-lg ${
-                        isRevealed ? 'border-[#333] opacity-60' :
+                        isRevealed ? 'border-[#2E5C31]/40' :
                         isSheriff ? 'border-[#C5A059]/40' : 'border-[#2a2a2a]'
                       }`}
                     >
@@ -384,14 +384,13 @@ export default function LeaderNightView({ gameState, emit, setError }: LeaderNig
                         {evMeta.displayable && (
                           <button
                             onClick={() => handleDisplayEvent(index)}
-                            disabled={isRevealed}
                             className={`shrink-0 px-3 py-1.5 border font-mono text-[10px] uppercase tracking-widest transition-all rounded ${
                               isRevealed
-                                ? 'border-[#333] text-[#333] cursor-not-allowed'
-                                : 'border-[#C5A059]/50 text-[#C5A059] hover:bg-[#C5A059]/10 hover:border-[#C5A059]'
+                                ? 'border-[#555]/40 text-[#808080] hover:bg-[#333]/30 hover:border-[#808080]'
+                                : 'border-[#C5A059]/50 text-[#C5A059] hover:bg-[#C5A059]/10 hover:border-[#C5A059] animate-pulse'
                             }`}
                           >
-                            {isRevealed ? '✓' : '👁 عرض'}
+                            {isRevealed ? '🔄 إعادة' : '👁 عرض'}
                           </button>
                         )}
 
