@@ -197,7 +197,9 @@ export function registerNightEvents(io: Server, socket: Socket) {
       await setGameState(data.roomId, state);
 
       // الانتقال للخطوة التالية
-      const currentIndex = NIGHT_QUEUE_ORDER.indexOf(data.role);
+      // الممرضة تأخذ خانة الطبيب في الطابور
+      const effectiveRole = data.role === Role.NURSE ? Role.DOCTOR : data.role;
+      const currentIndex = NIGHT_QUEUE_ORDER.indexOf(effectiveRole);
       const nextStep = getNextQueueStep(state, currentIndex);
 
       if (nextStep) {
