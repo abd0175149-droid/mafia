@@ -337,6 +337,81 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
     }
   });
 
+  // ── تحديث عدد اللاعبين الأقصى ──────────────────
+  socket.on('room:update-max-players', async (data: {
+    roomId: string;
+    maxPlayers: number;
+  }, callback) => {
+    try {
+      if (socket.data.role !== 'leader') {
+        return callback({ success: false, error: 'Only leader' });
+      }
+
+      const state = await getRoom(data.roomId);
+      if (!state) return callback({ success: false, error: 'Room not found' });
+
+      if (state.phase !== Phase.LOBBY) {
+        return callback({ success: false, error: 'يمكن التعديل في اللوبي فقط' });
+      }
+
+      const newMax = Math.min(Math.max(data.maxPlayers, 6), 27);
+      const oldMax = state.config.maxPlayers;
+
+      if (newMax === oldMax) {
+        return callback({ success: true });
+      }
+
+      state.config.maxPlayers = newMax;
+
+      if (newMax > oldMax) {
+        // إضافة لاعبين جدد
+        for (let i = oldMax + 1; i <= newMax; i++) {
+          const exists = state.players.find((p: any) => p.physicalId === i);
+          if (!exists) {
+            await addPlayer(state.roomId, i, `لاعب ${i}`, `070000000${i}`, null);
+            io.to(data.roomId).emit('room:player-joined', {
+              physicalId: i,
+              name: `لاعب ${i}`,
+              totalPlayers: state.players.length + 1,
+              maxPlayers: newMax,
+              gender: 'MALE',
+            });
+          }
+        }
+      } else {
+        // حذف اللاعبين الزائدين من النهاية
+        for (let i = oldMax; i > newMax; i--) {
+          const player = state.players.find((p: any) => p.physicalId === i);
+          if (player) {
+            state.players = state.players.filter((p: any) => p.physicalId !== i);
+            io.to(data.roomId).emit('room:player-kicked', {
+              physicalId: i,
+              totalPlayers: state.players.length,
+            });
+          }
+        }
+      }
+
+      await updateRoom(data.roomId, { players: state.players, config: state.config });
+
+      const room = activeRooms.get(data.roomId);
+      if (room) {
+        room.playerCount = state.players.length;
+        room.maxPlayers = newMax;
+      }
+
+      // بث تحديث الـ config
+      io.to(data.roomId).emit('room:config-updated', {
+        maxPlayers: newMax,
+      });
+
+      callback({ success: true, maxPlayers: newMax });
+      console.log(`👑 Leader updated maxPlayers: ${oldMax} → ${newMax}`);
+    } catch (err: any) {
+      callback({ success: false, error: err.message });
+    }
+  });
+
   // ── بدء توليد الأدوار ──────────────────────────
   socket.on('room:start-generation', async (data: { roomId: string }, callback) => {
     try {

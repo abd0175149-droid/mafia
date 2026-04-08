@@ -387,6 +387,35 @@ export default function LeaderPage() {
       });
     });
 
+    const offGameRestarted = on('game:restarted', (data: any) => {
+      setGameState(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          phase: 'LOBBY',
+          winner: null,
+          players: data.players || prev.players,
+          config: data.config || prev.config,
+          rolesPool: [],
+          votingState: undefined,
+          discussionState: undefined,
+          justificationData: undefined,
+          pendingResolution: undefined,
+          round: 1,
+        } as any;
+      });
+    });
+
+    const offConfigUpdated = on('room:config-updated', (data: any) => {
+      setGameState(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          config: { ...prev.config, maxPlayers: data.maxPlayers },
+        } as any;
+      });
+    });
+
     return () => {
       offConnect();
       offPlayerJoined();
@@ -407,6 +436,8 @@ export default function LeaderPage() {
       offMorningRecap();
       offSheriffResult();
       offGameOver();
+      offGameRestarted();
+      offConfigUpdated();
     };
   }, [on, emit, gameState?.roomId]);
 
@@ -601,6 +632,20 @@ export default function LeaderPage() {
                   />
                 ))}
               </div>
+
+              {/* زر إعادة تشغيل اللعبة */}
+              <button
+                onClick={async () => {
+                  try {
+                    await emit('game:restart', { roomId: gameState.roomId });
+                  } catch (err: any) {
+                    setError(err.message);
+                  }
+                }}
+                className="btn-premium mt-10 !px-10 !py-4 !text-base tracking-widest uppercase"
+              >
+                <span>🔄 لعبة جديدة</span>
+              </button>
             </div>
           )}
 

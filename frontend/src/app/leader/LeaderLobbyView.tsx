@@ -92,13 +92,37 @@ export default function LeaderLobbyView({ gameState, emit, setError }: LeaderLob
           </div>
         </div>
 
-        {/* مؤشر المقاعد */}
+        {/* مؤشر المقاعد مع أزرار +/- */}
         <div className="bg-[#050505] border border-[#2a2a2a] px-6 py-3 rounded-lg text-center min-w-[180px]">
           <p className="text-[#555] text-[10px] font-mono tracking-widest uppercase mb-1">AGENT ROSTER</p>
-          <div className="font-mono text-2xl">
-            <span className="text-[#C5A059] font-black">{gameState.players.length}</span>
-            <span className="text-[#333] mx-2">/</span>
-            <span className="text-[#666]">{gameState.config.maxPlayers}</span>
+          <div className="flex items-center justify-center gap-3 font-mono text-2xl">
+            <button
+              onClick={async () => {
+                const newMax = gameState.config.maxPlayers - 1;
+                if (newMax < 6) return;
+                try {
+                  await emit('room:update-max-players', { roomId: gameState.roomId, maxPlayers: newMax });
+                } catch (err: any) { setError(err.message); }
+              }}
+              disabled={gameState.config.maxPlayers <= 6}
+              className="w-8 h-8 flex items-center justify-center bg-[#111] border border-[#2a2a2a] text-[#808080] hover:text-white hover:border-[#555] transition-colors rounded disabled:opacity-30 disabled:cursor-not-allowed text-lg"
+            >−</button>
+            <div>
+              <span className="text-[#C5A059] font-black">{gameState.players.length}</span>
+              <span className="text-[#333] mx-1">/</span>
+              <span className="text-[#666]">{gameState.config.maxPlayers}</span>
+            </div>
+            <button
+              onClick={async () => {
+                const newMax = gameState.config.maxPlayers + 1;
+                if (newMax > 27) return;
+                try {
+                  await emit('room:update-max-players', { roomId: gameState.roomId, maxPlayers: newMax });
+                } catch (err: any) { setError(err.message); }
+              }}
+              disabled={gameState.config.maxPlayers >= 27}
+              className="w-8 h-8 flex items-center justify-center bg-[#111] border border-[#2a2a2a] text-[#808080] hover:text-white hover:border-[#555] transition-colors rounded disabled:opacity-30 disabled:cursor-not-allowed text-lg"
+            >+</button>
           </div>
         </div>
 

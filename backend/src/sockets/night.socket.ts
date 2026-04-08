@@ -377,6 +377,62 @@ export function registerNightEvents(io: Server, socket: Socket) {
       callback({ success: false, error: err.message });
     }
   });
+
+  // ── إعادة تشغيل اللعبة (العودة للوبي) ────────
+  socket.on('game:restart', async (data: { roomId: string }, callback) => {
+    try {
+      if (socket.data.role !== 'leader') {
+        return callback({ success: false, error: 'Only leader' });
+      }
+
+      const state = await getGameState(data.roomId);
+      if (!state) return callback({ success: false, error: 'Room not found' });
+
+      // إعادة تعيين جميع اللاعبين
+      state.players.forEach((p: any) => {
+        p.isAlive = true;
+        p.isSilenced = false;
+        p.role = null;
+        p.justificationCount = 0;
+      });
+
+      // تنظيف حالة اللعبة بالكامل
+      state.rolesPool = [];
+      state.morningEvents = [];
+      state.nightActions = {
+        godfatherTarget: null,
+        doctorTarget: null,
+        nurseTarget: null,
+        sheriffTarget: null,
+        sniperTarget: null,
+        silencerTarget: null,
+        sheriffResult: null,
+        lastProtectedTarget: null,
+      };
+      state.votingState = null;
+      state.discussionState = null;
+      state.winner = null;
+      state.pendingWinner = null;
+      state.round = 1;
+
+      await setGameState(data.roomId, state);
+      await setPhase(data.roomId, Phase.LOBBY);
+
+      // بث للجميع: العودة للوبي
+      io.to(data.roomId).emit('game:phase-changed', { phase: Phase.LOBBY });
+
+      // إرسال الحالة الجديدة لليدر
+      socket.emit('game:restarted', {
+        players: state.players,
+        config: state.config,
+      });
+
+      console.log(`🔄 Game restarted in room ${data.roomId}`);
+      callback({ success: true });
+    } catch (err: any) {
+      callback({ success: false, error: err.message });
+    }
+  });
 }
 
 // ══════════════════════════════════════════════════════

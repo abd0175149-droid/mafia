@@ -170,6 +170,10 @@ export default function DisplayPage() {
       // تنظيف أي أنيميشن متبقية من المرحلة السابقة
       if (animTimerRef.current) { clearTimeout(animTimerRef.current); animTimerRef.current = null; }
       setAnimation(null);
+      // عند العودة للوبي (إعادة تشغيل) → مسح الفائز
+      if (data.phase === Phase.LOBBY) {
+        setWinner(null);
+      }
       // تحديث بيانات اللاعبين عند تغير المرحلة
       try {
         const res = await fetch(`/api/game/state/${currentRoomId}`);
@@ -218,6 +222,10 @@ export default function DisplayPage() {
       setAnimation(null); // تنظيف أي أنيميشن سابقة
     };
 
+    const onConfigUpdated = (data: any) => {
+      if (data.maxPlayers) setMaxPlayers(data.maxPlayers);
+    };
+
     socket.on('room:player-joined', onPlayerJoined);
     socket.on('room:player-kicked', onPlayerKicked);
     socket.on('room:player-updated', onPlayerUpdated);
@@ -226,6 +234,7 @@ export default function DisplayPage() {
     socket.on('display:morning-event', onMorningEvent);
     socket.on('display:night-started', onNightStarted);
     socket.on('game:over', onGameOver);
+    socket.on('room:config-updated', onConfigUpdated);
     socket.on('game:started', (data: any) => {
       setPhase(data.phase);
     });
@@ -239,6 +248,7 @@ export default function DisplayPage() {
       socket.off('display:morning-event', onMorningEvent);
       socket.off('display:night-started', onNightStarted);
       socket.off('game:over', onGameOver);
+      socket.off('room:config-updated', onConfigUpdated);
       socket.off('game:started');
     };
   }, [step, currentRoomId]);
@@ -717,42 +727,108 @@ export default function DisplayPage() {
         )}
 
         {/* ═══ نهاية اللعبة ═══ */}
-        {step === 'lobby' && phase === Phase.GAME_OVER && winner && (
-          <motion.div key="gameover" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center relative z-10 w-full max-w-6xl">
-            <div className="noir-card p-8 md:p-16 border-[#C5A059]/40 relative overflow-hidden">
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[100%] h-1 bg-gradient-to-r from-transparent via-[#C5A059] to-transparent opacity-50" />
-              <motion.div className="text-7xl md:text-9xl mb-6 grayscale">
-                {winner === 'MAFIA' ? '🩸' : '⚖️'}
-              </motion.div>
-              <h1 className="text-4xl md:text-7xl font-black uppercase tracking-tighter text-white mb-2" style={{ fontFamily: 'Amiri, serif' }}>
-                {winner === 'MAFIA' ? 'انتصار المافيا' : 'تطهير المدينة'}
-              </h1>
-              <p className="text-[#808080] font-mono mb-10 tracking-[0.4em] uppercase text-sm">
-                {winner === 'MAFIA' ? 'ALL CITIZENS ELIMINATED' : 'THREAT NEUTRALIZED'}
-              </p>
+        {step === 'lobby' && phase === Phase.GAME_OVER && winner && (() => {
+          // تصفية الفريق الفائز فقط
+          const winningTeamPlayers = players.filter((p: any) => {
+            const roleStr = p.role || null;
+            if (!roleStr) return false;
+            const playerIsMafia = isMafiaRole(roleStr as Role);
+            return winner === 'MAFIA' ? playerIsMafia : !playerIsMafia;
+          });
+          // ترتيب: الأحياء أولاً ثم الأموات
+          const sorted = [...winningTeamPlayers].sort((a, b) => (b.isAlive ? 1 : 0) - (a.isAlive ? 1 : 0));
+          const isMafiaWin = winner === 'MAFIA';
 
-              {/* شبكة كروت اللاعبين — stagger flip */}
-              <div className="flex flex-wrap justify-center gap-4 md:gap-6">
-                {players.map((p: any, i: number) => {
-                  const roleStr = p.role || null;
-                  const isMafiaR = roleStr ? isMafiaRole(roleStr as Role) : false;
-                  const flipDelay = 2 + (i * 0.5);
+          return (
+            <motion.div key="gameover" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1.2 }} className="text-center relative z-10 w-full max-w-6xl">
+              <div className="noir-card p-8 md:p-16 relative overflow-hidden" style={{
+                borderColor: isMafiaWin ? 'rgba(138,3,3,0.4)' : 'rgba(197,160,89,0.4)',
+              }}>
+                {/* خط زينة علوي متحرك */}
+                <motion.div
+                  className="absolute top-0 left-0 right-0 h-1"
+                  style={{
+                    background: isMafiaWin
+                      ? 'linear-gradient(90deg, transparent, #8A0303, transparent)'
+                      : 'linear-gradient(90deg, transparent, #C5A059, transparent)',
+                  }}
+                  animate={{ opacity: [0.3, 0.8, 0.3] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
 
-                  return (
-                    <GameOverCard
+                {/* توهج خلفي سينمائي */}
+                <motion.div
+                  className="absolute inset-0 pointer-events-none rounded-xl"
+                  style={{
+                    background: isMafiaWin
+                      ? 'radial-gradient(ellipse at center, rgba(138,3,3,0.15) 0%, transparent 70%)'
+                      : 'radial-gradient(ellipse at center, rgba(197,160,89,0.1) 0%, transparent 70%)',
+                  }}
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 3, repeat: Infinity }}
+                />
+
+                {/* أيقونة الفائز */}
+                <motion.div
+                  className="text-7xl md:text-9xl mb-6"
+                  initial={{ scale: 0, rotate: -20 }}
+                  animate={{ scale: [0, 1.3, 1], rotate: [20, -5, 0] }}
+                  transition={{ duration: 1, type: 'spring', damping: 10 }}
+                >
+                  {isMafiaWin ? '🩸' : '⚖️'}
+                </motion.div>
+
+                {/* عنوان الفائز */}
+                <motion.h1
+                  className="text-4xl md:text-7xl font-black uppercase tracking-tighter mb-2"
+                  style={{
+                    fontFamily: 'Amiri, serif',
+                    color: isMafiaWin ? '#8A0303' : '#C5A059',
+                    textShadow: isMafiaWin
+                      ? '0 0 40px rgba(138,3,3,0.5)'
+                      : '0 0 40px rgba(197,160,89,0.3)',
+                  }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5, duration: 0.8 }}
+                >
+                  {isMafiaWin ? 'انتصار المافيا' : 'تطهير المدينة'}
+                </motion.h1>
+                <motion.p
+                  className="text-[#808080] font-mono mb-10 tracking-[0.4em] uppercase text-sm"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.8 }}
+                >
+                  {isMafiaWin ? 'THE FAMILY PREVAILS' : 'JUSTICE HAS BEEN SERVED'}
+                </motion.p>
+
+                {/* شبكة كروت الفريق الفائز — مكشوفة مباشرة */}
+                <div className="flex flex-wrap justify-center gap-4 md:gap-6">
+                  {sorted.map((p: any, i: number) => (
+                    <motion.div
                       key={p.physicalId}
-                      player={p}
-                      role={roleStr}
-                      isMafia={isMafiaR}
-                      flipDelay={flipDelay}
-                      isAlive={p.isAlive}
-                    />
-                  );
-                })}
+                      initial={{ opacity: 0, y: 40, scale: 0.8 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ delay: 1.2 + (i * 0.15), duration: 0.5, type: 'spring', damping: 12 }}
+                    >
+                      <MafiaCard
+                        playerNumber={p.physicalId}
+                        playerName={p.name}
+                        role={p.role}
+                        isFlipped={true}
+                        flippable={false}
+                        isAlive={p.isAlive}
+                        size="fluid"
+                        className="w-40 h-[14rem] md:w-52 md:h-[18rem] lg:w-60 lg:h-[20rem]"
+                      />
+                    </motion.div>
+                  ))}
+                </div>
               </div>
-            </div>
-          </motion.div>
-        )}
+            </motion.div>
+          );
+        })()}
 
       </AnimatePresence>
       </div>
