@@ -609,16 +609,8 @@ export default function DisplayPage() {
             exit={{ opacity: 0 }}
             className="w-full max-w-[1600px] relative z-10 flex flex-col items-center justify-center p-8 min-h-[80vh]"
           >
-            {/* اللوجو والعنوان يسار الشاشة لتوفير المساحة وإعطاء مظهر سينمائي */}
-            <div className="absolute top-10 left-12 flex items-center justify-start gap-5 z-50">
-               <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 1.2 }}>
-                 <Image src="/mafia_logo.png" alt="Mafia Club Logo" width={80} height={80} className="select-none w-[70px] h-[70px] md:w-[90px] md:h-[90px] drop-shadow-[0_0_25px_rgba(138,3,3,0.4)]" priority />
-               </motion.div>
-               <h1 className="flex flex-col items-start leading-none mt-2">
-                 <span className="block text-4xl md:text-5xl font-black tracking-tight text-[#C5A059]" style={{ fontFamily: 'Amiri, serif', textShadow: '0 0 25px rgba(138,3,3,0.5)' }}>MAFIA</span>
-                 <span className="text-lg md:text-xl font-light text-[#8A0303] tracking-[0.3em] pl-1 mt-1" style={{ fontFamily: 'Amiri, serif' }}>CLUB</span>
-               </h1>
-            </div>
+
+
 
             {/* رسالة الانتظار — أعلى الكروت */}
             <motion.div
@@ -674,7 +666,7 @@ export default function DisplayPage() {
               <Image src="/mafia_logo.png" alt="Mafia Club" width={52} height={52} className="shrink-0 drop-shadow-[0_0_12px_rgba(197,160,89,0.3)]" />
               <div className="leading-none">
                 <div className="text-[#C5A059] font-black text-3xl tracking-[0.3em] uppercase" style={{ fontFamily: 'Amiri, serif' }}>MAFIA</div>
-                <div className="flex justify-between w-full text-[#C5A059] font-black text-xl uppercase px-0.5" style={{ fontFamily: 'Amiri, serif' }}>{'CLUB'.split('').map((l, i) => <span key={i}>{l}</span>)}</div>
+                <div className="flex justify-between w-full text-[#C5A059] font-black text-xl uppercase px-0.5" dir="ltr" style={{ fontFamily: 'Amiri, serif' }}>{'CLUB'.split('').map((l, i) => <span key={i}>{l}</span>)}</div>
               </div>
             </div>
             <motion.div className="text-9xl mb-8 grayscale opacity-50" animate={{ opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 4, repeat: Infinity }}>🌑</motion.div>
