@@ -24,7 +24,7 @@ export default function LeaderRoleConfigurator({ gameState, emit, setError }: Le
   // Let's implement the generation logic locally as default, and then send the final array to `setup:roles-confirmed`.
   useEffect(() => {
     // Generate default distribution
-    const playerCount = gameState.players.length;
+    const playerCount = gameState.players.filter((p: any) => p.isAlive !== false).length;
     const totalMafia = Math.ceil(playerCount / 4);
     const totalCitizens = playerCount - totalMafia;
 
@@ -43,7 +43,7 @@ export default function LeaderRoleConfigurator({ gameState, emit, setError }: Le
 
     setRoles(generated);
     setLoading(false);
-  }, [gameState.players.length]);
+  }, [gameState.players]);
 
   const handleRoleChange = (index: number, newRole: Role) => {
     const newRoles = [...roles];

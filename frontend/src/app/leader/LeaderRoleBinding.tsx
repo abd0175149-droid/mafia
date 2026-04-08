@@ -415,7 +415,7 @@ export default function LeaderRoleBinding({ gameState, emit, setError }: LeaderR
 
       {/* ═══ Player Cards Grid ═══ */}
       <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-6 mb-8" onClick={handleBackgroundTap}>
-        {gameState.players.map((player: any) => {
+        {gameState.players.filter((p: any) => p.isAlive !== false).map((player: any) => {
           const boundRole = boundPlayers[player.physicalId] || null;
           const isSelected = selection.type === 'card' && selection.playerId === player.physicalId;
           const isTarget = hasSelection && !isSelected; // أي كارد غير المختار يمكن أن يكون هدف
