@@ -85,6 +85,65 @@ interface PlayerInfo {
   gender?: string;
 }
 
+// ── مؤثرات صوتية للفوز ──
+function playWinSound(isMafia: boolean) {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    
+    if (isMafia) {
+      // فوز المافيا — نغمات مظلمة ومرعبة  
+      const playDarkNote = (freq: number, start: number, dur: number) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + start);
+        osc.frequency.exponentialRampToValueAtTime(freq * 0.7, ctx.currentTime + start + dur);
+        gain.gain.setValueAtTime(0, ctx.currentTime + start);
+        gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + start + 0.1);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(ctx.currentTime + start);
+        osc.stop(ctx.currentTime + start + dur);
+      };
+      playDarkNote(110, 0, 2);
+      playDarkNote(92, 0.3, 2);
+      playDarkNote(82, 0.6, 2.5);
+      playDarkNote(65, 1, 3);
+      playDarkNote(55, 1.5, 3);
+      const drum = ctx.createOscillator();
+      const drumGain = ctx.createGain();
+      drum.type = 'sine';
+      drum.frequency.setValueAtTime(60, ctx.currentTime);
+      drum.frequency.exponentialRampToValueAtTime(20, ctx.currentTime + 1);
+      drumGain.gain.setValueAtTime(0.3, ctx.currentTime);
+      drumGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.5);
+      drum.connect(drumGain).connect(ctx.destination);
+      drum.start(ctx.currentTime);
+      drum.stop(ctx.currentTime + 2);
+    } else {
+      // فوز المواطنين — نغمات مبهجة وهادئة
+      const playBrightNote = (freq: number, start: number, dur: number) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + start);
+        gain.gain.setValueAtTime(0, ctx.currentTime + start);
+        gain.gain.linearRampToValueAtTime(0.12, ctx.currentTime + start + 0.05);
+        gain.gain.linearRampToValueAtTime(0.08, ctx.currentTime + start + dur * 0.6);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(ctx.currentTime + start);
+        osc.stop(ctx.currentTime + start + dur);
+      };
+      const melody = [523, 659, 784, 1047, 784, 1047, 1319];
+      melody.forEach((f, i) => playBrightNote(f, i * 0.25, 0.6));
+      playBrightNote(262, 0, 2.5);
+      playBrightNote(330, 0.5, 2);
+      playBrightNote(392, 1, 2);
+    }
+  } catch (_) {}
+}
+
 export default function DisplayPage() {
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -205,6 +264,8 @@ export default function DisplayPage() {
     const onGameOver = (data: any) => {
       setWinner(data.winner);
       setPhase(Phase.GAME_OVER);
+      // تشغيل المؤثر الصوتي
+      playWinSound(data.winner === 'MAFIA');
     };
 
     const onPlayerUpdated = (data: any) => {
@@ -754,70 +815,48 @@ export default function DisplayPage() {
               {/* ═══ أنيميشن Lottie خلفي — ملء الشاشة ═══ */}
               <div className="fixed inset-0 z-0 pointer-events-none flex items-center justify-center">
                 {isMafiaWin ? (
-                  /* فوز المافيا — أنيميشن winner.lottie أحمر داكن */
                   <dotlottie-player
                     src="/animations/winner.lottie"
                     autoplay
                     loop
                     speed="0.8"
-                    style={{ width: '100%', height: '100%', opacity: 0.3, filter: 'hue-rotate(-10deg) saturate(1.5)' }}
+                    background="transparent"
+                    style={{ width: '100%', height: '100%', opacity: 0.25 }}
                   />
                 ) : (
-                  /* فوز المواطنين — ألعاب نارية */
                   <dotlottie-player
                     src="/animations/fireworks.lottie"
                     autoplay
                     loop
                     speed="1"
-                    style={{ width: '100%', height: '100%', opacity: 0.4 }}
+                    background="transparent"
+                    style={{ width: '100%', height: '100%', opacity: 0.35 }}
                   />
                 )}
               </div>
 
-              <div className="noir-card p-8 md:p-16 relative overflow-hidden" style={{
-                borderColor: isMafiaWin ? 'rgba(138,3,3,0.4)' : 'rgba(197,160,89,0.4)',
-              }}>
-                {/* خط زينة علوي متحرك */}
-                <motion.div
-                  className="absolute top-0 left-0 right-0 h-1"
-                  style={{
-                    background: isMafiaWin
-                      ? 'linear-gradient(90deg, transparent, #8A0303, transparent)'
-                      : 'linear-gradient(90deg, transparent, #C5A059, transparent)',
-                  }}
-                  animate={{ opacity: [0.3, 0.8, 0.3] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                />
-
+              <div className="relative overflow-hidden p-6 md:p-12">
                 {/* توهج خلفي سينمائي */}
                 <motion.div
-                  className="absolute inset-0 pointer-events-none rounded-xl"
+                  className="absolute inset-0 pointer-events-none"
                   style={{
                     background: isMafiaWin
-                      ? 'radial-gradient(ellipse at center, rgba(138,3,3,0.15) 0%, transparent 70%)'
-                      : 'radial-gradient(ellipse at center, rgba(197,160,89,0.1) 0%, transparent 70%)',
+                      ? 'radial-gradient(ellipse at center, rgba(138,3,3,0.2) 0%, transparent 70%)'
+                      : 'radial-gradient(ellipse at center, rgba(197,160,89,0.15) 0%, transparent 70%)',
                   }}
-                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  animate={{ opacity: [0.4, 1, 0.4] }}
                   transition={{ duration: 3, repeat: Infinity }}
                 />
 
-                {/* أنيميشن Lottie صغير — منصة التتويج أو الكأس */}
-                <div className="flex justify-center mb-4 relative z-10">
-                  {isMafiaWin ? (
-                    <dotlottie-player
-                      src="/animations/winner.lottie"
-                      autoplay
-                      loop
-                      style={{ width: '180px', height: '180px' }}
-                    />
-                  ) : (
-                    <dotlottie-player
-                      src="/animations/prize-podium.lottie"
-                      autoplay
-                      loop
-                      style={{ width: '200px', height: '200px' }}
-                    />
-                  )}
+                {/* أنيميشن منصة التتويج — Prize Podium */}
+                <div className="flex justify-center mb-2 relative z-10">
+                  <dotlottie-player
+                    src="/animations/prize-podium.lottie"
+                    autoplay
+                    loop
+                    background="transparent"
+                    style={{ width: '220px', height: '220px' }}
+                  />
                 </div>
 
                 {/* عنوان الفائز */}
@@ -827,17 +866,17 @@ export default function DisplayPage() {
                     fontFamily: 'Amiri, serif',
                     color: isMafiaWin ? '#8A0303' : '#C5A059',
                     textShadow: isMafiaWin
-                      ? '0 0 40px rgba(138,3,3,0.5)'
-                      : '0 0 40px rgba(197,160,89,0.3)',
+                      ? '0 0 60px rgba(138,3,3,0.6), 0 0 120px rgba(138,3,3,0.3)'
+                      : '0 0 60px rgba(197,160,89,0.4), 0 0 120px rgba(197,160,89,0.2)',
                   }}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5, duration: 0.8 }}
+                  initial={{ opacity: 0, y: 30, scale: 0.8 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ delay: 0.5, duration: 1, type: 'spring', damping: 10 }}
                 >
                   {isMafiaWin ? 'انتصار المافيا' : 'تطهير المدينة'}
                 </motion.h1>
                 <motion.p
-                  className="text-[#808080] font-mono mb-10 tracking-[0.4em] uppercase text-sm relative z-10"
+                  className="text-[#808080] font-mono mb-8 tracking-[0.4em] uppercase text-sm relative z-10"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.8 }}
@@ -845,7 +884,7 @@ export default function DisplayPage() {
                   {isMafiaWin ? 'THE FAMILY PREVAILS' : 'JUSTICE HAS BEEN SERVED'}
                 </motion.p>
 
-                {/* شبكة كروت الفريق الفائز — مكشوفة مباشرة */}
+                {/* شبكة كروت الفريق الفائز — الحي ملوّن والميت رمادي */}
                 <div className="flex flex-wrap justify-center gap-4 md:gap-6 relative z-10">
                   {sorted.map((p: any, i: number) => (
                     <motion.div
@@ -853,6 +892,7 @@ export default function DisplayPage() {
                       initial={{ opacity: 0, y: 40, scale: 0.8 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       transition={{ delay: 1.2 + (i * 0.15), duration: 0.5, type: 'spring', damping: 12 }}
+                      style={p.isAlive ? {} : { filter: 'grayscale(100%) brightness(0.5)', opacity: 0.6 }}
                     >
                       <MafiaCard
                         playerNumber={p.physicalId}
