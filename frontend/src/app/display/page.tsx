@@ -669,6 +669,14 @@ export default function DisplayPage() {
         {/* ═══ الليل ═══ */}
         {step === 'lobby' && phase === Phase.NIGHT && (
           <motion.div key="night" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-center relative z-10 w-full">
+            {/* Header — MAFIA CLUB Logo */}
+            <div className="flex items-center justify-center gap-4 mb-10">
+              <div className="text-right leading-none">
+                <div className="text-[#C5A059] font-black text-4xl tracking-[0.3em] uppercase" style={{ fontFamily: 'Amiri, serif' }}>MAFIA</div>
+                <div className="text-[#C5A059] font-black text-4xl tracking-[0.85em] uppercase" style={{ fontFamily: 'Amiri, serif' }}>CLUB</div>
+              </div>
+              <div className="text-7xl">🎭</div>
+            </div>
             <motion.div className="text-9xl mb-8 grayscale opacity-50" animate={{ opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 4, repeat: Infinity }}>🌑</motion.div>
             <h2 className="text-6xl font-black text-white mb-4 tracking-widest uppercase" style={{ fontFamily: 'Amiri, serif' }}>الظلام دامس</h2>
             <p className="text-[#808080] text-xl font-mono tracking-[0.3em]">OPERATION NIGHTFALL</p>
