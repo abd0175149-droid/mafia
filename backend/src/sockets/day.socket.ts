@@ -156,7 +156,7 @@ export function registerDayEvents(io: Server, socket: Socket) {
           role: p?.role,
           gender: p?.gender,
           justificationCount: p?.justificationCount || 0,
-          canJustify: (p?.justificationCount || 0) < maxJust,
+          canJustify: !p?.isSilenced && (p?.justificationCount || 0) < maxJust,
         };
       });
 

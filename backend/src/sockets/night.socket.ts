@@ -359,10 +359,9 @@ export function registerNightEvents(io: Server, socket: Socket) {
           hiddenPlayersFromVoting: [],
           tieBreakerLevel: 0,
         };
-        // تصفير الإسكات وعدادات التبرير لبداية نهار جديد
+        // تصفير عدادات التبرير لبداية نهار جديد (الإسكات يبقى — يُصفَّر في بداية الليل التالي)
         state.players.forEach(p => { 
           if (p.isAlive) {
-            p.isSilenced = false;
             p.justificationCount = 0;
           }
         });
