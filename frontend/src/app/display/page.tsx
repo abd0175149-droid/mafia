@@ -226,6 +226,13 @@ export default function DisplayPage() {
       if (data.maxPlayers) setMaxPlayers(data.maxPlayers);
     };
 
+    const onAdminEliminated = (data: any) => {
+      setPlayers(prev => prev.map((p: any) =>
+        p.physicalId === data.physicalId ? { ...p, isAlive: false } : p
+      ));
+      setPlayerCount(prev => Math.max(0, prev - 1));
+    };
+
     socket.on('room:player-joined', onPlayerJoined);
     socket.on('room:player-kicked', onPlayerKicked);
     socket.on('room:player-updated', onPlayerUpdated);
@@ -235,6 +242,7 @@ export default function DisplayPage() {
     socket.on('display:night-started', onNightStarted);
     socket.on('game:over', onGameOver);
     socket.on('room:config-updated', onConfigUpdated);
+    socket.on('admin:player-eliminated', onAdminEliminated);
     socket.on('game:started', (data: any) => {
       setPhase(data.phase);
     });
@@ -249,6 +257,7 @@ export default function DisplayPage() {
       socket.off('display:night-started', onNightStarted);
       socket.off('game:over', onGameOver);
       socket.off('room:config-updated', onConfigUpdated);
+      socket.off('admin:player-eliminated', onAdminEliminated);
       socket.off('game:started');
     };
   }, [step, currentRoomId]);
@@ -581,7 +590,7 @@ export default function DisplayPage() {
                 {players.length > 0 ? (
                   <div className="flex flex-wrap justify-center gap-6 w-full pb-12 overflow-visible">
                     <AnimatePresence mode="popLayout">
-                      {players.slice().reverse().map((p: any, i: number) => (
+                      {players.filter((p: any) => p.isAlive !== false).slice().reverse().map((p: any, i: number) => (
                         <motion.div
                           key={p.physicalId}
                           layout
@@ -642,7 +651,7 @@ export default function DisplayPage() {
             <div className="w-full pt-2">
                <div className="flex flex-wrap justify-center gap-8 w-full max-w-[1700px] mx-auto px-4 overflow-visible">
                  <AnimatePresence mode="popLayout">
-                   {players.slice().reverse().map((p: any, i: number) => (
+                   {players.filter((p: any) => p.isAlive !== false).slice().reverse().map((p: any, i: number) => (
                       <motion.div
                         key={p.physicalId}
                         layout
