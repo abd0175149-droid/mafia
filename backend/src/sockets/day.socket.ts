@@ -4,7 +4,7 @@
 // ══════════════════════════════════════════════════════
 
 import { Server, Socket } from 'socket.io';
-import { getRoom, setPhase, Phase } from '../game/state.js';
+import { getRoom, setPhase, Phase, SpeakerStatus } from '../game/state.js';
 import { createDeal, removeDeal } from '../game/deal-engine.js';
 import {
   initVoting,
@@ -553,8 +553,97 @@ export function registerDayEvents(io: Server, socket: Socket) {
       if (!player) return callback({ success: false, error: 'Player not found' });
       if (!player.isAlive) return callback({ success: false, error: 'Player already dead' });
 
-      // إقصاء اللاعب
+      // ═══ إقصاء اللاعب ═══
       player.isAlive = false;
+
+      // ═══ تحديث النقاش (Discussion) ═══
+      if (state.discussionState && !state.discussionState.isFinished) {
+        const ds = state.discussionState;
+
+        // إزالة من طابور الانتظار
+        ds.speakingQueue = ds.speakingQueue.filter((id: number) => id !== data.physicalId);
+
+        // إذا كان المتحدث الحالي → ننتقل للتالي
+        if (ds.currentSpeakerId === data.physicalId) {
+          ds.hasSpoken.push(data.physicalId);
+
+          // البحث عن المتحدث التالي (مع تخطي المسكتين)
+          let nextSpeakerId: number | null = null;
+          while (ds.speakingQueue.length > 0) {
+            const nextId = ds.speakingQueue.shift()!;
+            const nextPlayer = state.players.find((p: any) => p.physicalId === nextId);
+            if (nextPlayer?.isSilenced) {
+              io.to(data.roomId).emit('day:show-silenced', { physicalId: nextId });
+              ds.hasSpoken.push(nextId);
+              continue;
+            }
+            if (!nextPlayer?.isAlive) {
+              ds.hasSpoken.push(nextId);
+              continue;
+            }
+            nextSpeakerId = nextId;
+            break;
+          }
+
+          if (nextSpeakerId !== null) {
+            ds.currentSpeakerId = nextSpeakerId;
+            ds.timeRemaining = ds.timeLimitSeconds;
+            ds.startTime = null;
+            ds.status = SpeakerStatus.WAITING;
+          } else {
+            ds.currentSpeakerId = null;
+            ds.isFinished = true;
+            ds.startTime = null;
+            ds.status = SpeakerStatus.WAITING;
+          }
+
+          // تحديث التنبيه للمسكت القادم
+          ds.upcomingSilencedId = ds.speakingQueue.length > 0
+            ? (state.players.find((p: any) => p.physicalId === ds.speakingQueue[0])?.isSilenced ? ds.speakingQueue[0] : null)
+            : null;
+        }
+
+        io.to(data.roomId).emit('day:discussion-updated', { discussionState: ds });
+      }
+
+      // ═══ تحديث التصويت (Voting) ═══
+      if (state.votingState && state.votingState.candidates.length > 0) {
+        // إزالة اللاعب من المرشحين
+        state.votingState.candidates = state.votingState.candidates.filter((c: any) => {
+          if (c.type === 'player') return c.targetPhysicalId !== data.physicalId;
+          if (c.type === 'deal') return c.initiatorPhysicalId !== data.physicalId && c.targetPhysicalId !== data.physicalId;
+          return true;
+        });
+
+        // إعادة حساب المجموع
+        state.votingState.totalVotesCast = state.votingState.candidates.reduce(
+          (sum: number, c: any) => sum + (c.votes || 0), 0
+        );
+
+        // إضافة للقائمة المخفية
+        if (!state.votingState.hiddenPlayersFromVoting.includes(data.physicalId)) {
+          state.votingState.hiddenPlayersFromVoting.push(data.physicalId);
+        }
+
+        io.to(data.roomId).emit('day:vote-update', {
+          candidates: state.votingState.candidates,
+          totalVotesCast: state.votingState.totalVotesCast,
+        });
+      }
+
+      // ═══ تحديث التبرير (Justification) ═══
+      if (state.justificationData) {
+        state.justificationData.accused = state.justificationData.accused.filter(
+          (a: any) => a.targetPhysicalId !== data.physicalId
+        );
+        state.justificationData.canJustifyList = state.justificationData.canJustifyList.filter(
+          (a: any) => a.targetPhysicalId !== data.physicalId
+        );
+
+        io.to(data.roomId).emit('day:justification-started', state.justificationData);
+      }
+
+      // ═══ حفظ الحالة ═══
       await setGameState(data.roomId, state);
 
       // بث الإقصاء للجميع
@@ -564,7 +653,7 @@ export function registerDayEvents(io: Server, socket: Socket) {
         role: player.role,
       });
 
-      // فحص شرط الفوز
+      // ═══ فحص شرط الفوز ═══
       const winResult = checkWinCondition(state);
       if (winResult !== WinResult.GAME_CONTINUES) {
         const winner = winResult === WinResult.MAFIA_WIN ? 'MAFIA' : 'CITIZEN';
