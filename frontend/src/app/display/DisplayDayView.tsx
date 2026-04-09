@@ -778,76 +778,38 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
             exit={{ opacity: 0, y: -30 }}
             className="w-full h-[calc(100vh-2rem)] flex flex-col items-center justify-center relative"
           >
-            {/* ── منطقة الكارد والتايمر (مكبّرة 1.5x) ── */}
-            <div className="flex flex-col items-center gap-10" style={{ transform: 'scale(1.5)', transformOrigin: 'center center' }}>
+            {/* ── كروت المتهمين أفقياً + تايمر ── */}
+            <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12 w-full max-w-[1600px] mx-auto px-4 relative">
               {justificationData.accused.map((acc: any, i: number) => {
                 const p = players.find(pl => pl.physicalId === acc.targetPhysicalId);
                 const isActiveJust = justTimer?.physicalId === acc.targetPhysicalId;
+                const isSomeoneSpeaking = !!justTimer;
+                // حساب موقع التايمر (يمين أو يسار حسب الترتيب)
+                const timerSide = i === 0 ? 'left' : 'right';
 
                 return (
                   <motion.div
                     key={acc.targetPhysicalId}
-                    initial={{ opacity: 0, x: -40 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 + i * 0.2 }}
-                    className={`flex items-center gap-8 px-8 py-6 rounded-2xl transition-all duration-500 ${
-                      isActiveJust
-                        ? 'bg-[#C5A059]/5 border border-[#C5A059]/30 shadow-[0_0_40px_rgba(197,160,89,0.15)]'
-                        : 'border border-transparent'
-                    }`}
+                    initial={{ opacity: 0, y: 40, scale: 0.8 }}
+                    animate={{
+                      opacity: isActiveJust ? 1 : isSomeoneSpeaking ? 0.25 : 1,
+                      y: 0,
+                      scale: isActiveJust ? 1.1 : isSomeoneSpeaking ? 0.95 : 1,
+                      filter: isActiveJust ? 'blur(0px) grayscale(0%)' : isSomeoneSpeaking ? 'blur(3px) grayscale(60%)' : 'blur(0px) grayscale(0%)',
+                    }}
+                    transition={{ delay: 0.2 + i * 0.15, duration: 0.6, type: 'spring', damping: 15 }}
+                    className="flex flex-col items-center relative"
                   >
-                    {/* التايمر — يسار الكارد */}
-                    <div className="w-[200px] flex flex-col items-center justify-center shrink-0">
-                      {isActiveJust && justTimer ? (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.7 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          className="flex flex-col items-center"
-                        >
-                          <CircularTimer
-                            timeRemaining={justTimeRemaining}
-                            totalTime={justTimer.timeLimitSeconds}
-                            size={160}
-                            enableHeartbeat={true}
-                            enableShake={true}
-                          />
-                          <motion.p
-                            animate={{ opacity: [0.5, 1, 0.5] }}
-                            transition={{ duration: 1.5, repeat: Infinity }}
-                            className="text-[#C5A059] text-[10px] font-mono tracking-[0.4em] uppercase mt-3"
-                          >
-                            🎙 DEFENDING
-                          </motion.p>
-                        </motion.div>
-                      ) : isActiveJust && justTimeRemaining === 0 ? (
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          className="flex flex-col items-center"
-                        >
-                          <div className="w-[160px] h-[160px] rounded-full border-4 border-[#8A0303] flex items-center justify-center">
-                            <span className="text-4xl font-mono font-black text-[#8A0303] animate-pulse">00</span>
-                          </div>
-                          <span className="text-[#8A0303] text-[10px] font-mono tracking-widest uppercase mt-3 animate-pulse">TIME EXPIRED</span>
-                        </motion.div>
-                      ) : (
-                        <div className="flex flex-col items-center opacity-30">
-                          <div className="w-[160px] h-[160px] rounded-full border-2 border-dashed border-[#2a2a2a] flex items-center justify-center">
-                            <span className="text-[#555] text-[10px] font-mono tracking-widest uppercase text-center px-4">
-                              {justTimer ? 'WAITING' : 'STANDBY'}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    {/* Spotlight — توهج خلفي للمتكلم النشط */}
+                    {isActiveJust && (
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] h-[400px] bg-[#C5A059]/25 blur-[60px] rounded-full pointer-events-none -z-10" />
+                    )}
 
                     {/* الكارد */}
                     <div className={`relative transition-all duration-500 ${
                       isActiveJust
-                        ? 'ring-4 ring-[#C5A059] ring-offset-4 ring-offset-black rounded-2xl shadow-[0_0_50px_rgba(197,160,89,0.4)]'
-                        : justTimer && !isActiveJust
-                          ? 'opacity-30 grayscale'
-                          : ''
+                        ? 'ring-4 ring-[#C5A059] ring-offset-4 ring-offset-black rounded-2xl shadow-[0_0_60px_rgba(197,160,89,0.4)]'
+                        : ''
                     }`}>
                       <MafiaCard
                         playerNumber={acc.targetPhysicalId}
@@ -856,26 +818,69 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
                         isFlipped={false}
                         flippable={false}
                         gender={p?.gender === 'FEMALE' ? 'FEMALE' : 'MALE'}
-                        size="md"
+                        size="lg"
                         isAlive={true}
                       />
                       {acc.type === 'DEAL' && (
                         <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-[#8A0303] text-white text-[8px] font-mono px-4 py-0.5 tracking-widest rounded-full z-30">DEAL</div>
                       )}
                     </div>
+
+                    {/* Dynamic Timer — يظهر بجانب المتكلم النشط */}
+                    {isActiveJust && justTimer && (
+                      <motion.div
+                        initial={{ opacity: 0, x: timerSide === 'right' ? -30 : 30 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.3, duration: 0.5 }}
+                        className={`absolute top-1/2 -translate-y-1/2 flex flex-col items-center ${
+                          timerSide === 'right' ? 'left-[115%]' : 'right-[115%]'
+                        }`}
+                      >
+                        <CircularTimer
+                          timeRemaining={justTimeRemaining}
+                          totalTime={justTimer.timeLimitSeconds}
+                          size={120}
+                          enableHeartbeat={true}
+                          enableShake={true}
+                        />
+                        <motion.p
+                          animate={{ opacity: [0.5, 1, 0.5] }}
+                          transition={{ duration: 1.5, repeat: Infinity }}
+                          className="text-[#C5A059] text-[9px] font-mono tracking-[0.3em] uppercase mt-3"
+                        >
+                          🎙 DEFENDING
+                        </motion.p>
+                      </motion.div>
+                    )}
+
+                    {/* Time Expired */}
+                    {isActiveJust && !justTimer && justTimeRemaining === 0 && isSomeoneSpeaking && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className={`absolute top-1/2 -translate-y-1/2 flex flex-col items-center ${
+                          timerSide === 'right' ? 'left-[115%]' : 'right-[115%]'
+                        }`}
+                      >
+                        <div className="w-[120px] h-[120px] rounded-full border-4 border-[#8A0303] flex items-center justify-center">
+                          <span className="text-3xl font-mono font-black text-[#8A0303] animate-pulse">00</span>
+                        </div>
+                        <span className="text-[#8A0303] text-[8px] font-mono tracking-widest uppercase mt-3 animate-pulse">TIME EXPIRED</span>
+                      </motion.div>
+                    )}
                   </motion.div>
                 );
               })}
-
-              {/* رسالة الانتظار — إذا التايمر لم يبدأ بعد */}
-              {!justTimer && (
-                <div className="text-center">
-                  <span className="text-yellow-500 text-sm font-mono tracking-[0.3em] animate-pulse uppercase">
-                    AWAITING DIRECTOR TO START DEFENSE TIMER...
-                  </span>
-                </div>
-              )}
             </div>
+
+            {/* رسالة الانتظار — إذا التايمر لم يبدأ بعد */}
+            {!justTimer && (
+              <div className="text-center mt-10">
+                <span className="text-yellow-500 text-sm font-mono tracking-[0.3em] animate-pulse uppercase">
+                  AWAITING DIRECTOR TO START DEFENSE TIMER...
+                </span>
+              </div>
+            )}
 
             {/* ── الهيدر — أسفل الشاشة ── */}
             <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-6 py-4 border-t border-[#2a2a2a] bg-black/60 backdrop-blur-sm">
