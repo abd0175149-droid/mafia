@@ -322,15 +322,15 @@ export function registerDayEvents(io: Server, socket: Socket) {
         io.to(data.roomId).emit('game:phase-changed', { phase: Phase.DAY_DISCUSSION });
         io.to(data.roomId).emit('day:cancelled');
       } else if (data.action === TieBreakerAction.ELIMINATE_ALL) {
-        // إقصاء جميع المتعادلين مع تطبيق قواعد الاتفاقيات وفحص الفوز
+        // handleTieBreaker أقصى اللاعبين بالفعل (isAlive = false)
+        // نبني قائمة المُقصيين من بيانات المتعادلين
         const eliminated: number[] = [];
         const revealedRoles: { physicalId: number; role: string }[] = [];
 
         if (data.tiedCandidates) {
           for (const candidate of data.tiedCandidates) {
             const target = state.players.find((p: any) => p.physicalId === candidate.targetPhysicalId);
-            if (target && target.isAlive) {
-              target.isAlive = false;
+            if (target) {
               eliminated.push(target.physicalId);
               revealedRoles.push({ physicalId: target.physicalId, role: target.role || 'UNKNOWN' });
 
@@ -339,7 +339,7 @@ export function registerDayEvents(io: Server, socket: Socket) {
                 const targetIsMafia = target.role ? isMafiaRole(target.role) : false;
                 if (!targetIsMafia) {
                   const initiator = state.players.find((p: any) => p.physicalId === candidate.initiatorPhysicalId);
-                  if (initiator && initiator.isAlive) {
+                  if (initiator) {
                     initiator.isAlive = false;
                     eliminated.push(initiator.physicalId);
                     revealedRoles.push({ physicalId: initiator.physicalId, role: initiator.role || 'UNKNOWN' });
