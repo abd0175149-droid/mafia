@@ -975,81 +975,116 @@ export default function LeaderPage() {
               </button>
             </div>
 
-            {/* قسم تاريخ الألعاب السابقة */}
+            {/* قسم تاريخ الألعاب السابقة — جدول */}
             {finishedMatches.length > 0 && (
               <div className="mb-8">
                 <h3 className="text-xs font-mono tracking-[0.3em] text-[#555] uppercase mb-4">
                   MATCH HISTORY ({finishedMatches.length})
                 </h3>
-                <div className="space-y-2">
-                  {finishedMatches.map((match: any) => (
-                    <div key={match.id}>
-                      <button
-                        onClick={() => {
-                          if (selectedMatch?.id === match.id) {
-                            setSelectedMatch(null);
-                          } else {
-                            handleViewMatch(match.id);
-                          }
-                        }}
-                        className={`w-full flex items-center justify-between p-3 border rounded-lg transition-all ${
-                          selectedMatch?.id === match.id
-                            ? 'border-[#C5A059]/50 bg-[#C5A059]/5'
-                            : 'border-[#2a2a2a] bg-[#050505] hover:border-[#555]'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="text-lg grayscale">{match.winner === 'MAFIA' ? '🩸' : match.winner === 'CITIZENS' ? '⚖️' : '🎮'}</span>
-                          <div className="text-right">
-                            <p className="text-white text-sm font-mono">{match.gameName || 'لعبة'}</p>
-                            <p className="text-[#555] text-[10px] font-mono uppercase">
-                              {match.playerCount} players • {match.durationSeconds ? `${Math.round(match.durationSeconds / 60)}min` : '--'}
-                            </p>
-                          </div>
-                        </div>
-                        <span className={`text-[10px] font-mono uppercase tracking-widest px-2 py-1 rounded ${
-                          match.winner === 'MAFIA' ? 'text-[#8A0303] bg-[#8A0303]/10' : 'text-[#2E5C31] bg-[#2E5C31]/10'
-                        }`}>
-                          {match.winner === 'MAFIA' ? 'MAFIA WIN' : match.winner === 'CITIZENS' ? 'CITY WIN' : match.winner || 'N/A'}
-                        </span>
-                      </button>
 
-                      {/* تفاصيل المباراة */}
-                      <AnimatePresence>
-                        {selectedMatch?.id === match.id && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className="overflow-hidden"
+                {/* الجدول */}
+                <div className="border border-[#2a2a2a] rounded-lg overflow-hidden">
+                  {/* Header */}
+                  <div className="grid grid-cols-[60px_1fr_80px_80px] bg-[#0a0a0a] border-b border-[#2a2a2a] px-3 py-2">
+                    <span className="text-[9px] font-mono text-[#555] uppercase tracking-widest">#ID</span>
+                    <span className="text-[9px] font-mono text-[#555] uppercase tracking-widest">WINNER</span>
+                    <span className="text-[9px] font-mono text-[#555] uppercase tracking-widest text-center">TIME</span>
+                    <span className="text-[9px] font-mono text-[#555] uppercase tracking-widest text-center">ACTION</span>
+                  </div>
+
+                  {/* Rows */}
+                  {finishedMatches.map((match: any) => {
+                    const isMafiaWin = match.winner === 'MAFIA';
+                    const mins = match.durationSeconds ? Math.floor(match.durationSeconds / 60) : 0;
+                    const secs = match.durationSeconds ? match.durationSeconds % 60 : 0;
+                    const isSelected = selectedMatch?.id === match.id;
+
+                    return (
+                      <div key={match.id}>
+                        <div className={`grid grid-cols-[60px_1fr_80px_80px] items-center px-3 py-2.5 border-b border-[#1a1a1a] transition-colors ${
+                          isSelected ? 'bg-[#C5A059]/5' : 'bg-[#050505] hover:bg-[#0c0c0c]'
+                        }`}>
+                          {/* ID */}
+                          <span className="text-[#C5A059] font-mono text-xs font-bold">#{match.id}</span>
+
+                          {/* الفائز */}
+                          <div className="flex items-center gap-2">
+                            <span className={`text-xs font-mono font-bold uppercase ${
+                              isMafiaWin ? 'text-[#8A0303]' : 'text-[#2E5C31]'
+                            }`}>
+                              {isMafiaWin ? '🩸 MAFIA' : '⚖️ CITIZENS'}
+                            </span>
+                          </div>
+
+                          {/* المدة */}
+                          <span className="text-[#808080] font-mono text-xs text-center">
+                            {match.durationSeconds ? `${mins}:${secs.toString().padStart(2, '0')}` : '--:--'}
+                          </span>
+
+                          {/* زر عرض النتيجة */}
+                          <button
+                            onClick={async () => {
+                              if (isSelected) {
+                                setSelectedMatch(null);
+                                // إيقاف العرض على Display
+                                emit('display:hide-replay', { roomId: gameState.roomId });
+                              } else {
+                                // جلب التفاصيل
+                                handleViewMatch(match.id);
+                                // بث النتيجة على شاشة العرض
+                                emit('display:show-replay', {
+                                  roomId: gameState.roomId,
+                                  matchId: match.id,
+                                });
+                              }
+                            }}
+                            className={`text-[10px] font-mono uppercase tracking-widest px-2 py-1.5 rounded border transition-all ${
+                              isSelected
+                                ? 'bg-[#C5A059]/20 border-[#C5A059]/50 text-[#C5A059]'
+                                : 'bg-[#111] border-[#2a2a2a] text-[#808080] hover:text-[#C5A059] hover:border-[#C5A059]/30'
+                            }`}
                           >
-                            <div className="p-4 border border-t-0 border-[#2a2a2a] rounded-b-lg bg-[#0a0a0a]">
-                              {selectedMatch.players?.length > 0 ? (
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                  {selectedMatch.players.map((p: any) => (
-                                    <div key={p.physicalId} className={`flex items-center gap-2 p-2 rounded border ${
-                                      p.survivedToEnd ? 'border-[#2E5C31]/30' : 'border-[#8A0303]/20 opacity-60'
-                                    }`}>
-                                      <span className="text-[#C5A059] font-mono text-xs font-bold w-6">#{p.physicalId}</span>
-                                      <div className="flex-1 min-w-0">
-                                        <p className="text-white text-xs truncate">{p.playerName}</p>
-                                        <p className={`text-[10px] font-mono uppercase ${
-                                          ['GODFATHER','SILENCER','CHAMELEON'].includes(p.role) ? 'text-[#8A0303]' : 'text-[#2E5C31]'
-                                        }`}>{p.role}</p>
+                            {isSelected ? '✕ إخفاء' : '👁 عرض'}
+                          </button>
+                        </div>
+
+                        {/* تفاصيل المباراة (تظهر أسفل الصف) */}
+                        <AnimatePresence>
+                          {isSelected && selectedMatch && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="p-4 bg-[#0a0a0a] border-b border-[#2a2a2a]">
+                                {selectedMatch.players?.length > 0 ? (
+                                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                    {selectedMatch.players.map((p: any) => (
+                                      <div key={p.physicalId} className={`flex items-center gap-2 p-2 rounded border ${
+                                        p.survivedToEnd ? 'border-[#2E5C31]/30' : 'border-[#8A0303]/20 opacity-60'
+                                      }`}>
+                                        <span className="text-[#C5A059] font-mono text-xs font-bold w-6">#{p.physicalId}</span>
+                                        <div className="flex-1 min-w-0">
+                                          <p className="text-white text-xs truncate">{p.playerName}</p>
+                                          <p className={`text-[10px] font-mono uppercase ${
+                                            ['GODFATHER','SILENCER','CHAMELEON'].includes(p.role) ? 'text-[#8A0303]' : 'text-[#2E5C31]'
+                                          }`}>{p.role}</p>
+                                        </div>
+                                        <span className="text-[10px]">{p.survivedToEnd ? '✓' : '✕'}</span>
                                       </div>
-                                      <span className="text-[10px]">{p.survivedToEnd ? '✓' : '✕'}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <p className="text-[#555] text-xs font-mono text-center">جاري التحميل...</p>
-                              )}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  ))}
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-[#555] text-xs font-mono text-center">جاري التحميل...</p>
+                                )}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

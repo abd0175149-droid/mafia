@@ -168,6 +168,7 @@ export default function DisplayPage() {
   const animTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [discussionState, setDiscussionState] = useState<any>(null);
   const [teamCounts, setTeamCounts] = useState<{citizenAlive: number; mafiaAlive: number}>({citizenAlive: 0, mafiaAlive: 0});
+  const [replayData, setReplayData] = useState<any>(null);
 
   // ── Socket Init ──
   useEffect(() => {
@@ -313,6 +314,16 @@ export default function DisplayPage() {
       setPhase(data.phase);
     });
 
+    // إعادة عرض نتيجة لعبة سابقة
+    const onReplayResult = (data: any) => {
+      setReplayData(data);
+    };
+    const onReplayHidden = () => {
+      setReplayData(null);
+    };
+    socket.on('display:replay-result', onReplayResult);
+    socket.on('display:replay-hidden', onReplayHidden);
+
     return () => {
       socket.off('room:player-joined', onPlayerJoined);
       socket.off('room:player-kicked', onPlayerKicked);
@@ -325,6 +336,8 @@ export default function DisplayPage() {
       socket.off('room:config-updated', onConfigUpdated);
       socket.off('admin:player-eliminated', onAdminEliminated);
       socket.off('game:started');
+      socket.off('display:replay-result', onReplayResult);
+      socket.off('display:replay-hidden', onReplayHidden);
     };
   }, [step, currentRoomId]);
 
@@ -916,6 +929,81 @@ export default function DisplayPage() {
                     </motion.div>
                   ))}
                 </div>
+              </div>
+            </motion.div>
+          );
+        })()}
+
+        {/* ═══ إعادة عرض نتيجة لعبة سابقة (Replay Overlay) ═══ */}
+        {replayData && (() => {
+          const mafiaRoles = ['GODFATHER', 'SILENCER', 'CHAMELEON', 'MAFIA_REGULAR'];
+          const isMafiaWin = replayData.winner === 'MAFIA';
+          const replayPlayers = (replayData.players || []);
+          // فرز: الأحياء أولاً
+          const sorted = [...replayPlayers].sort((a: any, b: any) => (b.survivedToEnd ? 1 : 0) - (a.survivedToEnd ? 1 : 0));
+
+          return (
+            <motion.div
+              key="replay-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] bg-black/95 flex flex-col items-center justify-center p-8"
+            >
+              {/* شريط علوي */}
+              <div className="absolute top-4 left-0 right-0 flex items-center justify-center gap-3">
+                <span className="text-[#555] font-mono text-xs uppercase tracking-[0.3em] bg-[#111] border border-[#2a2a2a] px-4 py-1.5 rounded">
+                  📁 MATCH #{replayData.matchId} REPLAY
+                </span>
+              </div>
+
+              {/* عنوان الفائز */}
+              <motion.h1
+                className="text-4xl md:text-6xl font-black uppercase tracking-tight mb-2"
+                style={{
+                  fontFamily: 'Amiri, serif',
+                  color: isMafiaWin ? '#8A0303' : '#C5A059',
+                  textShadow: isMafiaWin
+                    ? '0 0 40px rgba(138,3,3,0.5)'
+                    : '0 0 40px rgba(197,160,89,0.4)',
+                }}
+                initial={{ y: 30, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 0.3 }}
+              >
+                {isMafiaWin ? 'انتصار المافيا' : 'تطهير المدينة'}
+              </motion.h1>
+              <motion.p
+                className="text-[#808080] font-mono mb-8 tracking-[0.3em] uppercase text-sm"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+              >
+                {replayData.gameName || 'MATCH'} • {replayData.durationFormatted || '--:--'}
+              </motion.p>
+
+              {/* شبكة كروت اللاعبين */}
+              <div className="flex flex-wrap justify-center gap-4 md:gap-6 max-w-6xl">
+                {sorted.map((p: any, i: number) => (
+                  <motion.div
+                    key={p.physicalId}
+                    initial={{ opacity: 0, y: 30, scale: 0.8 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ delay: 0.8 + (i * 0.1), duration: 0.4, type: 'spring', damping: 12 }}
+                    style={p.survivedToEnd ? {} : { filter: 'grayscale(100%) brightness(0.5)', opacity: 0.6 }}
+                  >
+                    <MafiaCard
+                      playerNumber={p.physicalId}
+                      playerName={p.playerName}
+                      role={p.role}
+                      isFlipped={true}
+                      flippable={false}
+                      isAlive={p.survivedToEnd}
+                      size="fluid"
+                      className="w-32 h-[11rem] md:w-44 md:h-[15rem] lg:w-52 lg:h-[18rem]"
+                    />
+                  </motion.div>
+                ))}
               </div>
             </motion.div>
           );

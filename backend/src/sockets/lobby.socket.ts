@@ -660,6 +660,34 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
     }
   });
 
+  // ── عرض إعادة نتيجة لعبة سابقة على شاشة Display ────────────
+  socket.on('display:show-replay', async (data: { roomId: string; matchId: number }, callback?) => {
+    try {
+      const { getMatchDetails } = await import('../services/match.service.js');
+      const match = await getMatchDetails(data.matchId);
+      if (!match) {
+        return callback?.({ success: false, error: 'Match not found' });
+      }
+      // بث النتيجة لشاشة العرض
+      io.to(data.roomId).emit('display:replay-result', {
+        matchId: match.id,
+        winner: match.winner,
+        players: match.players,
+        durationFormatted: match.durationFormatted,
+        gameName: match.gameName,
+      });
+      callback?.({ success: true });
+    } catch (err: any) {
+      callback?.({ success: false, error: err.message });
+    }
+  });
+
+  // ── إخفاء إعادة النتيجة من شاشة Display ────────────
+  socket.on('display:hide-replay', (data: { roomId: string }, callback?) => {
+    io.to(data.roomId).emit('display:replay-hidden');
+    callback?.({ success: true });
+  });
+
   // ── لعبة جديدة في نفس الغرفة — reset بدل create ────────────
   socket.on('room:new-game', async (data: { 
     roomId: string; 
