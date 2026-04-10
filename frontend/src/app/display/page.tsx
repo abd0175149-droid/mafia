@@ -244,7 +244,8 @@ export default function DisplayPage() {
               name: p.name,
               isAlive: p.isAlive,
               gender: p.gender,
-              role: prev.find((pp: any) => pp.physicalId === p.physicalId)?.role || p.role,
+              // عند العودة لـ LOBBY: مسح الأدوار القديمة (reset)
+              role: d.state.phase === 'LOBBY' ? null : (prev.find((pp: any) => pp.physicalId === p.physicalId)?.role || p.role),
             }));
           });
         }

@@ -52,6 +52,8 @@ interface GameState {
   justificationData?: any;
   pendingResolution?: any;
   discussionState?: any;
+  // Session
+  sessionId?: number;
 }
 
 export default function LeaderPage() {
@@ -514,6 +516,7 @@ export default function LeaderPage() {
         },
         players: [],
         rolesPool: [],
+        sessionId: response.sessionId,
       });
       setInSession(true); // الانتقال لصفحة الغرفة
 
@@ -553,6 +556,7 @@ export default function LeaderPage() {
           pendingResolution: data.state.pendingResolution,
           round: data.state.round,
           winner: data.state.winner,
+          sessionId: data.state.sessionId,
         });
 
         // تحديد الوضع: LOBBY أو GAME_OVER → Session View
@@ -570,6 +574,22 @@ export default function LeaderPage() {
       setError('فشل الاتصال باللعبة');
     }
   };
+
+  // ── جلب تاريخ ألعاب الـ Session (تلقائي عند العودة للغرفة) ──
+  useEffect(() => {
+    if (!inSession || !gameState?.sessionId) return;
+    (async () => {
+      try {
+        const res = await fetch(`/api/game/session-history/${gameState.sessionId}`);
+        const data = await res.json();
+        if (data.success) {
+          setFinishedMatches(data.matches || []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch session history:', err);
+      }
+    })();
+  }, [inSession, gameState?.sessionId]);
 
   if (checkingAuth || !isAuthenticated) {
     return (

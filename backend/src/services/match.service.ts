@@ -3,7 +3,7 @@
 // حفظ واسترجاع بيانات المباريات من PostgreSQL
 // ══════════════════════════════════════════════════════
 
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 import { getDB } from '../config/db.js';
 import { matches, matchPlayers } from '../schemas/drizzle.js';
 import { isMafiaRole } from '../game/roles.js';
@@ -108,6 +108,37 @@ export async function getFinishedMatches(limit: number = 50) {
     }));
   } catch (err: any) {
     console.error('❌ Failed to fetch finished matches:', err.message);
+    return [];
+  }
+}
+
+// ── جلب ألعاب session محددة ──────────────────────────
+export async function getMatchesBySession(sessionId: number) {
+  const db = getDB();
+  if (!db) return [];
+
+  try {
+    const rows = await db.select()
+      .from(matches)
+      .where(and(
+        eq(matches.sessionId, sessionId),
+        eq(matches.isActive, false),
+      ))
+      .orderBy(desc(matches.endedAt));
+
+    return rows.map(m => ({
+      id: m.id,
+      gameName: m.gameName,
+      roomCode: m.roomCode,
+      playerCount: m.playerCount,
+      winner: m.winner,
+      totalRounds: m.totalRounds,
+      durationSeconds: m.durationSeconds,
+      createdAt: m.createdAt,
+      endedAt: m.endedAt,
+    }));
+  } catch (err: any) {
+    console.error('❌ Failed to fetch session matches:', err.message);
     return [];
   }
 }

@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { getActiveRooms } from '../sockets/lobby.socket.js';
 import { getRoom, getRoomByCode } from '../game/state.js';
-import { getFinishedMatches, getMatchDetails } from '../services/match.service.js';
+import { getFinishedMatches, getMatchDetails, getMatchesBySession } from '../services/match.service.js';
 
 const router = Router();
 
@@ -154,6 +154,22 @@ router.get('/history/:matchId', async (req: Request, res: Response) => {
     }
 
     res.json({ success: true, match: details });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── GET /api/game/session-history/:sessionId ─────────
+// جلب ألعاب session محددة
+router.get('/session-history/:sessionId', async (req: Request, res: Response) => {
+  try {
+    const sessionId = parseInt(req.params.sessionId);
+    if (isNaN(sessionId)) {
+      return res.status(400).json({ success: false, error: 'sessionId غير صالح' });
+    }
+
+    const matches = await getMatchesBySession(sessionId);
+    res.json({ success: true, matches });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
