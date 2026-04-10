@@ -535,10 +535,11 @@ export default function LeaderPage() {
       const data = await res.json();
 
       if (data.success) {
+        const phase = data.state.phase;
         setGameState({
           roomId: game.roomId,
           roomCode: game.roomCode,
-          phase: data.state.phase,
+          phase,
           config: data.state.config || {
             gameName: game.gameName,
             maxPlayers: game.maxPlayers,
@@ -546,7 +547,6 @@ export default function LeaderPage() {
           },
           players: data.state.players || [],
           rolesPool: data.state.rolesPool || [],
-          // ── استعادة كل حقول الحالة عند إعادة الاتصال ──
           votingState: data.state.votingState,
           discussionState: data.state.discussionState,
           justificationData: data.state.justificationData,
@@ -554,6 +554,13 @@ export default function LeaderPage() {
           round: data.state.round,
           winner: data.state.winner,
         });
+
+        // تحديد الوضع: LOBBY أو GAME_OVER → Session View
+        if (phase === 'LOBBY' || phase === 'GAME_OVER') {
+          setInSession(true);
+        } else {
+          setInSession(false);
+        }
 
         // Join socket room
         const socket = (await import('@/lib/socket')).getSocket();
@@ -671,13 +678,15 @@ export default function LeaderPage() {
                 >+</button>
               </div>
 
-              {/* زر إظهار فورم الإضافة */}
-              <button
-                onClick={() => setShowSessionAddForm(!showSessionAddForm)}
-                className="text-[#C5A059] text-xs font-mono uppercase tracking-[0.15em] hover:text-yellow-400 transition-colors border border-[#C5A059]/30 px-4 py-2 hover:border-[#C5A059]"
-              >
-                {showSessionAddForm ? '✕ إلغاء' : '＋ إضافة لاعب'}
-              </button>
+              {/* زر إظهار فورم الإضافة — يختفي عند الامتلاء */}
+              {gameState.players.length < gameState.config.maxPlayers && (
+                <button
+                  onClick={() => setShowSessionAddForm(!showSessionAddForm)}
+                  className="text-[#C5A059] text-xs font-mono uppercase tracking-[0.15em] hover:text-yellow-400 transition-colors border border-[#C5A059]/30 px-4 py-2 hover:border-[#C5A059]"
+                >
+                  {showSessionAddForm ? '✕ إلغاء' : '＋ إضافة لاعب'}
+                </button>
+              )}
             </div>
 
             {/* فورم إضافة لاعب يدوياً */}
@@ -831,7 +840,7 @@ export default function LeaderPage() {
               ) : (
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                   {gameState.players.map((p: any) => (
-                    <div key={p.physicalId} className="relative">
+                    <div key={p.physicalId} className="relative group">
                       <MafiaCard
                         playerNumber={p.physicalId}
                         playerName={p.name}
@@ -841,6 +850,21 @@ export default function LeaderPage() {
                         isAlive={true}
                         size="sm"
                       />
+                      {/* زر حذف لاعب — يظهر عند hover */}
+                      {!showExcludeUI && (
+                        <button
+                          onClick={async () => {
+                            if (!confirm(`حذف ${p.name} من الغرفة؟`)) return;
+                            try {
+                              await emit('room:kick-player', { roomId: gameState.roomId, physicalId: p.physicalId });
+                            } catch (err: any) {
+                              setError(err.message);
+                            }
+                          }}
+                          className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-[#8A0303] border border-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:scale-110 z-20 text-[10px]"
+                          title="حذف اللاعب"
+                        >✕</button>
+                      )}
                       {/* زر استبعاد من اللعبة القادمة */}
                       {showExcludeUI && (
                         <button
@@ -889,45 +913,40 @@ export default function LeaderPage() {
                 </p>
               )}
 
-              {/* زر بدء اللعبة */}
+              {/* زر بدء اللعبة — يقفز مباشرة لـ ROLE_GENERATION */}
               <button
                 onClick={async () => {
-                  if (gameState.players.length < 6) {
+                  const effectivePlayers = gameState.players.length - excludedPlayers.length;
+                  if (effectivePlayers < 6) {
                     setError('يجب إضافة 6 لاعبين على الأقل');
                     return;
                   }
-                  // إذا عندنا لاعبين مستبعدين → ننشئ لعبة جديدة بدونهم
-                  if (excludedPlayers.length > 0) {
-                    try {
+                  try {
+                    // إذا عندنا مستبعدين → نعمل new-game لحذفهم أولاً
+                    if (excludedPlayers.length > 0) {
                       const res = await emit('room:new-game', {
                         roomId: gameState.roomId,
                         excludePlayerIds: excludedPlayers,
                       });
                       if (res.success) {
-                        setGameState({
-                          roomId: res.roomId,
-                          roomCode: res.roomCode,
-                          phase: 'LOBBY',
-                          config: {
-                            gameName: gameState.config.gameName,
-                            maxPlayers: gameState.config.maxPlayers,
-                            displayPin: res.displayPin || gameState.config.displayPin,
-                          },
+                        setGameState((prev: any) => prev ? {
+                          ...prev,
                           players: (res.players || []).map((p: any) => ({
                             ...p, isAlive: true, isSilenced: false, role: null,
                           })),
-                          rolesPool: [],
                           winner: undefined,
-                        });
+                          phase: 'LOBBY',
+                        } : prev);
                       }
-                    } catch (err: any) {
-                      setError(err.message);
-                      return;
                     }
+                    // بدء توزيع الأدوار مباشرة
+                    await emit('room:start-generation', { roomId: gameState.roomId });
+                    setExcludedPlayers([]);
+                    setShowExcludeUI(false);
+                    setInSession(false);
+                  } catch (err: any) {
+                    setError(err.message);
                   }
-                  setExcludedPlayers([]);
-                  setShowExcludeUI(false);
-                  setInSession(false); // الانتقال لمنطق اللعبة
                 }}
                 disabled={gameState.players.length - excludedPlayers.length < 6}
                 className="btn-premium !px-12 !py-4 !text-lg tracking-widest uppercase disabled:opacity-50 disabled:cursor-not-allowed"
@@ -935,6 +954,85 @@ export default function LeaderPage() {
                 <span>🎮 بدء لعبة جديدة ({gameState.players.length - excludedPlayers.length} لاعب)</span>
               </button>
             </div>
+
+            {/* قسم تاريخ الألعاب السابقة */}
+            {finishedMatches.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-xs font-mono tracking-[0.3em] text-[#555] uppercase mb-4">
+                  MATCH HISTORY ({finishedMatches.length})
+                </h3>
+                <div className="space-y-2">
+                  {finishedMatches.map((match: any) => (
+                    <div key={match.id}>
+                      <button
+                        onClick={() => {
+                          if (selectedMatch?.id === match.id) {
+                            setSelectedMatch(null);
+                          } else {
+                            handleViewMatch(match.id);
+                          }
+                        }}
+                        className={`w-full flex items-center justify-between p-3 border rounded-lg transition-all ${
+                          selectedMatch?.id === match.id
+                            ? 'border-[#C5A059]/50 bg-[#C5A059]/5'
+                            : 'border-[#2a2a2a] bg-[#050505] hover:border-[#555]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-lg grayscale">{match.winner === 'MAFIA' ? '🩸' : match.winner === 'CITIZENS' ? '⚖️' : '🎮'}</span>
+                          <div className="text-right">
+                            <p className="text-white text-sm font-mono">{match.gameName || 'لعبة'}</p>
+                            <p className="text-[#555] text-[10px] font-mono uppercase">
+                              {match.playerCount} players • {match.durationSeconds ? `${Math.round(match.durationSeconds / 60)}min` : '--'}
+                            </p>
+                          </div>
+                        </div>
+                        <span className={`text-[10px] font-mono uppercase tracking-widest px-2 py-1 rounded ${
+                          match.winner === 'MAFIA' ? 'text-[#8A0303] bg-[#8A0303]/10' : 'text-[#2E5C31] bg-[#2E5C31]/10'
+                        }`}>
+                          {match.winner === 'MAFIA' ? 'MAFIA WIN' : match.winner === 'CITIZENS' ? 'CITY WIN' : match.winner || 'N/A'}
+                        </span>
+                      </button>
+
+                      {/* تفاصيل المباراة */}
+                      <AnimatePresence>
+                        {selectedMatch?.id === match.id && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="p-4 border border-t-0 border-[#2a2a2a] rounded-b-lg bg-[#0a0a0a]">
+                              {selectedMatch.players?.length > 0 ? (
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                  {selectedMatch.players.map((p: any) => (
+                                    <div key={p.physicalId} className={`flex items-center gap-2 p-2 rounded border ${
+                                      p.survivedToEnd ? 'border-[#2E5C31]/30' : 'border-[#8A0303]/20 opacity-60'
+                                    }`}>
+                                      <span className="text-[#C5A059] font-mono text-xs font-bold w-6">#{p.physicalId}</span>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-white text-xs truncate">{p.playerName}</p>
+                                        <p className={`text-[10px] font-mono uppercase ${
+                                          ['GODFATHER','SILENCER','CHAMELEON'].includes(p.role) ? 'text-[#8A0303]' : 'text-[#2E5C31]'
+                                        }`}>{p.role}</p>
+                                      </div>
+                                      <span className="text-[10px]">{p.survivedToEnd ? '✓' : '✕'}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-[#555] text-xs font-mono text-center">جاري التحميل...</p>
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {error && <p className="text-[#8A0303] mt-2 text-xs font-mono text-center tracking-widest uppercase">{error}</p>}
           </div>
@@ -1144,7 +1242,34 @@ export default function LeaderPage() {
               <div className="flex flex-col items-center gap-4">
                 {/* زر العودة للغرفة */}
                 <button
-                  onClick={() => {
+                  onClick={async () => {
+                    try {
+                      // إعادة الغرفة لحالة LOBBY في الباك إند
+                      const res = await emit('room:reset-to-lobby', { roomId: gameState.roomId });
+                      if (res.success) {
+                        setGameState((prev: any) => prev ? {
+                          ...prev,
+                          phase: 'LOBBY',
+                          winner: undefined,
+                          rolesPool: [],
+                          votingState: undefined,
+                          discussionState: undefined,
+                          players: (res.players || prev.players).map((p: any) => ({
+                            ...p, isAlive: true, isSilenced: false, role: null,
+                          })),
+                        } : prev);
+                      }
+                    } catch (err: any) {
+                      // fallback: reset محلي فقط
+                      setGameState((prev: any) => prev ? {
+                        ...prev,
+                        phase: 'LOBBY',
+                        winner: undefined,
+                        players: prev.players.map((p: any) => ({
+                          ...p, isAlive: true, isSilenced: false, role: null,
+                        })),
+                      } : prev);
+                    }
                     setInSession(true);
                     setExcludedPlayers([]);
                     setShowExcludeUI(false);
