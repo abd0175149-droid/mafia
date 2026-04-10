@@ -3,7 +3,7 @@
 // إنشاء وإدارة غرف الألعاب (Session) في PostgreSQL
 // ══════════════════════════════════════════════════════
 
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, sql } from 'drizzle-orm';
 import { getDB } from '../config/db.js';
 import { sessions, sessionPlayers } from '../schemas/drizzle.js';
 
@@ -128,5 +128,46 @@ export async function closeSession(sessionId: number): Promise<void> {
       .where(eq(sessions.id, sessionId));
   } catch (err: any) {
     console.error('❌ Failed to close session:', err.message);
+  }
+}
+
+// ── جلب الغرف المنتهية مع عدد ألعابها ─────────────
+export async function getClosedSessions() {
+  const db = getDB();
+  if (!db) return [];
+
+  try {
+    const rows = await db.execute(sql`
+      SELECT 
+        s.id,
+        s.session_code,
+        s.session_name,
+        s.max_players,
+        s.created_at,
+        COUNT(m.id)::int AS match_count,
+        MAX(m.ended_at) AS last_match_at,
+        (SELECT m2.winner FROM matches m2 WHERE m2.session_id = s.id ORDER BY m2.ended_at DESC LIMIT 1) AS last_winner,
+        (SELECT SUM(m3.duration_seconds) FROM matches m3 WHERE m3.session_id = s.id AND m3.is_active = false)::int AS total_duration
+      FROM sessions s
+      LEFT JOIN matches m ON m.session_id = s.id AND m.is_active = false
+      WHERE s.is_active = false
+      GROUP BY s.id
+      ORDER BY MAX(m.ended_at) DESC NULLS LAST, s.created_at DESC
+    `);
+
+    return (rows.rows || rows).map((r: any) => ({
+      id: r.id,
+      sessionCode: r.session_code,
+      sessionName: r.session_name,
+      maxPlayers: r.max_players,
+      createdAt: r.created_at,
+      matchCount: r.match_count || 0,
+      lastMatchAt: r.last_match_at,
+      lastWinner: r.last_winner,
+      totalDuration: r.total_duration || 0,
+    }));
+  } catch (err: any) {
+    console.error('❌ Failed to fetch closed sessions:', err.message);
+    return [];
   }
 }

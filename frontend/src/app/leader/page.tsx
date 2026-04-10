@@ -81,9 +81,12 @@ export default function LeaderPage() {
   const [error, setError] = useState('');
   const [showAdminEliminate, setShowAdminEliminate] = useState(false);
 
-  // Match history
-  const [finishedMatches, setFinishedMatches] = useState<any[]>([]);
+  // Match history — داخل Session View (ألعاب الغرفة الحالية)
+  const [sessionMatches, setSessionMatches] = useState<any[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
+
+  // Dashboard — قائمة الغرف المنتهية (ليس ألعاب فردية)
+  const [closedSessions, setClosedSessions] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
   // New game exclude UI
@@ -144,17 +147,17 @@ export default function LeaderPage() {
     }
   }, [isAuthenticated]);
 
-  // ── Fetch finished matches via REST ──
+  // ── Fetch closed sessions (rooms) via REST ──
   const fetchHistory = async () => {
     setLoadingHistory(true);
     try {
-      const res = await fetch('/api/game/history');
+      const res = await fetch('/api/game/closed-sessions');
       const data = await res.json();
       if (data.success) {
-        setFinishedMatches(data.matches || []);
+        setClosedSessions(data.sessions || []);
       }
     } catch (err) {
-      console.error('Failed to fetch history:', err);
+      console.error('Failed to fetch closed sessions:', err);
     } finally {
       setLoadingHistory(false);
     }
@@ -583,7 +586,7 @@ export default function LeaderPage() {
         const res = await fetch(`/api/game/session-history/${gameState.sessionId}`);
         const data = await res.json();
         if (data.success) {
-          setFinishedMatches(data.matches || []);
+          setSessionMatches(data.matches || []);
         }
       } catch (err) {
         console.error('Failed to fetch session history:', err);
@@ -976,10 +979,10 @@ export default function LeaderPage() {
             </div>
 
             {/* قسم تاريخ الألعاب السابقة — جدول */}
-            {finishedMatches.length > 0 && (
+            {sessionMatches.length > 0 && (
               <div className="mb-8">
                 <h3 className="text-xs font-mono tracking-[0.3em] text-[#555] uppercase mb-4">
-                  MATCH HISTORY ({finishedMatches.length})
+                  MATCH HISTORY ({sessionMatches.length})
                 </h3>
 
                 {/* الجدول */}
@@ -993,7 +996,7 @@ export default function LeaderPage() {
                   </div>
 
                   {/* Rows */}
-                  {finishedMatches.map((match: any) => {
+                  {sessionMatches.map((match: any) => {
                     const isMafiaWin = match.winner === 'MAFIA';
                     const mins = match.durationSeconds ? Math.floor(match.durationSeconds / 60) : 0;
                     const secs = match.durationSeconds ? match.durationSeconds % 60 : 0;
@@ -1130,7 +1133,7 @@ export default function LeaderPage() {
                 </button>
               )}
               <button
-                onClick={() => setGameState(null)}
+                onClick={() => { setGameState(null); setInSession(false); setSelectedMatch(null); fetchActiveGames(); fetchHistory(); }}
                 className="text-[#555] text-[10px] font-mono uppercase tracking-[0.15em] hover:text-white transition-colors border border-[#2a2a2a] px-3 py-1.5 hover:border-[#555]"
               >
                 ← Return
@@ -1379,7 +1382,7 @@ export default function LeaderPage() {
             animate={{ opacity: 1, y: 0 }}
             className="mb-12"
           >
-            <h2 className="text-xs font-mono tracking-[0.3em] text-[#555] mb-4 uppercase">ACTIVE OPERATIONS ({activeGames.length})</h2>
+            <h2 className="text-xs font-mono tracking-[0.3em] text-[#555] mb-4 uppercase">ACTIVE ROOMS ({activeGames.length})</h2>
             <div className="space-y-4">
               {activeGames.map(game => (
                 <motion.button
@@ -1413,16 +1416,16 @@ export default function LeaderPage() {
         >
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#808080] to-transparent opacity-20" />
           
-          <h2 className="text-2xl font-black mb-8 text-center text-white" style={{ fontFamily: 'Amiri, serif' }}>تأسيس عملية جديدة</h2>
+          <h2 className="text-2xl font-black mb-8 text-center text-white" style={{ fontFamily: 'Amiri, serif' }}>إنشاء غرفة جديدة</h2>
 
           {/* اسم اللعبة */}
           <div className="mb-6">
-            <label className="block text-xs font-mono text-[#808080] mb-2 tracking-widest uppercase">Operation Name</label>
+            <label className="block text-xs font-mono text-[#808080] mb-2 tracking-widest uppercase">Room Name</label>
             <input
               type="text"
               value={gameName}
               onChange={(e) => setGameName(e.target.value)}
-              placeholder="اسم العملية..."
+              placeholder="اسم الغرفة..."
               className="w-full p-4 bg-[#050505] border border-[#2a2a2a] text-white text-center text-lg focus:border-[#C5A059] focus:outline-none transition-colors placeholder-[#222]"
               maxLength={50}
             />
@@ -1476,60 +1479,137 @@ export default function LeaderPage() {
             disabled={!isConnected || creating || !gameName.trim()}
             className="btn-premium w-full text-base disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <span>{creating ? 'INITIALIZING...' : 'CREATE OPERATION'}</span>
+            <span>{creating ? 'INITIALIZING...' : 'CREATE ROOM'}</span>
           </button>
 
           {error && <p className="text-[#8A0303] mt-6 text-xs font-mono text-center tracking-widest uppercase">{error}</p>}
         </motion.div>
 
-        {/* ── الألعاب المنتهية ── */}
-        {finishedMatches.length > 0 && (
+        {/* ── الغرف المنتهية (Sessions) ── */}
+        {closedSessions.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
             className="mt-12 mb-8"
           >
-            <h2 className="text-xs font-mono tracking-[0.3em] text-[#555] mb-4 uppercase">COMPLETED OPERATIONS ({finishedMatches.length})</h2>
+            <h2 className="text-xs font-mono tracking-[0.3em] text-[#555] mb-4 uppercase">CLOSED ROOMS ({closedSessions.length})</h2>
             <div className="space-y-3">
-              {finishedMatches.map((m: any) => {
-                const mins = m.durationSeconds ? Math.floor(m.durationSeconds / 60) : 0;
-                const secs = m.durationSeconds ? m.durationSeconds % 60 : 0;
-                const duration = m.durationSeconds ? `${mins}:${secs.toString().padStart(2, '0')}` : '—';
-                const dt = m.endedAt ? new Date(m.endedAt).toLocaleDateString('ar-SA', { month: 'short', day: 'numeric' }) : '';
+              {closedSessions.map((s: any) => {
+                const totalMins = s.totalDuration ? Math.floor(s.totalDuration / 60) : 0;
+                const dt = s.lastMatchAt ? new Date(s.lastMatchAt).toLocaleDateString('ar-SA', { month: 'short', day: 'numeric' }) : '';
+                const isExpanded = selectedMatch?.sessionId === s.id;
+
                 return (
-                  <motion.button
-                    key={m.id}
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
-                    onClick={() => handleViewMatch(m.id)}
-                    className="noir-card p-5 w-full flex items-center justify-between text-right hover:border-[#555]/40 transition-all border-[#1a1a1a] opacity-70 hover:opacity-100"
-                  >
-                    <div>
-                      <h3 className="font-black text-[#808080] text-lg" style={{ fontFamily: 'Amiri, serif' }}>{m.gameName}</h3>
-                      <p className="text-[#555] text-[10px] mt-1.5 font-mono tracking-widest uppercase">
-                        {dt} | AGENTS: <span className="text-white">{m.playerCount}</span>
-                        {' | '}ROUNDS: <span className="text-white">{m.totalRounds || '—'}</span>
-                        {' | '}⏱ <span className="text-white">{duration}</span>
-                      </p>
-                    </div>
-                    <span className={`text-xs font-mono uppercase tracking-[0.2em] px-3 py-1 border ${
-                      m.winner === 'MAFIA' 
-                        ? 'text-[#8A0303] border-[#8A0303]/30' 
-                        : 'text-[#C5A059] border-[#C5A059]/30'
-                    }`}>
-                      {m.winner === 'MAFIA' ? '🔴 MAFIA' : '🟡 CITIZEN'}
-                    </span>
-                  </motion.button>
+                  <div key={s.id}>
+                    <motion.button
+                      whileHover={{ scale: 1.01 }}
+                      whileTap={{ scale: 0.99 }}
+                      onClick={async () => {
+                        if (isExpanded) {
+                          setSelectedMatch(null);
+                        } else {
+                          // جلب ألعاب الغرفة
+                          try {
+                            const res = await fetch(`/api/game/session-history/${s.id}`);
+                            const data = await res.json();
+                            if (data.success) {
+                              setSelectedMatch({ sessionId: s.id, sessionName: s.sessionName, matches: data.matches || [] });
+                            }
+                          } catch (err) {
+                            console.error('Failed to fetch session matches:', err);
+                          }
+                        }
+                      }}
+                      className={`noir-card p-5 w-full flex items-center justify-between text-right transition-all ${
+                        isExpanded ? 'border-[#C5A059]/40' : 'border-[#1a1a1a] opacity-70 hover:opacity-100 hover:border-[#555]/40'
+                      }`}
+                    >
+                      <div>
+                        <h3 className="font-black text-white text-lg" style={{ fontFamily: 'Amiri, serif' }}>{s.sessionName}</h3>
+                        <p className="text-[#555] text-[10px] mt-1.5 font-mono tracking-widest uppercase">
+                          {dt && <>{dt} | </>}
+                          CODE: <span className="text-[#C5A059]">{s.sessionCode}</span>
+                          {' | '}MATCHES: <span className="text-white">{s.matchCount}</span>
+                          {' | '}⏱ <span className="text-white">{totalMins > 0 ? `${totalMins}m` : '—'}</span>
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {s.lastWinner && (
+                          <span className={`text-xs font-mono uppercase tracking-[0.2em] px-3 py-1 border ${
+                            s.lastWinner === 'MAFIA' 
+                              ? 'text-[#8A0303] border-[#8A0303]/30' 
+                              : 'text-[#C5A059] border-[#C5A059]/30'
+                          }`}>
+                            {s.lastWinner === 'MAFIA' ? '🔴' : '🟡'}
+                          </span>
+                        )}
+                        <span className="text-[#555] text-xs font-mono">{isExpanded ? '▼' : '▶'}</span>
+                      </div>
+                    </motion.button>
+
+                    {/* ألعاب الغرفة (expandable) */}
+                    <AnimatePresence>
+                      {isExpanded && selectedMatch?.matches && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="border border-t-0 border-[#2a2a2a] rounded-b-lg bg-[#050505]">
+                            {/* Header */}
+                            <div className="grid grid-cols-[50px_1fr_70px_70px] bg-[#0a0a0a] border-b border-[#2a2a2a] px-3 py-2">
+                              <span className="text-[8px] font-mono text-[#555] uppercase tracking-widest">#</span>
+                              <span className="text-[8px] font-mono text-[#555] uppercase tracking-widest">WINNER</span>
+                              <span className="text-[8px] font-mono text-[#555] uppercase tracking-widest text-center">TIME</span>
+                              <span className="text-[8px] font-mono text-[#555] uppercase tracking-widest text-center">DETAIL</span>
+                            </div>
+
+                            {selectedMatch.matches.length === 0 ? (
+                              <p className="text-[#555] text-xs font-mono text-center py-4">لا توجد ألعاب مسجلة</p>
+                            ) : (
+                              selectedMatch.matches.map((m: any) => {
+                                const mins = m.durationSeconds ? Math.floor(m.durationSeconds / 60) : 0;
+                                const secs = m.durationSeconds ? m.durationSeconds % 60 : 0;
+                                const isMafiaWin = m.winner === 'MAFIA';
+
+                                return (
+                                  <div key={m.id} className="grid grid-cols-[50px_1fr_70px_70px] items-center px-3 py-2 border-b border-[#1a1a1a] hover:bg-[#0a0a0a] transition-colors">
+                                    <span className="text-[#C5A059] font-mono text-xs">#{m.id}</span>
+                                    <span className={`text-xs font-mono font-bold uppercase ${isMafiaWin ? 'text-[#8A0303]' : 'text-[#2E5C31]'}`}>
+                                      {isMafiaWin ? '🩸 MAFIA' : '⚖️ CITIZENS'}
+                                    </span>
+                                    <span className="text-[#808080] font-mono text-xs text-center">
+                                      {m.durationSeconds ? `${mins}:${secs.toString().padStart(2, '0')}` : '--:--'}
+                                    </span>
+                                    <button
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        handleViewMatch(m.id);
+                                      }}
+                                      className="text-[10px] font-mono uppercase tracking-widest px-2 py-1 rounded border bg-[#111] border-[#2a2a2a] text-[#808080] hover:text-[#C5A059] hover:border-[#C5A059]/30 transition-all"
+                                    >
+                                      👁 عرض
+                                    </button>
+                                  </div>
+                                );
+                              })
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 );
               })}
             </div>
           </motion.div>
         )}
 
-        {/* ── مودال ملخص المباراة ── */}
+        {/* ── مودال ملخص المباراة (يظهر من داخل session أو عند الضغط على عرض) ── */}
         <AnimatePresence>
-          {selectedMatch && (
+          {selectedMatch?.id && selectedMatch?.players && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

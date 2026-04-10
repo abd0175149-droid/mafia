@@ -175,5 +175,17 @@ router.get('/session-history/:sessionId', async (req: Request, res: Response) =>
   }
 });
 
+// ── GET /api/game/closed-sessions ───────────────────
+// قائمة الغرف المنتهية مع عدد ألعاب كل غرفة
+router.get('/closed-sessions', async (_req: Request, res: Response) => {
+  try {
+    const { getClosedSessions } = await import('../services/session.service.js');
+    const sessions = await getClosedSessions();
+    res.json({ success: true, sessions });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 export default router;
 
