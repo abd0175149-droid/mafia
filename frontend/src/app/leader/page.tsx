@@ -90,6 +90,10 @@ export default function LeaderPage() {
 
   // Session mode — عرض صفحة الغرفة (Session) بدل اللعبة
   const [inSession, setInSession] = useState(false);
+  const [showSessionAddForm, setShowSessionAddForm] = useState(false);
+  const [sessionAddForm, setSessionAddForm] = useState<{name: string; physicalId: string; phone: string; gender: string}>({
+    name: '', physicalId: '', phone: '', gender: 'MALE',
+  });
 
   // ── Auth Check ──
   useEffect(() => {
@@ -639,6 +643,179 @@ export default function LeaderPage() {
               </div>
             </div>
 
+            {/* تحكم بعدد اللاعبين + إضافة يدوية */}
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+              {/* عدد اللاعبين الأقصى */}
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] font-mono text-[#808080] tracking-widest uppercase">MAX AGENTS</span>
+                <button
+                  onClick={async () => {
+                    const newMax = Math.max(6, gameState.config.maxPlayers - 1);
+                    try {
+                      await emit('room:update-max-players', { roomId: gameState.roomId, maxPlayers: newMax });
+                      setGameState((prev: any) => prev ? { ...prev, config: { ...prev.config, maxPlayers: newMax } } : prev);
+                    } catch {}
+                  }}
+                  className="w-8 h-8 bg-[#050505] border border-[#2a2a2a] text-[#808080] hover:text-white hover:border-[#555] transition-colors font-mono text-sm"
+                >−</button>
+                <span className="text-lg font-mono text-white w-8 text-center">{gameState.config.maxPlayers}</span>
+                <button
+                  onClick={async () => {
+                    const newMax = Math.min(27, gameState.config.maxPlayers + 1);
+                    try {
+                      await emit('room:update-max-players', { roomId: gameState.roomId, maxPlayers: newMax });
+                      setGameState((prev: any) => prev ? { ...prev, config: { ...prev.config, maxPlayers: newMax } } : prev);
+                    } catch {}
+                  }}
+                  className="w-8 h-8 bg-[#050505] border border-[#2a2a2a] text-[#808080] hover:text-white hover:border-[#555] transition-colors font-mono text-sm"
+                >+</button>
+              </div>
+
+              {/* زر إظهار فورم الإضافة */}
+              <button
+                onClick={() => setShowSessionAddForm(!showSessionAddForm)}
+                className="text-[#C5A059] text-xs font-mono uppercase tracking-[0.15em] hover:text-yellow-400 transition-colors border border-[#C5A059]/30 px-4 py-2 hover:border-[#C5A059]"
+              >
+                {showSessionAddForm ? '✕ إلغاء' : '＋ إضافة لاعب'}
+              </button>
+            </div>
+
+            {/* فورم إضافة لاعب يدوياً */}
+            <AnimatePresence>
+              {showSessionAddForm && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mb-6 overflow-hidden"
+                >
+                  <form
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      if (!sessionAddForm.name || !sessionAddForm.physicalId) {
+                        setError('الرجاء إدخال الاسم والرقم');
+                        return;
+                      }
+                      try {
+                        const res = await fetch('/api/leader/force-add-player', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${localStorage.getItem('leader_token') || ''}`,
+                          },
+                          body: JSON.stringify({
+                            roomId: gameState.roomId,
+                            physicalId: Number(sessionAddForm.physicalId),
+                            name: sessionAddForm.name,
+                            phone: sessionAddForm.phone || '',
+                            gender: sessionAddForm.gender,
+                          }),
+                        });
+                        const data = await res.json();
+                        if (!data.success) throw new Error(data.error);
+                        // تحديث الحالة المحلية
+                        setGameState((prev: any) => {
+                          if (!prev) return prev;
+                          const exists = prev.players.find((p: any) => p.physicalId === Number(sessionAddForm.physicalId));
+                          if (exists) {
+                            return {
+                              ...prev,
+                              players: prev.players.map((p: any) =>
+                                p.physicalId === Number(sessionAddForm.physicalId)
+                                  ? { ...p, name: sessionAddForm.name, gender: sessionAddForm.gender }
+                                  : p
+                              ),
+                            };
+                          }
+                          return {
+                            ...prev,
+                            players: [...prev.players, {
+                              physicalId: Number(sessionAddForm.physicalId),
+                              name: sessionAddForm.name,
+                              gender: sessionAddForm.gender,
+                              isAlive: true,
+                            }].sort((a: any, b: any) => a.physicalId - b.physicalId),
+                          };
+                        });
+                        setSessionAddForm({ name: '', physicalId: '', phone: '', gender: 'MALE' });
+                        setError('');
+                      } catch (err: any) {
+                        setError(err.message);
+                      }
+                    }}
+                    className="noir-card p-5 border-[#2a2a2a] space-y-4"
+                  >
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[9px] font-mono text-[#808080] mb-1 tracking-widest uppercase">AGENT #</label>
+                        <input
+                          type="number"
+                          value={sessionAddForm.physicalId}
+                          onChange={(e) => setSessionAddForm(prev => ({ ...prev, physicalId: e.target.value }))}
+                          placeholder="1"
+                          min={1}
+                          max={gameState.config.maxPlayers}
+                          className="w-full p-2.5 bg-[#050505] border border-[#2a2a2a] text-white text-center font-mono focus:border-[#C5A059] focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] font-mono text-[#808080] mb-1 tracking-widest uppercase">NAME</label>
+                        <input
+                          type="text"
+                          value={sessionAddForm.name}
+                          onChange={(e) => setSessionAddForm(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="اسم اللاعب"
+                          className="w-full p-2.5 bg-[#050505] border border-[#2a2a2a] text-white text-center focus:border-[#C5A059] focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[9px] font-mono text-[#808080] mb-1 tracking-widest uppercase">PHONE</label>
+                        <input
+                          type="tel"
+                          value={sessionAddForm.phone}
+                          onChange={(e) => setSessionAddForm(prev => ({ ...prev, phone: e.target.value }))}
+                          placeholder="07XXXXXXXX"
+                          dir="ltr"
+                          className="w-full p-2.5 bg-[#050505] border border-[#2a2a2a] text-white text-center font-mono focus:border-[#C5A059] focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[9px] font-mono text-[#808080] mb-1 tracking-widest uppercase">GENDER</label>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSessionAddForm(prev => ({ ...prev, gender: 'MALE' }))}
+                            className={`flex-1 py-2.5 text-xs font-mono uppercase border transition-all ${
+                              sessionAddForm.gender === 'MALE'
+                                ? 'border-[#C5A059] text-[#C5A059] bg-[#C5A059]/10'
+                                : 'border-[#2a2a2a] text-[#555] hover:border-[#555]'
+                            }`}
+                          >♂ ذكر</button>
+                          <button
+                            type="button"
+                            onClick={() => setSessionAddForm(prev => ({ ...prev, gender: 'FEMALE' }))}
+                            className={`flex-1 py-2.5 text-xs font-mono uppercase border transition-all ${
+                              sessionAddForm.gender === 'FEMALE'
+                                ? 'border-[#C5A059] text-[#C5A059] bg-[#C5A059]/10'
+                                : 'border-[#2a2a2a] text-[#555] hover:border-[#555]'
+                            }`}
+                          >♀ أنثى</button>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="submit"
+                      className="w-full py-3 bg-[#C5A059]/10 border border-[#C5A059]/40 text-[#C5A059] text-xs font-mono uppercase tracking-widest hover:bg-[#C5A059]/20 transition-all"
+                    >
+                      ✓ إضافة اللاعب
+                    </button>
+                  </form>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* قائمة اللاعبين */}
             <div className="mb-8">
               <div className="flex items-center justify-between mb-4">
@@ -649,7 +826,7 @@ export default function LeaderPage() {
 
               {gameState.players.length === 0 ? (
                 <div className="text-center py-12 border border-dashed border-[#2a2a2a] rounded-lg">
-                  <p className="text-[#555] text-sm font-mono">لا يوجد لاعبين — أضف لاعبين باستخدام نظام NFC أو يدوياً</p>
+                  <p className="text-[#555] text-sm font-mono">لا يوجد لاعبين — أضف لاعبين باستخدام الزر أعلاه</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
