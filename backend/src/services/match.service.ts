@@ -19,6 +19,7 @@ export async function createMatch(state: GameState): Promise<number | null> {
 
   try {
     const result = await db.insert(matches).values({
+      sessionId: state.sessionId || null,
       roomId: state.roomId,
       roomCode: state.roomCode,
       gameName: state.config.gameName,

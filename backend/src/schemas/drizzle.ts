@@ -29,10 +29,37 @@ export const users = pgTable('users', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// ── Matches (سجل الجلسات) ─────────────────────────
+// ── Sessions (غرفة الألعاب — الحاوي الأكبر) ──────
+
+export const sessions = pgTable('sessions', {
+  id: serial('id').primaryKey(),
+  sessionCode: varchar('session_code', { length: 6 }).notNull(),
+  displayPin: varchar('display_pin', { length: 6 }),
+  sessionName: varchar('session_name', { length: 100 }).notNull(),
+  maxPlayers: integer('max_players').default(10),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// ── Session Players (لاعبو الغرفة) ────────────────
+
+export const sessionPlayers = pgTable('session_players', {
+  id: serial('id').primaryKey(),
+  sessionId: integer('session_id').references(() => sessions.id).notNull(),
+  physicalId: integer('physical_id').notNull(),
+  playerName: varchar('player_name', { length: 255 }).notNull(),
+  phone: varchar('phone', { length: 20 }),
+  gender: varchar('gender', { length: 10 }).default('MALE'),
+  dateOfBirth: date('date_of_birth'),
+  userId: integer('user_id').references(() => users.id),
+  joinedAt: timestamp('joined_at').defaultNow().notNull(),
+});
+
+// ── Matches (سجل الألعاب) ─────────────────────────
 
 export const matches = pgTable('matches', {
   id: serial('id').primaryKey(),
+  sessionId: integer('session_id').references(() => sessions.id),
   roomId: varchar('room_id', { length: 50 }).notNull(),
   roomCode: varchar('room_code', { length: 6 }).notNull(),
   gameName: varchar('game_name', { length: 100 }).notNull(),

@@ -137,6 +137,8 @@ export interface GameState {
   nurseActivated?: boolean; // هل الليدر فعّل الممرضة في بداية هذا الليل
   startedAt?: string; // وقت بداية اللعبة (عند اعتماد الأدوار)
   matchId?: number; // ID السجل في PostgreSQL
+  sessionId?: number; // ID الغرفة في PostgreSQL
+  sessionCode?: string; // كود الغرفة الثابت
   createdAt: string;
 }
 

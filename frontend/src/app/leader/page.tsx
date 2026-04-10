@@ -84,6 +84,10 @@ export default function LeaderPage() {
   const [selectedMatch, setSelectedMatch] = useState<any>(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
+  // New game exclude UI
+  const [excludedPlayers, setExcludedPlayers] = useState<number[]>([]);
+  const [showExcludeUI, setShowExcludeUI] = useState(false);
+
   // ── Auth Check ──
   useEffect(() => {
     const token = localStorage.getItem('leader_token');
@@ -492,18 +496,6 @@ export default function LeaderPage() {
         displayPin: displayPin || undefined,
       });
 
-      // تجهيز اللاعبين الافتراضيين محلياً
-      const autoPlayers = Array.from({ length: maxPlayers }, (_, i) => ({
-        physicalId: i + 1,
-        name: `لاعب ${i + 1}`,
-        phone: '0700000000',
-        dob: '2000-01-01',
-        gender: 'MALE',
-        isAlive: true,
-        isSilenced: false,
-        justificationCount: 0,
-      }));
-
       setGameState({
         roomId: response.roomId,
         roomCode: response.roomCode,
@@ -513,7 +505,7 @@ export default function LeaderPage() {
           maxPlayers,
           displayPin: response.displayPin || '',
         },
-        players: autoPlayers,
+        players: [],
         rolesPool: [],
       });
 
@@ -742,34 +734,103 @@ export default function LeaderPage() {
               </p>
 
               {/* شبكة كروت مصغرة — المراجعة النهائية لليدر */}
-              <div className="flex flex-wrap justify-center gap-3">
+              <div className="flex flex-wrap justify-center gap-3 mb-8">
                 {gameState.players.map((p: any) => (
-                  <MafiaCard
-                    key={p.physicalId}
-                    playerNumber={p.physicalId}
-                    playerName={p.name}
-                    role={p.role}
-                    isFlipped={true}
-                    flippable={false}
-                    isAlive={p.isAlive}
-                    size="sm"
-                  />
+                  <div key={p.physicalId} className="relative">
+                    <MafiaCard
+                      playerNumber={p.physicalId}
+                      playerName={p.name}
+                      role={p.role}
+                      isFlipped={true}
+                      flippable={false}
+                      isAlive={p.isAlive}
+                      size="sm"
+                    />
+                    {/* زر الاستبعاد */}
+                    {showExcludeUI && (
+                      <button
+                        onClick={() => setExcludedPlayers(prev => 
+                          prev.includes(p.physicalId) 
+                            ? prev.filter(id => id !== p.physicalId) 
+                            : [...prev, p.physicalId]
+                        )}
+                        className={`absolute -top-2 -right-2 w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all z-10 ${
+                          excludedPlayers.includes(p.physicalId)
+                            ? 'bg-[#8A0303] border-[#8A0303] text-white'
+                            : 'bg-[#111] border-[#555] text-[#555] hover:border-[#8A0303]'
+                        }`}
+                      >
+                        {excludedPlayers.includes(p.physicalId) ? '✕' : '−'}
+                      </button>
+                    )}
+                    {excludedPlayers.includes(p.physicalId) && showExcludeUI && (
+                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                        <span className="text-[#8A0303] text-xs font-mono uppercase">مستبعد</span>
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
 
-              {/* زر إعادة تشغيل اللعبة */}
-              <button
-                onClick={async () => {
-                  try {
-                    await emit('game:restart', { roomId: gameState.roomId });
-                  } catch (err: any) {
-                    setError(err.message);
-                  }
-                }}
-                className="btn-premium mt-10 !px-10 !py-4 !text-base tracking-widest uppercase"
-              >
-                <span>🔄 لعبة جديدة</span>
-              </button>
+              {/* أزرار التحكم */}
+              <div className="flex flex-col items-center gap-4">
+                {/* زر إظهار/إخفاء واجهة الاستبعاد */}
+                <button
+                  onClick={() => {
+                    setShowExcludeUI(!showExcludeUI);
+                    if (showExcludeUI) setExcludedPlayers([]);
+                  }}
+                  className="text-[#555] text-xs font-mono uppercase tracking-[0.15em] hover:text-[#C5A059] transition-colors border border-[#2a2a2a] px-4 py-2 hover:border-[#C5A059]"
+                >
+                  {showExcludeUI ? '✕ إلغاء الاستبعاد' : '👥 استبعاد لاعبين'}
+                </button>
+
+                {showExcludeUI && excludedPlayers.length > 0 && (
+                  <p className="text-[#8A0303] text-xs font-mono">
+                    سيتم استبعاد {excludedPlayers.length} لاعب من اللعبة الجديدة
+                  </p>
+                )}
+
+                {/* زر لعبة جديدة */}
+                <button
+                  onClick={async () => {
+                    try {
+                      const res = await emit('room:new-game', { 
+                        roomId: gameState.roomId,
+                        excludePlayerIds: excludedPlayers,
+                      });
+                      if (res.success) {
+                        setGameState({
+                          roomId: res.roomId,
+                          roomCode: res.roomCode,
+                          phase: 'LOBBY',
+                          config: {
+                            gameName: gameState.config.gameName,
+                            maxPlayers: gameState.config.maxPlayers,
+                            displayPin: res.displayPin || gameState.config.displayPin,
+                          },
+                          players: (res.players || []).map((p: any) => ({
+                            ...p,
+                            isAlive: true,
+                            isSilenced: false,
+                            role: null,
+                          })),
+                          rolesPool: [],
+                          winner: undefined,
+                        });
+                        setExcludedPlayers([]);
+                        setShowExcludeUI(false);
+                        fetchActiveGames();
+                      }
+                    } catch (err: any) {
+                      setError(err.message);
+                    }
+                  }}
+                  className="btn-premium !px-10 !py-4 !text-base tracking-widest uppercase"
+                >
+                  <span>🔄 لعبة جديدة ({gameState.players.length - excludedPlayers.length} لاعب)</span>
+                </button>
+              </div>
             </div>
           )}
 

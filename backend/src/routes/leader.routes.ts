@@ -164,6 +164,13 @@ router.post('/force-add-player', requireLeader, async (req, res) => {
     const state = await addPlayer(roomId, Number(physicalId), name, phone || '0700000000');
     await updatePlayer(roomId, Number(physicalId), { dob, gender });
 
+    // حفظ اللاعب في الـ Session (PostgreSQL)
+    const fullState = await getRoom(roomId);
+    if (fullState?.sessionId) {
+      const { addPlayerToSession } = await import('../services/session.service.js');
+      await addPlayerToSession(fullState.sessionId, Number(physicalId), name, phone, gender, dob);
+    }
+
     const room = activeRooms.get(roomId);
     if (room) {
       room.playerCount = state.players.length;

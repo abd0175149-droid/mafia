@@ -8,6 +8,7 @@ import { createRoom, addPlayer, updatePlayer, updateRoom, getRoom, getRoomByCode
 import { generateRoles, validateRoleDistribution, Role } from '../game/roles.js';
 import { getGameState, setGameState } from '../config/redis.js';
 import { createMatch } from '../services/match.service.js';
+import { createSession, addPlayerToSession, getSessionPlayers } from '../services/session.service.js';
 
 export const activeRooms: Map<string, { roomId: string; roomCode: string; gameName: string; playerCount: number; maxPlayers: number; displayPin: string }> = new Map();
 
@@ -66,11 +67,15 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
         data.displayPin,
       );
 
-      // تجهيز كروت اللاعبين تلقائياً بأسماء افتراضية
-      for (let i = 1; i <= maxPlayers; i++) {
-        await addPlayer(state.roomId, i, `لاعب ${i}`, `0700000000`, null);
-        await updatePlayer(state.roomId, i, { gender: 'MALE', dob: '2000-01-01' });
+      // إنشاء Session في PostgreSQL
+      const sessionId = await createSession(gameName, state.roomCode, state.config.displayPin, maxPlayers);
+      if (sessionId) {
+        state.sessionId = sessionId;
+        state.sessionCode = state.roomCode;
+        await setGameState(state.roomId, state);
       }
+
+      // لا يتم إنشاء لاعبين افتراضيين — الليدر يضيفهم يدوياً
 
       socket.join(state.roomId);
       socket.data.role = 'leader';
@@ -81,22 +86,10 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
         roomId: state.roomId,
         roomCode: state.roomCode,
         gameName,
-        playerCount: maxPlayers,
+        playerCount: 0,
         maxPlayers,
         displayPin: state.config.displayPin,
       });
-
-      // إرسال حدث انضمام كل لاعب للواجهات
-      const updatedState = await getRoom(state.roomId);
-      for (let i = 1; i <= maxPlayers; i++) {
-        const playerData = updatedState?.players.find(p => p.physicalId === i);
-        io.to(state.roomId).emit('room:player-joined', {
-          physicalId: i,
-          name: `لاعب ${i}`,
-          totalPlayers: i,
-          gender: playerData?.gender || 'MALE',
-        });
-      }
 
       callback({
         success: true,
@@ -104,8 +97,9 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
         roomCode: state.roomCode,
         displayPin: state.config.displayPin,
         gameName,
+        sessionId: sessionId || undefined,
       });
-      console.log(`🏠 Room created: ${state.roomId} (code: ${state.roomCode}, name: ${gameName}) with ${maxPlayers} auto-players`);
+      console.log(`🏠 Room created: ${state.roomId} (code: ${state.roomCode}, session: #${sessionId}) — empty, max ${maxPlayers}`);
     } catch (err: any) {
       callback({ success: false, error: err.message });
     }
@@ -625,6 +619,83 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
 
       callback({ success: true });
       console.log(`🔒 Room closed manually: ${data.roomId}`);
+    } catch (err: any) {
+      callback({ success: false, error: err.message });
+    }
+  });
+
+  // ── لعبة جديدة في نفس الغرفة (Session) ────────────
+  socket.on('room:new-game', async (data: { 
+    roomId: string; 
+    excludePlayerIds?: number[]; // لاعبين مستبعدين من اللعبة الجديدة
+  }, callback) => {
+    try {
+      if (socket.data.role !== 'leader') {
+        return callback({ success: false, error: 'Only leader' });
+      }
+
+      const oldState = await getGameState(data.roomId);
+      if (!oldState) return callback({ success: false, error: 'Room not found' });
+
+      const excludeIds = data.excludePlayerIds || [];
+
+      // جلب اللاعبين المشاركين (كل اللاعبين معدا المستبعدين)
+      const activePlayers = oldState.players.filter(p => !excludeIds.includes(p.physicalId));
+
+      // إعادة تعيين جميع اللاعبين
+      const resetPlayers = activePlayers.map(p => ({
+        ...p,
+        isAlive: true,
+        isSilenced: false,
+        role: null,
+        justificationCount: 0,
+      }));
+
+      // إنشاء غرفة جديدة في Redis بنفس الإعدادات
+      const newState = await createRoom(
+        oldState.config.gameName,
+        oldState.config.maxPlayers,
+        oldState.config.maxJustifications,
+        oldState.config.displayPin,
+      );
+
+      // نقل اللاعبين للغرفة الجديدة
+      newState.players = resetPlayers;
+      newState.sessionId = oldState.sessionId;
+      newState.sessionCode = oldState.sessionCode;
+      await setGameState(newState.roomId, newState);
+
+      // تحديث الغرف النشطة
+      activeRooms.delete(data.roomId);
+      activeRooms.set(newState.roomId, {
+        roomId: newState.roomId,
+        roomCode: newState.roomCode,
+        gameName: newState.config.gameName,
+        playerCount: resetPlayers.length,
+        maxPlayers: newState.config.maxPlayers,
+        displayPin: newState.config.displayPin,
+      });
+
+      // انضمام الليدر للغرفة الجديدة
+      socket.leave(data.roomId);
+      socket.join(newState.roomId);
+      socket.data.roomId = newState.roomId;
+
+      // إخبار شاشة العرض واللاعبين بالغرفة الجديدة
+      io.to(data.roomId).emit('game:new-room', {
+        newRoomId: newState.roomId,
+        newRoomCode: newState.roomCode,
+      });
+
+      callback({
+        success: true,
+        roomId: newState.roomId,
+        roomCode: newState.roomCode,
+        displayPin: newState.config.displayPin,
+        players: resetPlayers,
+      });
+
+      console.log(`🔄 New game in session #${oldState.sessionId}: ${newState.roomId} with ${resetPlayers.length} players`);
     } catch (err: any) {
       callback({ success: false, error: err.message });
     }
