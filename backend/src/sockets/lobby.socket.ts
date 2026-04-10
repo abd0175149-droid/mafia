@@ -6,6 +6,8 @@
 import { Server, Socket } from 'socket.io';
 import { createRoom, addPlayer, updatePlayer, updateRoom, getRoom, getRoomByCode, bindRole, unbindRole, setPhase, Phase } from '../game/state.js';
 import { generateRoles, validateRoleDistribution, Role } from '../game/roles.js';
+import { getGameState, setGameState } from '../config/redis.js';
+import { createMatch } from '../services/match.service.js';
 
 export const activeRooms: Map<string, { roomId: string; roomCode: string; gameName: string; playerCount: number; maxPlayers: number; displayPin: string }> = new Map();
 
@@ -565,6 +567,13 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
         Object.assign(state, await getRoom(data.roomId));
         console.log(`🤖 Auto-bound ${unboundPlayers.length} citizens in room ${data.roomId}`);
       }
+
+      // ── حفظ وقت البداية + إنشاء سجل المباراة في PostgreSQL ──
+      state.startedAt = new Date().toISOString();
+      state.round = 1;
+      const matchId = await createMatch(state);
+      if (matchId) state.matchId = matchId;
+      await setGameState(data.roomId, state);
 
       await setPhase(data.roomId, Phase.DAY_DISCUSSION);
       io.to(data.roomId).emit('game:phase-changed', { phase: Phase.DAY_DISCUSSION });

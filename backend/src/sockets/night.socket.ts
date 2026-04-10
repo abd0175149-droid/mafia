@@ -9,6 +9,7 @@ import { getGameState, setGameState } from '../config/redis.js';
 import { resolveNight, resetNightActions, getAvailableTargets } from '../game/night-resolver.js';
 import { Role, NIGHT_ACTIVE_ROLES, isMafiaRole } from '../game/roles.js';
 import { WinResult } from '../game/win-checker.js';
+import { finalizeMatch } from '../services/match.service.js';
 
 // ── ترتيب الطابور الإجباري (حسب الإجراء وليس الدور) ──
 // الخانة 0: اغتيال (وراثة: شيخ → حرباية → قص → مافيا عادي)
@@ -380,6 +381,9 @@ export function registerNightEvents(io: Server, socket: Socket) {
       // مسح pendingWinner
       state.pendingWinner = null;
       await setGameState(data.roomId, state);
+
+      // حفظ نتيجة المباراة في PostgreSQL
+      await finalizeMatch(state);
 
       callback({ success: true });
     } catch (err: any) {

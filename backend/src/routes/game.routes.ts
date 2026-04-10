@@ -1,11 +1,7 @@
-// ══════════════════════════════════════════════════════
-// 🎮 مسارات الألعاب (Game Routes) - REST API
-// لجلب الألعاب النشطة + التحقق من PIN + حالة اللعبة
-// ══════════════════════════════════════════════════════
-
 import { Router, Request, Response } from 'express';
 import { getActiveRooms } from '../sockets/lobby.socket.js';
 import { getRoom, getRoomByCode } from '../game/state.js';
+import { getFinishedMatches, getMatchDetails } from '../services/match.service.js';
 
 const router = Router();
 
@@ -132,4 +128,36 @@ router.get('/leader-rooms', (_req: Request, res: Response) => {
   res.json({ success: true, rooms });
 });
 
+// ── GET /api/game/history ───────────────────────────
+// قائمة الألعاب المنتهية
+router.get('/history', async (_req: Request, res: Response) => {
+  try {
+    const matches = await getFinishedMatches();
+    res.json({ success: true, matches });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ── GET /api/game/history/:matchId ──────────────────
+// ملخص لعبة محددة مع اللاعبين
+router.get('/history/:matchId', async (req: Request, res: Response) => {
+  try {
+    const matchId = parseInt(req.params.matchId);
+    if (isNaN(matchId)) {
+      return res.status(400).json({ success: false, error: 'matchId غير صالح' });
+    }
+
+    const details = await getMatchDetails(matchId);
+    if (!details) {
+      return res.status(404).json({ success: false, error: 'المباراة غير موجودة' });
+    }
+
+    res.json({ success: true, match: details });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 export default router;
+

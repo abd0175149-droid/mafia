@@ -79,6 +79,11 @@ export default function LeaderPage() {
   const [error, setError] = useState('');
   const [showAdminEliminate, setShowAdminEliminate] = useState(false);
 
+  // Match history
+  const [finishedMatches, setFinishedMatches] = useState<any[]>([]);
+  const [selectedMatch, setSelectedMatch] = useState<any>(null);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
   // ── Auth Check ──
   useEffect(() => {
     const token = localStorage.getItem('leader_token');
@@ -122,8 +127,38 @@ export default function LeaderPage() {
   useEffect(() => {
     if (isAuthenticated) {
       fetchActiveGames();
+      fetchHistory();
     }
   }, [isAuthenticated]);
+
+  // ── Fetch finished matches via REST ──
+  const fetchHistory = async () => {
+    setLoadingHistory(true);
+    try {
+      const res = await fetch('/api/game/history');
+      const data = await res.json();
+      if (data.success) {
+        setFinishedMatches(data.matches || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch history:', err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  // ── Fetch match details ──
+  const handleViewMatch = async (matchId: number) => {
+    try {
+      const res = await fetch(`/api/game/history/${matchId}`);
+      const data = await res.json();
+      if (data.success) {
+        setSelectedMatch(data.match);
+      }
+    } catch (err) {
+      console.error('Failed to fetch match details:', err);
+    }
+  };
 
   // ── Listen for player joins and Day events ──
   useEffect(() => {
@@ -882,6 +917,143 @@ export default function LeaderPage() {
 
           {error && <p className="text-[#8A0303] mt-6 text-xs font-mono text-center tracking-widest uppercase">{error}</p>}
         </motion.div>
+
+        {/* ── الألعاب المنتهية ── */}
+        {finishedMatches.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="mt-12 mb-8"
+          >
+            <h2 className="text-xs font-mono tracking-[0.3em] text-[#555] mb-4 uppercase">COMPLETED OPERATIONS ({finishedMatches.length})</h2>
+            <div className="space-y-3">
+              {finishedMatches.map((m: any) => {
+                const mins = m.durationSeconds ? Math.floor(m.durationSeconds / 60) : 0;
+                const secs = m.durationSeconds ? m.durationSeconds % 60 : 0;
+                const duration = m.durationSeconds ? `${mins}:${secs.toString().padStart(2, '0')}` : '—';
+                const dt = m.endedAt ? new Date(m.endedAt).toLocaleDateString('ar-SA', { month: 'short', day: 'numeric' }) : '';
+                return (
+                  <motion.button
+                    key={m.id}
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
+                    onClick={() => handleViewMatch(m.id)}
+                    className="noir-card p-5 w-full flex items-center justify-between text-right hover:border-[#555]/40 transition-all border-[#1a1a1a] opacity-70 hover:opacity-100"
+                  >
+                    <div>
+                      <h3 className="font-black text-[#808080] text-lg" style={{ fontFamily: 'Amiri, serif' }}>{m.gameName}</h3>
+                      <p className="text-[#555] text-[10px] mt-1.5 font-mono tracking-widest uppercase">
+                        {dt} | AGENTS: <span className="text-white">{m.playerCount}</span>
+                        {' | '}ROUNDS: <span className="text-white">{m.totalRounds || '—'}</span>
+                        {' | '}⏱ <span className="text-white">{duration}</span>
+                      </p>
+                    </div>
+                    <span className={`text-xs font-mono uppercase tracking-[0.2em] px-3 py-1 border ${
+                      m.winner === 'MAFIA' 
+                        ? 'text-[#8A0303] border-[#8A0303]/30' 
+                        : 'text-[#C5A059] border-[#C5A059]/30'
+                    }`}>
+                      {m.winner === 'MAFIA' ? '🔴 MAFIA' : '🟡 CITIZEN'}
+                    </span>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+
+        {/* ── مودال ملخص المباراة ── */}
+        <AnimatePresence>
+          {selectedMatch && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+              onClick={() => setSelectedMatch(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                onClick={e => e.stopPropagation()}
+                className="noir-card p-8 max-w-lg w-full max-h-[80vh] overflow-y-auto border-[#2a2a2a]"
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#2a2a2a]">
+                  <div>
+                    <h3 className="text-2xl font-black text-white" style={{ fontFamily: 'Amiri, serif' }}>{selectedMatch.gameName}</h3>
+                    <p className="text-[#555] text-[10px] font-mono tracking-widest uppercase mt-1">
+                      CODE: {selectedMatch.roomCode} | ⏱ {selectedMatch.durationFormatted}
+                    </p>
+                  </div>
+                  <span className={`text-sm font-mono font-black px-4 py-2 border ${
+                    selectedMatch.winner === 'MAFIA'
+                      ? 'text-[#8A0303] border-[#8A0303]/40 bg-[#8A0303]/10'
+                      : 'text-[#C5A059] border-[#C5A059]/40 bg-[#C5A059]/10'
+                  }`}>
+                    {selectedMatch.winner === 'MAFIA' ? '🔴 فوز المافيا' : '🟡 فوز المدينة'}
+                  </span>
+                </div>
+
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-4 mb-6">
+                  <div className="text-center p-3 bg-[#0a0a0a] border border-[#1a1a1a]">
+                    <div className="text-2xl font-black text-white font-mono">{selectedMatch.playerCount}</div>
+                    <div className="text-[8px] font-mono text-[#555] tracking-widest uppercase mt-1">AGENTS</div>
+                  </div>
+                  <div className="text-center p-3 bg-[#0a0a0a] border border-[#1a1a1a]">
+                    <div className="text-2xl font-black text-white font-mono">{selectedMatch.totalRounds || '—'}</div>
+                    <div className="text-[8px] font-mono text-[#555] tracking-widest uppercase mt-1">ROUNDS</div>
+                  </div>
+                  <div className="text-center p-3 bg-[#0a0a0a] border border-[#1a1a1a]">
+                    <div className="text-2xl font-black text-white font-mono">{selectedMatch.durationFormatted}</div>
+                    <div className="text-[8px] font-mono text-[#555] tracking-widest uppercase mt-1">DURATION</div>
+                  </div>
+                </div>
+
+                {/* Players */}
+                {selectedMatch.players && (
+                  <div>
+                    <h4 className="text-[10px] font-mono tracking-[0.3em] text-[#555] mb-3 uppercase">AGENT ROSTER</h4>
+                    <div className="space-y-2">
+                      {selectedMatch.players.map((p: any) => (
+                        <div
+                          key={p.physicalId}
+                          className={`flex items-center justify-between px-4 py-2.5 border ${
+                            p.team === 'MAFIA' ? 'border-[#8A0303]/20 bg-[#8A0303]/5' : 'border-[#2a2a2a] bg-[#050505]'
+                          } ${!p.survivedToEnd ? 'opacity-40' : ''}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm font-mono text-[#555] w-6">#{p.physicalId}</span>
+                            <span className={`font-bold text-sm ${
+                              p.survivedToEnd ? 'text-white' : 'text-[#555] line-through'
+                            }`}>{p.playerName}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[9px] font-mono tracking-widest uppercase px-2 py-0.5 border ${
+                              p.team === 'MAFIA' ? 'text-[#8A0303] border-[#8A0303]/30' : 'text-[#C5A059] border-[#C5A059]/30'
+                            }`}>{p.role}</span>
+                            {!p.survivedToEnd && <span className="text-[#8A0303] text-xs">💀</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Close */}
+                <button
+                  onClick={() => setSelectedMatch(null)}
+                  className="w-full mt-6 py-3 text-[#555] text-xs font-mono uppercase tracking-[0.2em] hover:text-white transition-colors border border-[#2a2a2a] hover:border-[#555]"
+                >
+                  [ CLOSE REPORT ]
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* رجوع */}
         <div className="text-center mt-12 mb-8">

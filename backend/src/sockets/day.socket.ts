@@ -18,6 +18,7 @@ import {
 import { checkWinCondition, WinResult } from '../game/win-checker.js';
 import { isMafiaRole } from '../game/roles.js';
 import { getGameState, setGameState } from '../config/redis.js';
+import { finalizeMatch } from '../services/match.service.js';
 
 export function registerDayEvents(io: Server, socket: Socket) {
 
@@ -648,6 +649,8 @@ export function registerDayEvents(io: Server, socket: Socket) {
           winner,
           players: state.players,
         });
+        // حفظ نتيجة المباراة في PostgreSQL
+        await finalizeMatch(state);
       }
 
       console.log(`⚠️ Admin eliminated player #${data.physicalId} (${player.name})`);

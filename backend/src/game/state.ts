@@ -135,6 +135,8 @@ export interface GameState {
   winner: 'MAFIA' | 'CITIZEN' | null;
   pendingWinner?: string | null; // فوز مُعلّق (ينتظر تأكيد الليدر بعد ملخص الصباح)
   nurseActivated?: boolean; // هل الليدر فعّل الممرضة في بداية هذا الليل
+  startedAt?: string; // وقت بداية اللعبة (عند اعتماد الأدوار)
+  matchId?: number; // ID السجل في PostgreSQL
   createdAt: string;
 }
 
