@@ -88,6 +88,9 @@ export default function LeaderPage() {
   const [excludedPlayers, setExcludedPlayers] = useState<number[]>([]);
   const [showExcludeUI, setShowExcludeUI] = useState(false);
 
+  // Session mode — عرض صفحة الغرفة (Session) بدل اللعبة
+  const [inSession, setInSession] = useState(false);
+
   // ── Auth Check ──
   useEffect(() => {
     const token = localStorage.getItem('leader_token');
@@ -508,6 +511,7 @@ export default function LeaderPage() {
         players: [],
         rolesPool: [],
       });
+      setInSession(true); // الانتقال لصفحة الغرفة
 
       // تحديث القائمة
       fetchActiveGames();
@@ -544,6 +548,7 @@ export default function LeaderPage() {
           justificationData: data.state.justificationData,
           pendingResolution: data.state.pendingResolution,
           round: data.state.round,
+          winner: data.state.winner,
         });
 
         // Join socket room
@@ -574,6 +579,192 @@ export default function LeaderPage() {
       setError(err.message);
     }
   };
+
+  // ══════════════════════════════════════════════════
+  // صفحة الغرفة (Session View)
+  // ══════════════════════════════════════════════════
+  if (gameState && inSession) {
+    return (
+      <div className="display-bg min-h-screen font-sans relative overflow-hidden blood-vignette selection:bg-[#8A0303] selection:text-white flex flex-col">
+        <div className="relative z-10 w-full h-full flex flex-col flex-1">
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[#2a2a2a]/60 bg-[#050505]/70 backdrop-blur-sm shrink-0">
+            <div className="flex items-center gap-3">
+              <Image src="/mafia_logo.png" alt="Mafia" width={36} height={36} className="w-[32px] h-[32px] drop-shadow-[0_0_10px_rgba(138,3,3,0.3)]" priority />
+              <div className="flex flex-col items-start leading-none">
+                <span className="text-base font-black tracking-tight text-[#C5A059]" style={{ fontFamily: 'Amiri, serif' }}>MAFIA</span>
+                <span className="flex justify-between w-full text-[8px] font-light text-[#8A0303]" dir="ltr" style={{ fontFamily: 'Amiri, serif' }}>{'CLUB'.split('').map((l: string, i: number) => <span key={i}>{l}</span>)}</span>
+              </div>
+              <span className="mx-2 text-[#2a2a2a]">|</span>
+              <span className="text-[9px] font-mono uppercase tracking-widest text-[#555]">
+                <span className="text-[#C5A059] font-bold">SESSION</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => { setGameState(null); setInSession(false); }}
+                className="text-[#555] text-[10px] font-mono uppercase tracking-[0.15em] hover:text-white transition-colors border border-[#2a2a2a] px-3 py-1.5 hover:border-[#555]"
+              >
+                ← Return
+              </button>
+              <button
+                onClick={handleCloseRoom}
+                className="text-[#8A0303] text-[10px] font-mono uppercase tracking-[0.15em] hover:text-red-500 transition-colors border border-[#8A0303]/30 px-3 py-1.5 hover:border-[#8A0303]"
+              >
+                ✕ Terminate
+              </button>
+            </div>
+          </div>
+
+          {/* Session Content */}
+          <div className="flex-1 overflow-y-auto p-6">
+            {/* معلومات الغرفة */}
+            <div className="bg-black/40 border border-[#2a2a2a] rounded-xl p-6 mb-8 relative overflow-hidden backdrop-blur-md">
+              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#C5A059]/40 to-transparent opacity-80" />
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-black text-white mb-1" style={{ fontFamily: 'Amiri, serif' }}>
+                    {gameState.config.gameName}
+                  </h2>
+                  <p className="text-[#808080] text-[10px] font-mono tracking-widest uppercase">
+                    CODE: <span className="text-[#C5A059]">{gameState.roomCode}</span>
+                    {' | '}PIN: <span className="text-[#8A0303]">{gameState.config.displayPin}</span>
+                    {' | '}AGENTS: <span className="text-white">{gameState.players.length}</span>/{gameState.config.maxPlayers}
+                  </p>
+                </div>
+                <div className={`flex items-center gap-2`}>
+                  <div className={`w-2 h-2 ${isConnected ? 'bg-[#2E5C31] shadow-[0_0_10px_#2E5C31]' : 'bg-[#8A0303]'} animate-pulse`} />
+                  <span className="text-[#555] text-[10px] font-mono uppercase">{isConnected ? 'LIVE' : 'OFFLINE'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* قائمة اللاعبين */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xs font-mono tracking-[0.3em] text-[#555] uppercase">
+                  AGENTS ROSTER ({gameState.players.length})
+                </h3>
+              </div>
+
+              {gameState.players.length === 0 ? (
+                <div className="text-center py-12 border border-dashed border-[#2a2a2a] rounded-lg">
+                  <p className="text-[#555] text-sm font-mono">لا يوجد لاعبين — أضف لاعبين باستخدام نظام NFC أو يدوياً</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                  {gameState.players.map((p: any) => (
+                    <div key={p.physicalId} className="relative">
+                      <MafiaCard
+                        playerNumber={p.physicalId}
+                        playerName={p.name}
+                        role={p.role || ''}
+                        isFlipped={false}
+                        flippable={false}
+                        isAlive={true}
+                        size="sm"
+                      />
+                      {/* زر استبعاد من اللعبة القادمة */}
+                      {showExcludeUI && (
+                        <button
+                          onClick={() => setExcludedPlayers(prev => 
+                            prev.includes(p.physicalId) 
+                              ? prev.filter((id: number) => id !== p.physicalId) 
+                              : [...prev, p.physicalId]
+                          )}
+                          className={`absolute -top-2 -right-2 w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all z-10 ${
+                            excludedPlayers.includes(p.physicalId)
+                              ? 'bg-[#8A0303] border-[#8A0303] text-white'
+                              : 'bg-[#111] border-[#555] text-[#555] hover:border-[#8A0303]'
+                          }`}
+                        >
+                          {excludedPlayers.includes(p.physicalId) ? '✕' : '−'}
+                        </button>
+                      )}
+                      {excludedPlayers.includes(p.physicalId) && showExcludeUI && (
+                        <div className="absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center">
+                          <span className="text-[#8A0303] text-xs font-mono uppercase">مستبعد</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* أزرار التحكم */}
+            <div className="flex flex-col items-center gap-4 mb-8">
+              {gameState.players.length > 0 && (
+                <button
+                  onClick={() => {
+                    setShowExcludeUI(!showExcludeUI);
+                    if (showExcludeUI) setExcludedPlayers([]);
+                  }}
+                  className="text-[#555] text-xs font-mono uppercase tracking-[0.15em] hover:text-[#C5A059] transition-colors border border-[#2a2a2a] px-4 py-2 hover:border-[#C5A059]"
+                >
+                  {showExcludeUI ? '✕ إلغاء الاستبعاد' : '👥 استبعاد لاعبين'}
+                </button>
+              )}
+
+              {showExcludeUI && excludedPlayers.length > 0 && (
+                <p className="text-[#8A0303] text-xs font-mono">
+                  سيتم استبعاد {excludedPlayers.length} لاعب من اللعبة الجديدة
+                </p>
+              )}
+
+              {/* زر بدء اللعبة */}
+              <button
+                onClick={async () => {
+                  if (gameState.players.length < 6) {
+                    setError('يجب إضافة 6 لاعبين على الأقل');
+                    return;
+                  }
+                  // إذا عندنا لاعبين مستبعدين → ننشئ لعبة جديدة بدونهم
+                  if (excludedPlayers.length > 0) {
+                    try {
+                      const res = await emit('room:new-game', {
+                        roomId: gameState.roomId,
+                        excludePlayerIds: excludedPlayers,
+                      });
+                      if (res.success) {
+                        setGameState({
+                          roomId: res.roomId,
+                          roomCode: res.roomCode,
+                          phase: 'LOBBY',
+                          config: {
+                            gameName: gameState.config.gameName,
+                            maxPlayers: gameState.config.maxPlayers,
+                            displayPin: res.displayPin || gameState.config.displayPin,
+                          },
+                          players: (res.players || []).map((p: any) => ({
+                            ...p, isAlive: true, isSilenced: false, role: null,
+                          })),
+                          rolesPool: [],
+                          winner: undefined,
+                        });
+                      }
+                    } catch (err: any) {
+                      setError(err.message);
+                      return;
+                    }
+                  }
+                  setExcludedPlayers([]);
+                  setShowExcludeUI(false);
+                  setInSession(false); // الانتقال لمنطق اللعبة
+                }}
+                disabled={gameState.players.length - excludedPlayers.length < 6}
+                className="btn-premium !px-12 !py-4 !text-lg tracking-widest uppercase disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span>🎮 بدء لعبة جديدة ({gameState.players.length - excludedPlayers.length} لاعب)</span>
+              </button>
+            </div>
+
+            {error && <p className="text-[#8A0303] mt-2 text-xs font-mono text-center tracking-widest uppercase">{error}</p>}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ══════════════════════════════════════════════════
   // بعد إنشاء / استعادة اللعبة
@@ -774,61 +965,16 @@ export default function LeaderPage() {
 
               {/* أزرار التحكم */}
               <div className="flex flex-col items-center gap-4">
-                {/* زر إظهار/إخفاء واجهة الاستبعاد */}
+                {/* زر العودة للغرفة */}
                 <button
                   onClick={() => {
-                    setShowExcludeUI(!showExcludeUI);
-                    if (showExcludeUI) setExcludedPlayers([]);
-                  }}
-                  className="text-[#555] text-xs font-mono uppercase tracking-[0.15em] hover:text-[#C5A059] transition-colors border border-[#2a2a2a] px-4 py-2 hover:border-[#C5A059]"
-                >
-                  {showExcludeUI ? '✕ إلغاء الاستبعاد' : '👥 استبعاد لاعبين'}
-                </button>
-
-                {showExcludeUI && excludedPlayers.length > 0 && (
-                  <p className="text-[#8A0303] text-xs font-mono">
-                    سيتم استبعاد {excludedPlayers.length} لاعب من اللعبة الجديدة
-                  </p>
-                )}
-
-                {/* زر لعبة جديدة */}
-                <button
-                  onClick={async () => {
-                    try {
-                      const res = await emit('room:new-game', { 
-                        roomId: gameState.roomId,
-                        excludePlayerIds: excludedPlayers,
-                      });
-                      if (res.success) {
-                        setGameState({
-                          roomId: res.roomId,
-                          roomCode: res.roomCode,
-                          phase: 'LOBBY',
-                          config: {
-                            gameName: gameState.config.gameName,
-                            maxPlayers: gameState.config.maxPlayers,
-                            displayPin: res.displayPin || gameState.config.displayPin,
-                          },
-                          players: (res.players || []).map((p: any) => ({
-                            ...p,
-                            isAlive: true,
-                            isSilenced: false,
-                            role: null,
-                          })),
-                          rolesPool: [],
-                          winner: undefined,
-                        });
-                        setExcludedPlayers([]);
-                        setShowExcludeUI(false);
-                        fetchActiveGames();
-                      }
-                    } catch (err: any) {
-                      setError(err.message);
-                    }
+                    setInSession(true);
+                    setExcludedPlayers([]);
+                    setShowExcludeUI(false);
                   }}
                   className="btn-premium !px-10 !py-4 !text-base tracking-widest uppercase"
                 >
-                  <span>🔄 لعبة جديدة ({gameState.players.length - excludedPlayers.length} لاعب)</span>
+                  <span>🏠 العودة للغرفة</span>
                 </button>
               </div>
             </div>

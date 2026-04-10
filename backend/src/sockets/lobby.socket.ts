@@ -360,27 +360,8 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
       state.config.maxPlayers = newMax;
 
       if (newMax > oldMax) {
-        // ⚠️ لازم نحدّث maxPlayers في Redis أولاً قبل addPlayer
-        // لأن addPlayer يقرأ الحالة من Redis ويتحقق من الحد الأقصى
+        // فقط تحديث الإعدادات — لا يتم إنشاء لاعبين افتراضيين
         await updateRoom(data.roomId, { config: state.config });
-
-        // إضافة لاعبين جدد
-        for (let i = oldMax + 1; i <= newMax; i++) {
-          const exists = state.players.find((p: any) => p.physicalId === i);
-          if (!exists) {
-            await addPlayer(state.roomId, i, `لاعب ${i}`, `070000000${i}`, null);
-            io.to(data.roomId).emit('room:player-joined', {
-              physicalId: i,
-              name: `لاعب ${i}`,
-              totalPlayers: oldMax + (i - oldMax),
-              maxPlayers: newMax,
-              gender: 'MALE',
-            });
-          }
-        }
-        // إعادة قراءة الحالة بعد الإضافات
-        const freshState = await getRoom(data.roomId);
-        if (freshState) state.players = freshState.players;
       } else {
         // حذف اللاعبين الزائدين من النهاية
         for (let i = oldMax; i > newMax; i--) {

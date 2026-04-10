@@ -395,6 +395,10 @@ export default function DisplayPage() {
       if (data.state) {
         setPhase(data.state.phase || 'LOBBY');
         setDiscussionState(data.state.discussionState || null);
+        // استعادة حالة الفوز عند الاتصال بلعبة منتهية
+        if (data.state.winner) {
+          setWinner(data.state.winner);
+        }
         if (data.state.players) {
           setPlayers(data.state.players.map((p: any) => ({
             physicalId: p.physicalId,
