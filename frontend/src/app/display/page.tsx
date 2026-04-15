@@ -276,6 +276,12 @@ export default function DisplayPage() {
 
     const onPlayerUpdated = (data: any) => {
       setPlayerCount(data.totalPlayers);
+      // تحديث اسم اللاعب في حالة التعديل من الليدر
+      if (data.physicalId && data.name) {
+        setPlayers(prev => prev.map(p =>
+          p.physicalId === data.physicalId ? { ...p, name: data.name } : p
+        ));
+      }
     };
 
     const onMorningEvent = (data: any) => {

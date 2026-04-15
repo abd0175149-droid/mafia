@@ -236,6 +236,13 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
       }
 
       let state = await getRoom(data.roomId);
+      if (!state) return callback({ success: false, error: 'Room not found' });
+
+      // ✅ السماح بتعديل الاسم فقط قبل توزيع الأدوار
+      if (!data.isNew && state.phase !== Phase.LOBBY && state.phase !== Phase.ROLE_GENERATION) {
+        return callback({ success: false, error: 'لا يمكن تعديل الأسماء بعد توزيع الأدوار' });
+      }
+
       if (data.isNew) {
         state = await addPlayer(data.roomId, data.physicalId, data.name);
       } else {

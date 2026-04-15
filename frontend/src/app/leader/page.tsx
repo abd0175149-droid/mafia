@@ -100,6 +100,11 @@ export default function LeaderPage() {
     name: '', physicalId: '', phone: '', gender: 'MALE',
   });
 
+  // ── حالة تعديل اسم اللاعب (Session View) ──
+  const [sessionEditingId, setSessionEditingId] = useState<number | null>(null);
+  const [sessionEditName, setSessionEditName] = useState('');
+  const [sessionEditLoading, setSessionEditLoading] = useState(false);
+
   // ── Auth Check ──
   useEffect(() => {
     const token = localStorage.getItem('leader_token');
@@ -469,6 +474,21 @@ export default function LeaderPage() {
       });
     });
 
+    // ── تحديث اسم اللاعب (عند تعديله من الليدر) ──
+    const offPlayerUpdated = on('room:player-updated', (data: any) => {
+      if (data.physicalId && data.name) {
+        setGameState(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            players: prev.players.map((p: any) =>
+              p.physicalId === data.physicalId ? { ...p, name: data.name } : p
+            ),
+          };
+        });
+      }
+    });
+
     return () => {
       offConnect();
       offPlayerJoined();
@@ -491,6 +511,7 @@ export default function LeaderPage() {
       offGameOver();
       offGameRestarted();
       offConfigUpdated();
+      offPlayerUpdated();
     };
   }, [on, emit, gameState?.roomId]);
 
@@ -862,7 +883,9 @@ export default function LeaderPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-                  {gameState.players.map((p: any) => (
+                  {gameState.players.map((p: any) => {
+                    const isSessionEditing = sessionEditingId === p.physicalId;
+                    return (
                     <div key={p.physicalId} className="relative group">
                       <MafiaCard
                         playerNumber={p.physicalId}
@@ -874,7 +897,7 @@ export default function LeaderPage() {
                         size="sm"
                       />
                       {/* زر حذف لاعب — يظهر عند hover */}
-                      {!showExcludeUI && (
+                      {!showExcludeUI && !isSessionEditing && (
                         <button
                           onClick={async () => {
                             if (!confirm(`حذف ${p.name} من الغرفة؟`)) return;
@@ -888,6 +911,65 @@ export default function LeaderPage() {
                           title="حذف اللاعب"
                         >✕</button>
                       )}
+                      {/* ✏️ زر تعديل اسم اللاعب — يظهر عند hover في Session View */}
+                      {!showExcludeUI && !isSessionEditing && (
+                        <button
+                          onClick={() => { setSessionEditingId(p.physicalId); setSessionEditName(p.name); }}
+                          className="absolute -top-2 -left-2 w-6 h-6 rounded-full bg-[#1a1a1a] border border-[#C5A059]/50 text-[#C5A059] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#C5A059]/20 hover:scale-110 z-20 text-[10px]"
+                          title="تعديل الاسم"
+                        >
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                        </button>
+                      )}
+                      {/* ✏️ Overlay تعديل الاسم في Session View */}
+                      <AnimatePresence>
+                        {isSessionEditing && (
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-black/90 backdrop-blur-sm rounded-2xl border-2 border-[#C5A059]/50 flex flex-col items-center justify-center p-3 z-30"
+                          >
+                            <span className="text-[#C5A059] text-[8px] font-mono uppercase tracking-widest mb-1.5 font-bold">EDIT NAME</span>
+                            <input
+                              type="text"
+                              value={sessionEditName}
+                              onChange={(e) => setSessionEditName(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && sessionEditName.trim()) {
+                                  setSessionEditLoading(true);
+                                  emit('room:override-player', { roomId: gameState.roomId, physicalId: p.physicalId, name: sessionEditName.trim(), isNew: false })
+                                    .then(() => { setSessionEditingId(null); setSessionEditName(''); })
+                                    .catch((err: any) => setError(err.message))
+                                    .finally(() => setSessionEditLoading(false));
+                                }
+                                if (e.key === 'Escape') { setSessionEditingId(null); setSessionEditName(''); }
+                              }}
+                              autoFocus
+                              className="w-full p-1.5 bg-[#0c0c0c] border border-[#C5A059]/30 rounded text-white text-center text-xs font-mono focus:border-[#C5A059] focus:outline-none mb-2"
+                              dir="rtl"
+                            />
+                            <div className="flex gap-1.5 w-full">
+                              <button
+                                onClick={() => {
+                                  if (!sessionEditName.trim()) return;
+                                  setSessionEditLoading(true);
+                                  emit('room:override-player', { roomId: gameState.roomId, physicalId: p.physicalId, name: sessionEditName.trim(), isNew: false })
+                                    .then(() => { setSessionEditingId(null); setSessionEditName(''); })
+                                    .catch((err: any) => setError(err.message))
+                                    .finally(() => setSessionEditLoading(false));
+                                }}
+                                disabled={sessionEditLoading || !sessionEditName.trim()}
+                                className="flex-1 bg-[#C5A059]/20 border border-[#C5A059] text-[#C5A059] py-1 rounded text-[9px] font-mono hover:bg-[#C5A059]/30 disabled:opacity-40"
+                              >{sessionEditLoading ? '...' : '✓'}</button>
+                              <button
+                                onClick={() => { setSessionEditingId(null); setSessionEditName(''); }}
+                                className="flex-1 bg-zinc-800 border border-zinc-600 text-zinc-300 py-1 rounded text-[9px] font-mono hover:bg-zinc-700"
+                              >✕</button>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                       {/* زر استبعاد من اللعبة القادمة */}
                       {showExcludeUI && (
                         <button
@@ -911,7 +993,8 @@ export default function LeaderPage() {
                         </div>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>

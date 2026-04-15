@@ -16,6 +16,11 @@ export default function LeaderLobbyView({ gameState, emit, setError }: LeaderLob
   const [kickingId, setKickingId] = useState<number | null>(null);
   const [localError, setLocalError] = useState('');
 
+  // ── حالة تعديل اسم اللاعب ──
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
+
   const handleForceAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log('[Frontend] handleForceAdd: 🔘 Clicked submit button. Data:', addForm);
@@ -65,6 +70,26 @@ export default function LeaderLobbyView({ gameState, emit, setError }: LeaderLob
       setKickingId(null);
     } catch (err: any) {
       setError(err.message);
+    }
+  };
+
+  // ── تعديل اسم اللاعب ──
+  const handleRename = async (physicalId: number) => {
+    if (!editName.trim()) return;
+    setEditLoading(true);
+    try {
+      await emit('room:override-player', {
+        roomId: gameState.roomId,
+        physicalId,
+        name: editName.trim(),
+        isNew: false,
+      });
+      setEditingId(null);
+      setEditName('');
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setEditLoading(false);
     }
   };
 
@@ -197,6 +222,7 @@ export default function LeaderLobbyView({ gameState, emit, setError }: LeaderLob
         <div className="grid grid-cols-[repeat(auto-fit,minmax(176px,1fr))] gap-6 justify-items-center">
           {gameState.players.map((player: any, i: number) => {
             const isKicking = kickingId === player.physicalId;
+            const isEditing = editingId === player.physicalId;
 
             return (
               <motion.div
@@ -217,13 +243,24 @@ export default function LeaderLobbyView({ gameState, emit, setError }: LeaderLob
                 />
 
                 {/* زر الحذف يظهر فقط عند التمرير Hover */}
-                {!isKicking && (
+                {!isKicking && !isEditing && (
                   <button
                     onClick={() => setKickingId(player.physicalId)}
                     className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-red-900 border border-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-800 hover:scale-110 z-20 shadow-lg"
                     title="طرد اللاعب"
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                  </button>
+                )}
+
+                {/* ✏️ زر تعديل الاسم — يظهر عند Hover */}
+                {!isKicking && !isEditing && (
+                  <button
+                    onClick={() => { setEditingId(player.physicalId); setEditName(player.name); }}
+                    className="absolute -top-2 -left-2 w-8 h-8 rounded-full bg-[#1a1a1a] border border-[#C5A059]/50 text-[#C5A059] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#C5A059]/20 hover:scale-110 z-20 shadow-lg"
+                    title="تعديل الاسم"
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
                   </button>
                 )}
 
@@ -244,6 +281,47 @@ export default function LeaderLobbyView({ gameState, emit, setError }: LeaderLob
                       <div className="flex gap-2 w-full">
                         <button onClick={() => handleKick(player.physicalId)} className="flex-1 bg-red-900/50 border border-red-500 text-red-200 py-1.5 rounded text-[10px] font-mono hover:bg-red-800">YES</button>
                         <button onClick={() => setKickingId(null)} className="flex-1 bg-zinc-800 border border-zinc-600 text-zinc-300 py-1.5 rounded text-[10px] font-mono hover:bg-zinc-700">NO</button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* ✏️ Overlay تعديل الاسم (فوق الكارد) */}
+                <AnimatePresence>
+                  {isEditing && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 bg-black/90 backdrop-blur-sm rounded-2xl border-2 border-[#C5A059]/50 flex flex-col items-center justify-center p-4 z-30"
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C5A059" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mb-2 opacity-70"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                      <span className="text-[#C5A059] text-[9px] font-mono uppercase tracking-widest mb-2 font-bold">
+                        EDIT NAME
+                      </span>
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleRename(player.physicalId); if (e.key === 'Escape') { setEditingId(null); setEditName(''); } }}
+                        autoFocus
+                        className="w-full p-2 bg-[#0c0c0c] border border-[#C5A059]/30 rounded text-white text-center text-sm font-mono focus:border-[#C5A059] focus:outline-none mb-3"
+                        dir="rtl"
+                      />
+                      <div className="flex gap-2 w-full">
+                        <button
+                          onClick={() => handleRename(player.physicalId)}
+                          disabled={editLoading || !editName.trim()}
+                          className="flex-1 bg-[#C5A059]/20 border border-[#C5A059] text-[#C5A059] py-1.5 rounded text-[10px] font-mono hover:bg-[#C5A059]/30 disabled:opacity-40"
+                        >
+                          {editLoading ? '...' : '✓ SAVE'}
+                        </button>
+                        <button
+                          onClick={() => { setEditingId(null); setEditName(''); }}
+                          className="flex-1 bg-zinc-800 border border-zinc-600 text-zinc-300 py-1.5 rounded text-[10px] font-mono hover:bg-zinc-700"
+                        >
+                          ✕
+                        </button>
                       </div>
                     </motion.div>
                   )}
