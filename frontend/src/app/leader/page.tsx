@@ -628,11 +628,25 @@ export default function LeaderPage() {
 
   const handleCloseRoom = async () => {
     if (!gameState) return;
-    if (!confirm('هل أنت متأكد من إغلاق الغرفة بالكامل؟ سيتم طرد جميع اللاعبين ولن تظهر الغرفة مجدداً.')) return;
+    if (!confirm('هل أنت متأكد من إنهاء اللعبة الحالية؟ سيتم إعادة جميع اللاعبين للغرفة.')) return;
     try {
-      await emit('room:close', { roomId: gameState.roomId });
-      setGameState(null);
-      fetchActiveGames();
+      const res = await emit('room:reset-to-lobby', { roomId: gameState.roomId });
+      if (res.success) {
+        setGameState((prev: any) => prev ? {
+          ...prev,
+          phase: 'LOBBY',
+          winner: undefined,
+          rolesPool: [],
+          votingState: undefined,
+          discussionState: undefined,
+          players: (res.players || prev.players).map((p: any) => ({
+            ...p, isAlive: true, isSilenced: false, role: null,
+          })),
+        } : prev);
+      }
+      setInSession(true);
+      setExcludedPlayers([]);
+      setShowExcludeUI(false);
     } catch (err: any) {
       setError(err.message);
     }
@@ -659,17 +673,20 @@ export default function LeaderPage() {
               </span>
             </div>
             <div className="flex items-center gap-4">
+              {/* زر تعديل الأسماء — Session View */}
+              {gameState.players.length > 0 && (
+                <button
+                  onClick={() => setShowAdminRename(true)}
+                  className="text-[#C5A059] text-[10px] font-mono uppercase tracking-[0.15em] hover:text-yellow-400 transition-colors border border-[#C5A059]/30 px-3 py-1.5 hover:border-[#C5A059]"
+                >
+                  ✏️ تعديل أسماء
+                </button>
+              )}
               <button
                 onClick={() => { setGameState(null); setInSession(false); }}
                 className="text-[#555] text-[10px] font-mono uppercase tracking-[0.15em] hover:text-white transition-colors border border-[#2a2a2a] px-3 py-1.5 hover:border-[#555]"
               >
                 ← Return
-              </button>
-              <button
-                onClick={handleCloseRoom}
-                className="text-[#8A0303] text-[10px] font-mono uppercase tracking-[0.15em] hover:text-red-500 transition-colors border border-[#8A0303]/30 px-3 py-1.5 hover:border-[#8A0303]"
-              >
-                ✕ Terminate
               </button>
             </div>
           </div>
@@ -1144,6 +1161,140 @@ export default function LeaderPage() {
 
             {error && <p className="text-[#8A0303] mt-2 text-xs font-mono text-center tracking-widest uppercase">{error}</p>}
           </div>
+
+          {/* ═══ مودال تعديل الأسماء (Session View) ═══ */}
+          <AnimatePresence>
+            {showAdminRename && (
+              <motion.div
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => { setShowAdminRename(false); setAdminRenameTarget(null); }}
+              >
+                <motion.div
+                  className="noir-card p-6 mx-4 w-full max-w-md border-[#C5A059]/30 relative"
+                  initial={{ scale: 0.9, y: 20 }}
+                  animate={{ scale: 1, y: 0 }}
+                  exit={{ scale: 0.9, y: 20 }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#C5A059]/40 to-transparent" />
+                  
+                  <h3 className="text-xl font-black text-[#C5A059] mb-1 text-center" style={{ fontFamily: 'Amiri, serif' }}>
+                    تعديل الأسماء
+                  </h3>
+                  <p className="text-[#555] text-[10px] font-mono tracking-widest uppercase text-center mb-6">
+                    RENAME AGENTS
+                  </p>
+
+                  {/* شبكة أرقام اللاعبين */}
+                  <div className="grid grid-cols-5 gap-3 mb-6">
+                    {gameState.players.map((p: any) => {
+                      const isTarget = adminRenameTarget?.physicalId === p.physicalId;
+                      return (
+                        <button
+                          key={p.physicalId}
+                          onClick={() => setAdminRenameTarget({ physicalId: p.physicalId, name: p.name })}
+                          className={`flex flex-col items-center gap-1 p-3 bg-[#111] border rounded-lg transition-all group ${
+                            isTarget
+                              ? 'border-[#C5A059] bg-[#C5A059]/10'
+                              : 'border-[#2a2a2a] hover:border-[#C5A059]/50 hover:bg-[#C5A059]/5'
+                          }`}
+                        >
+                          <span className={`text-2xl font-black font-mono transition-colors ${
+                            isTarget ? 'text-[#C5A059]' : 'text-white group-hover:text-[#C5A059]'
+                          }`}>
+                            {p.physicalId}
+                          </span>
+                          <span className={`text-[8px] font-mono truncate max-w-full transition-colors ${
+                            isTarget ? 'text-[#C5A059]/70' : 'text-[#555] group-hover:text-[#C5A059]/50'
+                          }`}>
+                            {p.name}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* حقل تعديل الاسم — يظهر عند اختيار لاعب */}
+                  <AnimatePresence>
+                    {adminRenameTarget && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden mb-4"
+                      >
+                        <div className="bg-[#0a0a0a] border border-[#C5A059]/30 rounded-lg p-4">
+                          <p className="text-[#C5A059] text-[9px] font-mono tracking-widest uppercase mb-2 text-center">
+                            AGENT #{adminRenameTarget.physicalId}
+                          </p>
+                          <input
+                            type="text"
+                            value={adminRenameTarget.name}
+                            onChange={(e) => setAdminRenameTarget(prev => prev ? { ...prev, name: e.target.value } : null)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && adminRenameTarget.name.trim()) {
+                                setAdminRenameLoading(true);
+                                emit('room:override-player', {
+                                  roomId: gameState.roomId,
+                                  physicalId: adminRenameTarget.physicalId,
+                                  name: adminRenameTarget.name.trim(),
+                                  isNew: false,
+                                })
+                                  .then(() => setAdminRenameTarget(null))
+                                  .catch((err: any) => setError(err.message))
+                                  .finally(() => setAdminRenameLoading(false));
+                              }
+                              if (e.key === 'Escape') setAdminRenameTarget(null);
+                            }}
+                            autoFocus
+                            className="w-full p-3 bg-[#050505] border border-[#2a2a2a] rounded text-white text-center font-mono focus:border-[#C5A059] focus:outline-none mb-3"
+                            dir="rtl"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                if (!adminRenameTarget.name.trim()) return;
+                                setAdminRenameLoading(true);
+                                emit('room:override-player', {
+                                  roomId: gameState.roomId,
+                                  physicalId: adminRenameTarget.physicalId,
+                                  name: adminRenameTarget.name.trim(),
+                                  isNew: false,
+                                })
+                                  .then(() => setAdminRenameTarget(null))
+                                  .catch((err: any) => setError(err.message))
+                                  .finally(() => setAdminRenameLoading(false));
+                              }}
+                              disabled={adminRenameLoading || !adminRenameTarget.name.trim()}
+                              className="flex-1 py-2.5 bg-[#C5A059]/20 border border-[#C5A059] text-[#C5A059] text-xs font-mono uppercase tracking-widest hover:bg-[#C5A059]/30 transition-all disabled:opacity-40 rounded"
+                            >
+                              {adminRenameLoading ? '...' : '✓ حفظ'}
+                            </button>
+                            <button
+                              onClick={() => setAdminRenameTarget(null)}
+                              className="flex-1 py-2.5 bg-zinc-800 border border-zinc-600 text-zinc-300 text-xs font-mono uppercase tracking-widest hover:bg-zinc-700 transition-all rounded"
+                            >
+                              إلغاء
+                            </button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <button
+                    onClick={() => { setShowAdminRename(false); setAdminRenameTarget(null); }}
+                    className="w-full py-2 text-[#555] text-xs font-mono uppercase tracking-widest hover:text-white transition-colors border border-[#2a2a2a] hover:border-[#555]"
+                  >
+                    إغلاق
+                  </button>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     );
