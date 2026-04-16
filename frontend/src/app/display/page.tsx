@@ -942,11 +942,17 @@ export default function DisplayPage() {
 
         {/* ═══ إعادة عرض نتيجة لعبة سابقة (Replay Overlay) ═══ */}
         {replayData && (() => {
-          const mafiaRoles = ['GODFATHER', 'SILENCER', 'CHAMELEON', 'MAFIA_REGULAR'];
           const isMafiaWin = replayData.winner === 'MAFIA';
           const replayPlayers = (replayData.players || []);
+          // تصفية الفريق الفائز فقط — نفس منطق GAME_OVER
+          const winningTeamPlayers = replayPlayers.filter((p: any) => {
+            const roleStr = p.role || null;
+            if (!roleStr) return false;
+            const playerIsMafia = isMafiaRole(roleStr as Role);
+            return isMafiaWin ? playerIsMafia : !playerIsMafia;
+          });
           // فرز: الأحياء أولاً
-          const sorted = [...replayPlayers].sort((a: any, b: any) => (b.survivedToEnd ? 1 : 0) - (a.survivedToEnd ? 1 : 0));
+          const sorted = [...winningTeamPlayers].sort((a: any, b: any) => (b.survivedToEnd ? 1 : 0) - (a.survivedToEnd ? 1 : 0));
 
           return (
             <motion.div
