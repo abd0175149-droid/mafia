@@ -1125,8 +1125,8 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
             <span className="text-white tracking-widest font-mono uppercase text-sm">RESOLVE SELECTION</span>
           </button>
 
-          {/* زر العودة للتصويت العادي — يظهر فقط عندما يكون الحصر فعال */}
-          {votingLabel === 'NARROWED' && (
+          {/* زر العودة للتصويت العادي — يظهر عند الحصر أو إعادة التصويت */}
+          {votingLabel !== 'LIVE' && (
             <button
               onClick={async () => {
                 try {

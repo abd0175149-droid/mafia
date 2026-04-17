@@ -103,8 +103,8 @@ export async function unNarrowVoting(roomId: string): Promise<GameState> {
   const state = await getGameState(roomId);
   if (!state) throw new Error(`Room ${roomId} not found`);
 
-  if (state.votingState.tieBreakerLevel < 2) {
-    throw new Error('Voting is not narrowed');
+  if (state.votingState.tieBreakerLevel < 1) {
+    throw new Error('Voting is not in tiebreaker mode');
   }
 
   const alive = getAlivePlayers(state);
