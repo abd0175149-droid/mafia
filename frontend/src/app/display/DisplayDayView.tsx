@@ -343,6 +343,9 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
     const onVoteUpdate = (data: any) => {
       setCandidates(data.candidates);
       setTotalVotesCast(data.totalVotesCast);
+      if (data.tieBreakerLevel !== undefined) {
+        setTieBreakerLevel(data.tieBreakerLevel);
+      }
     };
 
     const onPending = (data: any) => {

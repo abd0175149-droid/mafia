@@ -14,6 +14,7 @@ import {
   resolveVoting,
   handleTieBreaker,
   TieBreakerAction,
+  unNarrowVoting,
 } from '../game/vote-engine.js';
 import { checkWinCondition, WinResult } from '../game/win-checker.js';
 import { isMafiaRole } from '../game/roles.js';
@@ -119,6 +120,28 @@ export function registerDayEvents(io: Server, socket: Socket) {
           totalVotesCast: state.votingState.totalVotesCast,
         });
       }
+
+      callback({ success: true });
+    } catch (err: any) {
+      callback({ success: false, error: err.message });
+    }
+  });
+
+  // ── إلغاء حصر التصويت (العودة لجميع المرشحين) ──
+  socket.on('day:un-narrow', async (data: { roomId: string }, callback) => {
+    try {
+      if (socket.data.role !== 'leader') {
+        return callback({ success: false, error: 'Only leader' });
+      }
+
+      const state = await unNarrowVoting(data.roomId);
+
+      // بث التحديث — كل المرشحين + tieBreakerLevel = 0
+      io.to(data.roomId).emit('day:voting-started', {
+        candidates: state.votingState.candidates,
+        hiddenPlayers: state.votingState.hiddenPlayersFromVoting,
+        tieBreakerLevel: state.votingState.tieBreakerLevel,
+      });
 
       callback({ success: true });
     } catch (err: any) {

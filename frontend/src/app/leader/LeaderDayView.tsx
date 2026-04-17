@@ -1115,8 +1115,8 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
           </div>
         </div>
 
-        {/* ═══ Resolve Button ═══ */}
-        <div className="text-center py-4 border-t border-[#2a2a2a] bg-[#050505]/80 backdrop-blur-sm">
+        {/* ═══ Resolve Button + Un-Narrow ═══ */}
+        <div className="text-center py-4 border-t border-[#2a2a2a] bg-[#050505]/80 backdrop-blur-sm space-y-3">
           <button
             onClick={handleResolveVoting}
             disabled={!isComplete}
@@ -1124,6 +1124,22 @@ export default function LeaderDayView({ gameState, emit, setError }: LeaderDayVi
           >
             <span className="text-white tracking-widest font-mono uppercase text-sm">RESOLVE SELECTION</span>
           </button>
+
+          {/* زر العودة للتصويت العادي — يظهر فقط عندما يكون الحصر فعال */}
+          {votingLabel === 'NARROWED' && (
+            <button
+              onClick={async () => {
+                try {
+                  await emit('day:un-narrow', { roomId: gameState.roomId });
+                } catch (err: any) {
+                  setError(err.message);
+                }
+              }}
+              className="w-full bg-[#111] border border-[#C5A059]/50 text-[#C5A059] py-3 font-mono uppercase tracking-widest text-xs hover:bg-[#C5A059]/10 transition-colors"
+            >
+              🔓 العودة للتصويت العادي (Un-narrow)
+            </button>
+          )}
         </div>
       </div>
     );

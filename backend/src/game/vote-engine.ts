@@ -90,34 +90,47 @@ export async function castVote(
   candidate.votes += delta;
   state.votingState.totalVotesCast += delta;
 
-  // ═══ إلغاء الحصر تلقائياً عند سحب كل الأصوات بعد NARROW ═══
-  // عندما يكون التصويت محصوراً (tieBreakerLevel >= 2) ويتم سحب جميع الأصوات
-  // → نعيد كل المرشحين الأحياء ونرفع الحصر
-  if (delta === -1 && state.votingState.totalVotesCast === 0 && state.votingState.tieBreakerLevel >= 2) {
-    const alive = getAlivePlayers(state);
-    const dealTargets = state.votingState.deals?.map((d: any) => d.targetPhysicalId) || [];
+  await setGameState(roomId, state);
+  return state;
+}
 
-    // إعادة بناء المرشحين من الاتفاقيات
-    const dealCandidates: Candidate[] = (state.votingState.deals || []).map((d: any) => ({
-      type: CandidateType.DEAL as const,
-      id: d.id,
-      initiatorPhysicalId: d.initiatorPhysicalId,
-      targetPhysicalId: d.targetPhysicalId,
+// ── إلغاء الحصر يدوياً (الليدر يقرر) ──────────────
+/**
+ * إلغاء حصر التصويت والعودة لجميع المرشحين الأحياء
+ * يُستدعى يدوياً من الليدر عبر day:un-narrow
+ */
+export async function unNarrowVoting(roomId: string): Promise<GameState> {
+  const state = await getGameState(roomId);
+  if (!state) throw new Error(`Room ${roomId} not found`);
+
+  if (state.votingState.tieBreakerLevel < 2) {
+    throw new Error('Voting is not narrowed');
+  }
+
+  const alive = getAlivePlayers(state);
+  const dealTargets = state.votingState.deals?.map((d: any) => d.targetPhysicalId) || [];
+
+  // إعادة بناء المرشحين من الاتفاقيات
+  const dealCandidates: Candidate[] = (state.votingState.deals || []).map((d: any) => ({
+    type: CandidateType.DEAL as const,
+    id: d.id,
+    initiatorPhysicalId: d.initiatorPhysicalId,
+    targetPhysicalId: d.targetPhysicalId,
+    votes: 0,
+  }));
+
+  // إعادة بناء مرشحين عاديين (أحياء، غير مستهدفين باتفاقية)
+  const playerCandidates: Candidate[] = alive
+    .filter(p => !dealTargets.includes(p.physicalId))
+    .map(p => ({
+      type: CandidateType.PLAYER as const,
+      targetPhysicalId: p.physicalId,
       votes: 0,
     }));
 
-    // إعادة بناء مرشحين عاديين (أحياء، غير مستهدفين باتفاقية)
-    const playerCandidates: Candidate[] = alive
-      .filter(p => !dealTargets.includes(p.physicalId))
-      .map(p => ({
-        type: CandidateType.PLAYER as const,
-        targetPhysicalId: p.physicalId,
-        votes: 0,
-      }));
-
-    state.votingState.candidates = [...dealCandidates, ...playerCandidates];
-    state.votingState.tieBreakerLevel = 0;
-  }
+  state.votingState.candidates = [...dealCandidates, ...playerCandidates];
+  state.votingState.totalVotesCast = 0;
+  state.votingState.tieBreakerLevel = 0;
 
   await setGameState(roomId, state);
   return state;
