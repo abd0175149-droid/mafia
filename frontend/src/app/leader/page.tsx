@@ -103,9 +103,10 @@ export default function LeaderPage() {
     name: '', physicalId: '', phone: '', gender: 'MALE',
   });
 
-  // ── حالة تعديل اسم اللاعب (Session View) ──
+  // ── حالة تعديل اسم/رقم اللاعب (Session View) ──
   const [sessionEditingId, setSessionEditingId] = useState<number | null>(null);
   const [sessionEditName, setSessionEditName] = useState('');
+  const [sessionEditNumber, setSessionEditNumber] = useState<number | ''>('');
   const [sessionEditLoading, setSessionEditLoading] = useState(false);
 
   // ── Auth Check ──
@@ -477,15 +478,19 @@ export default function LeaderPage() {
       });
     });
 
-    // ── تحديث اسم اللاعب (عند تعديله من الليدر) ──
+    // ── تحديث اسم/رقم اللاعب (عند تعديله من الليدر) ──
     const offPlayerUpdated = on('room:player-updated', (data: any) => {
       if (data.physicalId && data.name) {
         setGameState(prev => {
           if (!prev) return prev;
+          // إذا تغيّر الرقم (oldPhysicalId موجود) → نبحث بالرقم القديم ونحدّث الجديد
+          const lookupId = data.oldPhysicalId || data.physicalId;
           return {
             ...prev,
             players: prev.players.map((p: any) =>
-              p.physicalId === data.physicalId ? { ...p, name: data.name } : p
+              p.physicalId === lookupId
+                ? { ...p, name: data.name, physicalId: data.physicalId }
+                : p
             ),
           };
         });
@@ -934,14 +939,14 @@ export default function LeaderPage() {
                       {/* ✏️ زر تعديل اسم اللاعب — يظهر عند hover في Session View */}
                       {!showExcludeUI && !isSessionEditing && (
                         <button
-                          onClick={() => { setSessionEditingId(p.physicalId); setSessionEditName(p.name); }}
+                          onClick={() => { setSessionEditingId(p.physicalId); setSessionEditName(p.name); setSessionEditNumber(p.physicalId); }}
                           className="absolute -top-2 -left-2 w-6 h-6 rounded-full bg-[#1a1a1a] border border-[#C5A059]/50 text-[#C5A059] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#C5A059]/20 hover:scale-110 z-20 text-[10px]"
                           title="تعديل الاسم"
                         >
                           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
                         </button>
                       )}
-                      {/* ✏️ Overlay تعديل الاسم في Session View */}
+                      {/* ✏️ Overlay تعديل الاسم والرقم في Session View */}
                       <AnimatePresence>
                         {isSessionEditing && (
                           <motion.div
@@ -950,7 +955,18 @@ export default function LeaderPage() {
                             exit={{ opacity: 0 }}
                             className="absolute inset-0 bg-black/90 backdrop-blur-sm rounded-2xl border-2 border-[#C5A059]/50 flex flex-col items-center justify-center p-3 z-30"
                           >
-                            <span className="text-[#C5A059] text-[8px] font-mono uppercase tracking-widest mb-1.5 font-bold">EDIT NAME</span>
+                            <span className="text-[#C5A059] text-[8px] font-mono uppercase tracking-widest mb-1.5 font-bold">EDIT PLAYER</span>
+                            {/* حقل الرقم */}
+                            <input
+                              type="number"
+                              value={sessionEditNumber}
+                              onChange={(e) => setSessionEditNumber(e.target.value ? Number(e.target.value) : '')}
+                              min={1}
+                              max={99}
+                              placeholder="#"
+                              className="w-full p-1.5 bg-[#0c0c0c] border border-[#C5A059]/30 rounded text-[#C5A059] text-center text-lg font-mono font-black focus:border-[#C5A059] focus:outline-none mb-1.5"
+                            />
+                            {/* حقل الاسم */}
                             <input
                               type="text"
                               value={sessionEditName}
@@ -958,12 +974,19 @@ export default function LeaderPage() {
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter' && sessionEditName.trim()) {
                                   setSessionEditLoading(true);
-                                  emit('room:override-player', { roomId: gameState.roomId, physicalId: p.physicalId, name: sessionEditName.trim(), isNew: false })
-                                    .then(() => { setSessionEditingId(null); setSessionEditName(''); })
+                                  const newNum = sessionEditNumber ? Number(sessionEditNumber) : undefined;
+                                  emit('room:override-player', {
+                                    roomId: gameState.roomId,
+                                    physicalId: p.physicalId,
+                                    name: sessionEditName.trim(),
+                                    newPhysicalId: newNum !== p.physicalId ? newNum : undefined,
+                                    isNew: false,
+                                  })
+                                    .then(() => { setSessionEditingId(null); setSessionEditName(''); setSessionEditNumber(''); })
                                     .catch((err: any) => setError(err.message))
                                     .finally(() => setSessionEditLoading(false));
                                 }
-                                if (e.key === 'Escape') { setSessionEditingId(null); setSessionEditName(''); }
+                                if (e.key === 'Escape') { setSessionEditingId(null); setSessionEditName(''); setSessionEditNumber(''); }
                               }}
                               autoFocus
                               className="w-full p-1.5 bg-[#0c0c0c] border border-[#C5A059]/30 rounded text-white text-center text-xs font-mono focus:border-[#C5A059] focus:outline-none mb-2"
@@ -974,8 +997,15 @@ export default function LeaderPage() {
                                 onClick={() => {
                                   if (!sessionEditName.trim()) return;
                                   setSessionEditLoading(true);
-                                  emit('room:override-player', { roomId: gameState.roomId, physicalId: p.physicalId, name: sessionEditName.trim(), isNew: false })
-                                    .then(() => { setSessionEditingId(null); setSessionEditName(''); })
+                                  const newNum = sessionEditNumber ? Number(sessionEditNumber) : undefined;
+                                  emit('room:override-player', {
+                                    roomId: gameState.roomId,
+                                    physicalId: p.physicalId,
+                                    name: sessionEditName.trim(),
+                                    newPhysicalId: newNum !== p.physicalId ? newNum : undefined,
+                                    isNew: false,
+                                  })
+                                    .then(() => { setSessionEditingId(null); setSessionEditName(''); setSessionEditNumber(''); })
                                     .catch((err: any) => setError(err.message))
                                     .finally(() => setSessionEditLoading(false));
                                 }}
@@ -983,7 +1013,7 @@ export default function LeaderPage() {
                                 className="flex-1 bg-[#C5A059]/20 border border-[#C5A059] text-[#C5A059] py-1 rounded text-[9px] font-mono hover:bg-[#C5A059]/30 disabled:opacity-40"
                               >{sessionEditLoading ? '...' : '✓'}</button>
                               <button
-                                onClick={() => { setSessionEditingId(null); setSessionEditName(''); }}
+                                onClick={() => { setSessionEditingId(null); setSessionEditName(''); setSessionEditNumber(''); }}
                                 className="flex-1 bg-zinc-800 border border-zinc-600 text-zinc-300 py-1 rounded text-[9px] font-mono hover:bg-zinc-700"
                               >✕</button>
                             </div>

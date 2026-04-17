@@ -228,6 +228,7 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
     roomId: string;
     physicalId: number;
     name: string;
+    newPhysicalId?: number;
     isNew?: boolean;
   }, callback) => {
     try {
@@ -238,19 +239,36 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
       let state = await getRoom(data.roomId);
       if (!state) return callback({ success: false, error: 'Room not found' });
 
-      // ✅ السماح بتعديل الاسم فقط قبل توزيع الأدوار
+      // ✅ السماح بتعديل الاسم/الرقم فقط قبل توزيع الأدوار
       if (!data.isNew && state.phase !== Phase.LOBBY && state.phase !== Phase.ROLE_GENERATION) {
-        return callback({ success: false, error: 'لا يمكن تعديل الأسماء بعد توزيع الأدوار' });
+        return callback({ success: false, error: 'لا يمكن تعديل البيانات بعد توزيع الأدوار' });
       }
 
       if (data.isNew) {
         state = await addPlayer(data.roomId, data.physicalId, data.name);
       } else {
-        state = await updatePlayer(data.roomId, data.physicalId, { name: data.name });
+        // بناء كائن التحديثات
+        const updates: any = { name: data.name };
+
+        // ═══ تغيير رقم اللاعب (إن وُجد) ═══
+        if (data.newPhysicalId !== undefined && data.newPhysicalId !== data.physicalId) {
+          // التحقق من أن الرقم الجديد غير مأخوذ
+          const existing = state.players.find(p => p.physicalId === data.newPhysicalId);
+          if (existing) {
+            return callback({ success: false, error: `الرقم ${data.newPhysicalId} مستخدم من لاعب آخر (${existing.name})` });
+          }
+          if (data.newPhysicalId < 1 || data.newPhysicalId > 99) {
+            return callback({ success: false, error: 'الرقم يجب أن يكون بين 1 و 99' });
+          }
+          updates.physicalId = data.newPhysicalId;
+        }
+
+        state = await updatePlayer(data.roomId, data.physicalId, updates);
       }
 
       io.to(data.roomId).emit('room:player-updated', {
-        physicalId: data.physicalId,
+        physicalId: data.newPhysicalId || data.physicalId,
+        oldPhysicalId: data.newPhysicalId ? data.physicalId : undefined,
         name: data.name,
         totalPlayers: state.players.length,
       });
