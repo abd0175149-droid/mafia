@@ -103,11 +103,16 @@ export default function LeaderPage() {
     name: '', physicalId: '', phone: '', gender: 'MALE',
   });
 
-  // ── حالة تعديل اسم/رقم اللاعب (Session View) ──
+  // ── حالة تعديل اسم اللاعب (Session View) ──
   const [sessionEditingId, setSessionEditingId] = useState<number | null>(null);
   const [sessionEditName, setSessionEditName] = useState('');
-  const [sessionEditNumber, setSessionEditNumber] = useState<number | ''>('');
   const [sessionEditLoading, setSessionEditLoading] = useState(false);
+
+  // ── مودال تعديل الأرقام (Renumber Modal) ──
+  const [showRenumberModal, setShowRenumberModal] = useState(false);
+  const [renumberMap, setRenumberMap] = useState<Record<number, number>>({});
+  const [renumberLoading, setRenumberLoading] = useState(false);
+  const [renumberError, setRenumberError] = useState('');
 
   // ── Auth Check ──
   useEffect(() => {
@@ -900,6 +905,19 @@ export default function LeaderPage() {
                 <h3 className="text-xs font-mono tracking-[0.3em] text-[#555] uppercase">
                   AGENTS ROSTER ({gameState.players.length})
                 </h3>
+                {/* زر تعديل الأرقام */}
+                <button
+                  onClick={() => {
+                    const map: Record<number, number> = {};
+                    gameState.players.forEach((p: any) => { map[p.physicalId] = p.physicalId; });
+                    setRenumberMap(map);
+                    setRenumberError('');
+                    setShowRenumberModal(true);
+                  }}
+                  className="text-[#C5A059] text-[10px] font-mono uppercase tracking-[0.15em] hover:text-yellow-400 transition-colors border border-[#C5A059]/30 px-3 py-1.5 hover:border-[#C5A059]"
+                >
+                  #️⃣ تعديل الأرقام
+                </button>
               </div>
 
               {gameState.players.length === 0 ? (
@@ -939,14 +957,14 @@ export default function LeaderPage() {
                       {/* ✏️ زر تعديل اسم اللاعب — يظهر عند hover في Session View */}
                       {!showExcludeUI && !isSessionEditing && (
                         <button
-                          onClick={() => { setSessionEditingId(p.physicalId); setSessionEditName(p.name); setSessionEditNumber(p.physicalId); }}
+                          onClick={() => { setSessionEditingId(p.physicalId); setSessionEditName(p.name); }}
                           className="absolute -top-2 -left-2 w-6 h-6 rounded-full bg-[#1a1a1a] border border-[#C5A059]/50 text-[#C5A059] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[#C5A059]/20 hover:scale-110 z-20 text-[10px]"
                           title="تعديل الاسم"
                         >
                           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
                         </button>
                       )}
-                      {/* ✏️ Overlay تعديل الاسم والرقم في Session View */}
+                      {/* ✏️ Overlay تعديل الاسم في Session View */}
                       <AnimatePresence>
                         {isSessionEditing && (
                           <motion.div
@@ -955,18 +973,7 @@ export default function LeaderPage() {
                             exit={{ opacity: 0 }}
                             className="absolute inset-0 bg-black/90 backdrop-blur-sm rounded-2xl border-2 border-[#C5A059]/50 flex flex-col items-center justify-center p-3 z-30"
                           >
-                            <span className="text-[#C5A059] text-[8px] font-mono uppercase tracking-widest mb-1.5 font-bold">EDIT PLAYER</span>
-                            {/* حقل الرقم */}
-                            <input
-                              type="number"
-                              value={sessionEditNumber}
-                              onChange={(e) => setSessionEditNumber(e.target.value ? Number(e.target.value) : '')}
-                              min={1}
-                              max={99}
-                              placeholder="#"
-                              className="w-full p-1.5 bg-[#0c0c0c] border border-[#C5A059]/30 rounded text-[#C5A059] text-center text-lg font-mono font-black focus:border-[#C5A059] focus:outline-none mb-1.5"
-                            />
-                            {/* حقل الاسم */}
+                            <span className="text-[#C5A059] text-[8px] font-mono uppercase tracking-widest mb-1.5 font-bold">EDIT NAME</span>
                             <input
                               type="text"
                               value={sessionEditName}
@@ -974,19 +981,12 @@ export default function LeaderPage() {
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter' && sessionEditName.trim()) {
                                   setSessionEditLoading(true);
-                                  const newNum = sessionEditNumber ? Number(sessionEditNumber) : undefined;
-                                  emit('room:override-player', {
-                                    roomId: gameState.roomId,
-                                    physicalId: p.physicalId,
-                                    name: sessionEditName.trim(),
-                                    newPhysicalId: newNum !== p.physicalId ? newNum : undefined,
-                                    isNew: false,
-                                  })
-                                    .then(() => { setSessionEditingId(null); setSessionEditName(''); setSessionEditNumber(''); })
+                                  emit('room:override-player', { roomId: gameState.roomId, physicalId: p.physicalId, name: sessionEditName.trim(), isNew: false })
+                                    .then(() => { setSessionEditingId(null); setSessionEditName(''); })
                                     .catch((err: any) => setError(err.message))
                                     .finally(() => setSessionEditLoading(false));
                                 }
-                                if (e.key === 'Escape') { setSessionEditingId(null); setSessionEditName(''); setSessionEditNumber(''); }
+                                if (e.key === 'Escape') { setSessionEditingId(null); setSessionEditName(''); }
                               }}
                               autoFocus
                               className="w-full p-1.5 bg-[#0c0c0c] border border-[#C5A059]/30 rounded text-white text-center text-xs font-mono focus:border-[#C5A059] focus:outline-none mb-2"
@@ -997,15 +997,8 @@ export default function LeaderPage() {
                                 onClick={() => {
                                   if (!sessionEditName.trim()) return;
                                   setSessionEditLoading(true);
-                                  const newNum = sessionEditNumber ? Number(sessionEditNumber) : undefined;
-                                  emit('room:override-player', {
-                                    roomId: gameState.roomId,
-                                    physicalId: p.physicalId,
-                                    name: sessionEditName.trim(),
-                                    newPhysicalId: newNum !== p.physicalId ? newNum : undefined,
-                                    isNew: false,
-                                  })
-                                    .then(() => { setSessionEditingId(null); setSessionEditName(''); setSessionEditNumber(''); })
+                                  emit('room:override-player', { roomId: gameState.roomId, physicalId: p.physicalId, name: sessionEditName.trim(), isNew: false })
+                                    .then(() => { setSessionEditingId(null); setSessionEditName(''); })
                                     .catch((err: any) => setError(err.message))
                                     .finally(() => setSessionEditLoading(false));
                                 }}
@@ -1013,7 +1006,7 @@ export default function LeaderPage() {
                                 className="flex-1 bg-[#C5A059]/20 border border-[#C5A059] text-[#C5A059] py-1 rounded text-[9px] font-mono hover:bg-[#C5A059]/30 disabled:opacity-40"
                               >{sessionEditLoading ? '...' : '✓'}</button>
                               <button
-                                onClick={() => { setSessionEditingId(null); setSessionEditName(''); setSessionEditNumber(''); }}
+                                onClick={() => { setSessionEditingId(null); setSessionEditName(''); }}
                                 className="flex-1 bg-zinc-800 border border-zinc-600 text-zinc-300 py-1 rounded text-[9px] font-mono hover:bg-zinc-700"
                               >✕</button>
                             </div>
@@ -1048,6 +1041,156 @@ export default function LeaderPage() {
                 </div>
               )}
             </div>
+
+            {/* ══════ مودال تعديل الأرقام ══════ */}
+            <AnimatePresence>
+              {showRenumberModal && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                  onClick={() => setShowRenumberModal(false)}
+                >
+                  <motion.div
+                    initial={{ scale: 0.9, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.9, opacity: 0 }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl w-full max-w-md max-h-[80vh] flex flex-col overflow-hidden"
+                  >
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-[#2a2a2a]">
+                      <h3 className="text-lg font-black text-[#C5A059]" style={{ fontFamily: 'Amiri, serif' }}>تعديل أرقام اللاعبين</h3>
+                      <button onClick={() => setShowRenumberModal(false)} className="text-[#555] hover:text-white text-xl">✕</button>
+                    </div>
+
+                    {/* Error */}
+                    {renumberError && (
+                      <div className="mx-5 mt-3 p-2 bg-[#8A0303]/20 border border-[#8A0303] text-[#ff6666] text-xs font-mono text-center">
+                        {renumberError}
+                      </div>
+                    )}
+
+                    {/* Table Header */}
+                    <div className="grid grid-cols-3 gap-2 px-5 py-3 border-b border-[#1a1a1a] text-[9px] font-mono text-[#808080] uppercase tracking-widest">
+                      <span className="text-center">الرقم الجديد</span>
+                      <span className="text-center">الرقم القديم</span>
+                      <span className="text-right">الاسم</span>
+                    </div>
+
+                    {/* Scrollable rows */}
+                    <div className="flex-1 overflow-y-auto px-5 py-2">
+                      {gameState.players
+                        .slice()
+                        .sort((a: any, b: any) => a.physicalId - b.physicalId)
+                        .map((p: any) => {
+                          const newVal = renumberMap[p.physicalId] ?? p.physicalId;
+                          const isChanged = newVal !== p.physicalId;
+                          // التحقق من التكرار
+                          const allNewValues = Object.values(renumberMap);
+                          const isDuplicate = allNewValues.filter(v => v === newVal).length > 1;
+
+                          return (
+                            <div key={p.physicalId} className={`grid grid-cols-3 gap-2 items-center py-2 border-b border-[#111] ${isDuplicate ? 'bg-[#8A0303]/10' : ''}`}>
+                              {/* الرقم الجديد — input */}
+                              <div className="flex justify-center">
+                                <input
+                                  type="number"
+                                  value={newVal}
+                                  onChange={(e) => {
+                                    const val = e.target.value ? Number(e.target.value) : p.physicalId;
+                                    setRenumberMap(prev => ({ ...prev, [p.physicalId]: val }));
+                                    setRenumberError('');
+                                  }}
+                                  min={1}
+                                  max={99}
+                                  className={`w-16 h-10 text-center font-mono font-black text-lg rounded border ${
+                                    isDuplicate
+                                      ? 'border-[#8A0303] text-[#ff4444] bg-[#8A0303]/20'
+                                      : isChanged
+                                        ? 'border-[#C5A059] text-[#C5A059] bg-[#C5A059]/10'
+                                        : 'border-[#2a2a2a] text-white bg-[#050505]'
+                                  } focus:border-[#C5A059] focus:outline-none`}
+                                />
+                              </div>
+                              {/* الرقم القديم */}
+                              <div className="flex justify-center">
+                                <span className={`w-10 h-10 flex items-center justify-center font-mono font-bold text-base rounded border ${
+                                  isChanged ? 'border-[#555] text-[#555] line-through' : 'border-[#2a2a2a] text-[#808080]'
+                                } bg-[#050505]`}>
+                                  {p.physicalId}
+                                </span>
+                              </div>
+                              {/* الاسم */}
+                              <div className="text-right">
+                                <span className="text-white text-sm font-bold" style={{ fontFamily: 'Amiri, serif' }}>{p.name}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+
+                    {/* Footer Actions */}
+                    <div className="px-5 py-4 border-t border-[#2a2a2a] flex gap-3">
+                      <button
+                        onClick={async () => {
+                          // بناء قائمة التغييرات
+                          const changes = Object.entries(renumberMap).map(([oldId, newId]) => ({
+                            oldPhysicalId: Number(oldId),
+                            newPhysicalId: Number(newId),
+                          }));
+
+                          // التحقق محلياً من التكرار
+                          const newIds = changes.map(c => c.newPhysicalId);
+                          if (new Set(newIds).size !== newIds.length) {
+                            setRenumberError('يوجد أرقام مكررة — كل لاعب يحتاج رقم مختلف');
+                            return;
+                          }
+
+                          setRenumberLoading(true);
+                          setRenumberError('');
+                          try {
+                            const res = await emit('room:renumber-players', {
+                              roomId: gameState.roomId,
+                              changes,
+                            });
+                            if (!res.success) throw new Error(res.error);
+
+                            // تحديث الحالة المحلية فوراً
+                            setGameState((prev: any) => {
+                              if (!prev) return prev;
+                              const updated = prev.players.map((p: any) => {
+                                const change = changes.find((c: any) => c.oldPhysicalId === p.physicalId);
+                                return change ? { ...p, physicalId: change.newPhysicalId } : p;
+                              });
+                              updated.sort((a: any, b: any) => a.physicalId - b.physicalId);
+                              return { ...prev, players: updated };
+                            });
+
+                            setShowRenumberModal(false);
+                          } catch (err: any) {
+                            setRenumberError(err.message);
+                          } finally {
+                            setRenumberLoading(false);
+                          }
+                        }}
+                        disabled={renumberLoading}
+                        className="flex-1 bg-[#C5A059]/20 border border-[#C5A059] text-[#C5A059] py-3 font-mono uppercase tracking-widest text-xs hover:bg-[#C5A059]/30 disabled:opacity-40 transition-colors"
+                      >
+                        {renumberLoading ? '...' : '✓ حفظ الأرقام'}
+                      </button>
+                      <button
+                        onClick={() => setShowRenumberModal(false)}
+                        className="px-6 py-3 bg-zinc-800 border border-zinc-600 text-zinc-300 font-mono uppercase tracking-widest text-xs hover:bg-zinc-700 transition-colors"
+                      >
+                        إلغاء
+                      </button>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* أزرار التحكم */}
             <div className="flex flex-col items-center gap-4 mb-8">

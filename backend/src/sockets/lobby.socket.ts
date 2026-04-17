@@ -223,6 +223,63 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
     }
   });
 
+  // ── صلاحية الليدر: تغيير أرقام اللاعبين جماعياً ──
+  socket.on('room:renumber-players', async (data: {
+    roomId: string;
+    changes: Array<{ oldPhysicalId: number; newPhysicalId: number }>;
+  }, callback) => {
+    try {
+      if (socket.data.role !== 'leader') {
+        return callback({ success: false, error: 'Only leader' });
+      }
+
+      let state = await getRoom(data.roomId);
+      if (!state) return callback({ success: false, error: 'Room not found' });
+
+      if (state.phase !== Phase.LOBBY && state.phase !== Phase.ROLE_GENERATION) {
+        return callback({ success: false, error: 'لا يمكن تغيير الأرقام بعد بدء اللعبة' });
+      }
+
+      // فلترة التغييرات الفعلية فقط
+      const actualChanges = data.changes.filter(c => c.oldPhysicalId !== c.newPhysicalId);
+      if (actualChanges.length === 0) {
+        return callback({ success: true });
+      }
+
+      // التحقق من عدم وجود أرقام جديدة مكررة
+      const allNewIds = data.changes.map(c => c.newPhysicalId);
+      const uniqueNewIds = new Set(allNewIds);
+      if (uniqueNewIds.size !== allNewIds.length) {
+        return callback({ success: false, error: 'يوجد أرقام مكررة في القائمة الجديدة' });
+      }
+
+      // التحقق أن كل الأرقام بين 1-99
+      if (allNewIds.some(id => id < 1 || id > 99)) {
+        return callback({ success: false, error: 'الأرقام يجب أن تكون بين 1 و 99' });
+      }
+
+      // تطبيق التغييرات
+      for (const change of actualChanges) {
+        const player = state.players.find(p => p.physicalId === change.oldPhysicalId);
+        if (player) {
+          player.physicalId = change.newPhysicalId;
+        }
+      }
+
+      // إعادة الترتيب حسب الرقم الجديد
+      state.players.sort((a, b) => a.physicalId - b.physicalId);
+
+      await setGameState(data.roomId, state);
+
+      // بث التحديث الكامل لكل الشاشات
+      io.to(data.roomId).emit('game:state-sync', state);
+
+      callback({ success: true });
+    } catch (err: any) {
+      callback({ success: false, error: err.message });
+    }
+  });
+
   // ── صلاحية الليدر: تعديل/إضافة لاعب يدوياً ──
   socket.on('room:override-player', async (data: {
     roomId: string;
