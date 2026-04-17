@@ -109,6 +109,7 @@ export function registerDayEvents(io: Server, socket: Socket) {
       io.to(data.roomId).emit('day:vote-update', {
         candidates: state.votingState.candidates,
         totalVotesCast: state.votingState.totalVotesCast,
+        tieBreakerLevel: state.votingState.tieBreakerLevel,
       });
 
       // إشعار باكتمال التصويت — الليدر يقرر الانتقال يدوياً بضغط Resolve

@@ -696,7 +696,7 @@ export default function DisplayPage() {
                             flippable={false}
                             showVoting={false}
                             isAlive={p.isAlive !== false}
-                            size={players.length <= 12 ? 'md' : 'sm'}
+                            size={players.length <= 8 ? 'lg' : players.length <= 14 ? 'md' : 'sm'}
                           />
                         </motion.div>
                       ))}
@@ -757,7 +757,7 @@ export default function DisplayPage() {
                           flippable={false}
                           showVoting={false}
                           isAlive={p.isAlive !== false}
-                          size={players.length <= 12 ? 'md' : 'sm'}
+                          size={players.length <= 8 ? 'lg' : players.length <= 14 ? 'md' : 'sm'}
                         />
                       </motion.div>
                    ))}

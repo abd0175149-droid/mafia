@@ -431,6 +431,15 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
   // المسكت يمكنه التصويت — لذا الحد = كل الأحياء
   const aliveCount = players.filter((p: any) => p.isAlive).length;
 
+  // حجم ديناميكي للكروت — أكبر حجم ممكن يناسب الشاشة
+  const getCardSize = (count: number): 'sm' | 'md' | 'lg' => {
+    if (count <= 8) return 'lg';
+    if (count <= 14) return 'md';
+    return 'sm';
+  };
+  const discussionCardSize = getCardSize(aliveCount);
+  const votingCardSize = getCardSize(candidates.length);
+
   const prevVotesRef = useRef(totalVotesCast);
   const sortedCandidates = [...candidates].sort((a,b) => b.votes - a.votes);
   const currentOrderStr = sortedCandidates.map(c => c.targetPhysicalId).join(',');
@@ -592,7 +601,7 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
                             gender={p.gender === 'FEMALE' ? 'FEMALE' : 'MALE'}
                             isFlipped={false}
                             flippable={false}
-                            size={players.length <= 12 ? 'md' : 'sm'}
+                            size={discussionCardSize}
                             isAlive={p.isAlive}
                             className={isSpeaker ? 'shadow-[0_0_50px_rgba(197,160,89,0.4)] border-2 border-[#C5A059]' : ''}
                           />
@@ -745,7 +754,7 @@ export default function DisplayDayView({ roomId, players, initialDiscussionState
                         showVoting={true}
                         votes={candidate.votes}
                         gender={targetGender === 'FEMALE' ? 'FEMALE' : 'MALE'}
-                        size="sm"
+                        size={votingCardSize}
                         isAlive={true}
                       />
                     </div>

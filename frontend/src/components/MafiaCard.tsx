@@ -229,6 +229,14 @@ export default function MafiaCard({
   const nameSize = { sm: 'text-base', md: 'text-xl', lg: 'text-2xl', fluid: 'text-xl md:text-2xl lg:text-3xl' }[size];
   const roleNameSize = { sm: 'text-lg', md: 'text-2xl', lg: 'text-3xl', fluid: 'text-2xl md:text-3xl lg:text-4xl' }[size];
 
+  // حجم رقم اللاعب (Badge) — ديناميكي للقراءة من بعد على TV
+  const numberBadgeSize = { sm: 'w-14 h-14', md: 'w-16 h-16', lg: 'w-20 h-20', fluid: 'w-16 h-16' }[size];
+  const numberTextSize = { sm: 'text-2xl', md: 'text-3xl', lg: 'text-4xl', fluid: 'text-3xl' }[size];
+
+  // حجم عدد الأصوات — كبير جداً للقراءة من بعد
+  const voteCountSize = { sm: 'text-4xl', md: 'text-5xl', lg: 'text-6xl', fluid: 'text-5xl' }[size];
+  const voteLabelSize = { sm: 'text-[10px]', md: 'text-xs', lg: 'text-sm', fluid: 'text-xs' }[size];
+
   const handleCardClick = () => {
     if (!flippable) return;
     if (onFlip) {
@@ -285,9 +293,9 @@ export default function MafiaCard({
             {/* ── الصف العلوي: الرقم + الشعار ── */}
             <div className="flex items-center justify-between mb-4">
               {/* رقم اللاعب */}
-              <div className={`w-12 h-12 border-2 ${
+              <div className={`${numberBadgeSize} border-2 ${
                 isFemale ? 'border-purple-400/70 text-purple-300' : 'border-[#C5A059]/70 text-[#C5A059]'
-              } flex items-center justify-center font-mono text-xl font-black rounded-lg bg-black/60`}>
+              } flex items-center justify-center font-mono ${numberTextSize} font-black rounded-lg bg-black/60`}>
                 {playerNumber}
               </div>
 
@@ -343,10 +351,10 @@ export default function MafiaCard({
                 )}
 
                 <div className="relative z-10 flex items-center justify-between">
-                  <span className="text-[10px] text-zinc-500 font-mono tracking-widest uppercase group-hover:text-zinc-300 transition-colors">
+                  <span className={`${voteLabelSize} text-zinc-500 font-mono tracking-widest uppercase group-hover:text-zinc-300 transition-colors`}>
                     التصويت نهاراً
                   </span>
-                  <span className={`font-mono font-black text-2xl transition-all duration-300 ${
+                  <span className={`font-mono font-black ${voteCountSize} transition-all duration-300 ${
                     votes > 0
                       ? 'text-red-500 scale-110 drop-shadow-[0_0_10px_rgba(239,68,68,0.6)]'
                       : 'text-zinc-600 group-hover:text-zinc-400'
