@@ -742,7 +742,7 @@ export default function LeaderPage() {
                 <span className="text-lg font-mono text-white w-8 text-center">{gameState.config.maxPlayers}</span>
                 <button
                   onClick={async () => {
-                    const newMax = Math.min(27, gameState.config.maxPlayers + 1);
+                    const newMax = Math.min(50, gameState.config.maxPlayers + 1);
                     try {
                       await emit('room:update-max-players', { roomId: gameState.roomId, maxPlayers: newMax });
                       setGameState((prev: any) => prev ? { ...prev, config: { ...prev.config, maxPlayers: newMax } } : prev);

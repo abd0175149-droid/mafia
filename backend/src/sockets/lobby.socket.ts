@@ -258,11 +258,18 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
         return callback({ success: false, error: 'الأرقام يجب أن تكون بين 1 و 99' });
       }
 
-      // تطبيق التغييرات
-      for (const change of actualChanges) {
-        const player = state.players.find(p => p.physicalId === change.oldPhysicalId);
-        if (player) {
-          player.physicalId = change.newPhysicalId;
+      // تطبيق التغييرات بأمان (بدون تعارض عند مبادلة الأرقام)
+      // بناء خريطة oldId → newId من كل التغييرات
+      const idMap = new Map<number, number>();
+      for (const change of data.changes) {
+        idMap.set(change.oldPhysicalId, change.newPhysicalId);
+      }
+
+      // تطبيق دفعة واحدة — كل لاعب يحصل على رقمه الجديد
+      for (const player of state.players) {
+        const newId = idMap.get(player.physicalId);
+        if (newId !== undefined) {
+          player.physicalId = newId;
         }
       }
 
@@ -432,7 +439,7 @@ export function registerLobbyEvents(io: Server, socket: Socket) {
         return callback({ success: false, error: 'يمكن التعديل في اللوبي أو بعد انتهاء اللعبة فقط' });
       }
 
-      const newMax = Math.min(Math.max(data.maxPlayers, 6), 27);
+      const newMax = Math.min(Math.max(data.maxPlayers, 6), 50);
       const oldMax = state.config.maxPlayers;
 
       if (newMax === oldMax) {
